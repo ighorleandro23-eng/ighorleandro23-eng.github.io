@@ -184,6 +184,9 @@ async function calculateFitness(individual, allLines, linhaFalhaKeys, nb, vMin, 
 // --- Listener Principal do Worker ---
 self.onmessage = async (event) => {
     const { individual, index, staticData } = event.data;
+    // --- ADICIONE ESTA LINHA ---
+    console.log(`[Worker] Avaliando Indivíduo ${index}, Genes:`, individual);
+    // ---------------------------
     // Desempacota staticData com os novos parâmetros
     const { allLines, linhaFalhaKeys, nb, vMin, vMax, maxNALinhas, cargas, Sbase, Vbase_kV } = staticData;
 
@@ -205,3 +208,4 @@ self.onmessage = async (event) => {
         });
     }
 };
+
