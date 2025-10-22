@@ -190,6 +190,7 @@ self.onmessage = async (event) => {
     try {
         // *** CORREÇÃO APLICADA AQUI ***
         // Passa maxNALinhas para a função
+        // Garante que Vbase_kV está correto (sem "VV")
         const result = await calculateFitness(individual, allLines, linhaFalhaKeys, nb, vMin, vMax, maxNALinhas, cargas, Sbase, Vbase_kV);
         self.postMessage({ index: index, result: result });
     } catch (error) {
