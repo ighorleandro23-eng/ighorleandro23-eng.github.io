@@ -55,7 +55,24 @@
         .status-bad { color: var(--bad); font-weight: 600; }
         .status-warn { color: var(--warn); font-weight: 600; }
         .newly-added-line td { background-color: rgba(40, 167, 69, 0.1); font-weight: 500; }
-        .svg-wrap { width: 100%; height: auto; padding-bottom: calc(520 / 1200 * 100%); position: relative; background: var(--utfpr-gray-light); border: 1px solid var(--border-color); border-radius: 12px; overflow: hidden; }
+        
+        /* --- MUDANÇA 3 (CSS para Panning) --- */
+        .svg-wrap { 
+            width: 100%; 
+            height: auto; 
+            padding-bottom: calc(520 / 1200 * 100%); 
+            position: relative; 
+            background: var(--utfpr-gray-light); 
+            border: 1px solid var(--border-color); 
+            border-radius: 12px; 
+            overflow: hidden; 
+            cursor: grab;
+        }
+        .svg-wrap:active {
+            cursor: grabbing;
+        }
+        /* --- FIM MUDANÇA 3 --- */
+
         .svg-wrap svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
         .legend { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px }
         .pill { display: inline-flex; gap: 8px; align-items: center; background: var(--utfpr-gray-light); border: 1px solid var(--border-color); color: var(--text-dark); padding: 8px 15px; border-radius: 999px; font-size: 12px; font-weight: 500;}
@@ -96,9 +113,20 @@
             </div>
             <div class="card" style="margin-top: 20px;">
                 <h2>Dados da Rede</h2>
-                <div class="row" style="margin-bottom: 20px; justify-content: space-between;"> <button class="btn secondary" id="btnGerar">Atualizar Barras/Cargas</button> <button class="btn secondary" id="btnAddBarra">+ Add Barra</button> <button class="btn primary" id="btnExemplo10">Carregar Exemplo 10 Barras</button> </div>
+                <div class="row" style="margin-bottom: 20px; justify-content: space-between;"> 
+                    <button class="btn secondary" id="btnGerar">Atualizar Barras/Cargas</button> 
+                    <button class="btn secondary" id="btnAddBarra">+ Add Barra</button> 
+                    <button class="btn primary" id="btnExemplo10">Carregar Exemplo 10 Barras</button> 
+                </div>
                 <h3>Malha da Rede (Sistema Base)</h3> <button class="btn primary" id="btnAddLinha" style="margin-bottom:12px">+ Add Linha</button> <div class="table-scroll"> <table id="tblMalha"> <thead><tr><th>#</th><th>De</th><th>Para</th><th>R (ohm)</th><th>X (ohm)</th><th>Smax (MVA)</th><th>Ações</th></tr></thead> <tbody></tbody> </table> </div>
-                <h3>Cargas nas Barras</h3> <div class="table-scroll"> <table id="tblCargas"> <thead><tr><th>Barra</th><th>P (MW)</th><th>Q (MVAr)</th></tr></thead> <tbody></tbody> </table> </div>
+                <h3>Cargas nas Barras</h3> 
+                <div class="table-scroll"> 
+                    <table id="tblCargas"> 
+                        <thead>
+                            </thead> 
+                        <tbody></tbody> 
+                    </table> 
+                </div>
             </div>
         </div>
         <div>
@@ -108,7 +136,7 @@
                 
                 <h3>2. Parâmetros do GA</h3> <div class="ga-params-grid"> <div> <label for="gaPopSize">População</label> <input id="gaPopSize" type="number" class="mono" value="100" step="10" min="10"/> </div> <div> <label for="gaMaxGen">Gerações</label> <input id="gaMaxGen" type="number" class="mono" value="100" step="10" min="10"/> </div> <div> <label for="gaMutationRate">Mutação (%)</label> <input id="gaMutationRate" type="number" class="mono" value="15" min="0" max="100" step="1"/> </div> <div> <label for="gaPesoChave">Peso Custo Linha Base</label> <input id="gaPesoChave" type="number" class="mono" value="0.5" min="0" step="0.05" /> </div> </div>
                 
-                <h3>3. Parâmetros de Expansão (Linhas NA)</h3> <div class="ga-params-grid"> <div> <label for="gaCustoNA">Custo Linha NA</label> <input id="gaCustoNA" type="number" class="mono" value="10.0" min="0" step="0.1"/> </div> <div> <label for="gaMaxNA">Nº Máx. Linhas NA</label> <input id="gaMaxNA" type="number" class="mono" value="3" min="0" step="1"/> </div> <div> <label for="gaR_NA">R Padrão (ohm)</label> <input id="gaR_NA" type="number" class="mono" value="0.1" step="0.01" min="0"/> </div> <div> <label for="gaX_NA">X Padrão (ohm)</label> <input id="gaX_NA" type="number" class="mono" value="0.2" step="0.01" min="0"/> </div> <div> <label for="gaSmax_NA">Smax Padrão (MVA)</label> <input id="gaSmax_NA" type="number" class="mono" value="5.0" step="0.1" min="0.1"/> </div> </div>
+                <h3>3. Parâmetros de Expansão (Linhas NA)</h3> <div class="ga-params-grid"> <div> <label for="gaCustoNA">Custo Linha NA</label> <input id="gaCustoNA" type="number" class="mono" value="10.0" min="0" step="0.1"/> </div> <div> <label for="gaMaxNA">Nº Máx. Linhas NA</label> <input id="gaMaxNA" type="number" class="mono" value="3" min="0" step="1"/> </div> <div> <label for="gaR_NA">R Padrão (ohm/km)</label> <input id="gaR_NA" type="number" class="mono" value="0.1" step="0.01" min="0"/> </div> <div> <label for="gaX_NA">X Padrão (ohm/km)</label> <input id="gaX_NA" type="number" class="mono" value="0.2" step="0.01" min="0"/> </div> <div> <label for="gaSmax_NA">Smax Padrão (MVA)</label> <input id="gaSmax_NA" type="number" class="mono" value="5.0" step="0.1" min="0.1"/> </div> </div>
 
                 <h3>4. Execução</h3> <div class="row" style="justify-content:flex-end; gap: 10px;"> <button class="btn secondary" id="btnFluxo">Fluxo Base (MST)</button> <button class="btn primary" id="btnOtimizar"> <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg> Otimizar Topologia </button> </div>
                 <div class="divider"></div>
@@ -127,9 +155,10 @@
     <script>
         // --- Funções Auxiliares (c(), addLinhaRow, etc. - Sem lógica do AG/Fluxo) ---
         function c(re=0,im=0){return{re,im}} function cAdd(a,b){return c(a.re+b.re,a.im+b.im)} function cSub(a,b){return c(a.re-b.re,a.im-b.im)} function cMul(a,b){return c(a.re*b.re-a.im*b.im,a.re*b.im+a.im*b.re)} function cConj(a){return c(a.re,-a.im)} function cAbs(a){return Math.hypot(a.re,a.im)} function cDiv(a,b){const d=b.re*b.re+b.im*b.im||1e-30;return c((a.re*b.re+a.im*b.im)/d,(a.im*b.re-a.re*b.im)/d)} function pol2rec(m,d){const r=d*Math.PI/180;return c(m*Math.cos(r),m*Math.sin(r))} function angDeg(a){return Math.atan2(a.im,a.re)*180/Math.PI}
-        const elNb=document.getElementById('numBarras'),elSbase=document.getElementById('sbase'),elVbase=document.getElementById('vbase'),elVmin=document.getElementById('vmin'),elVmax=document.getElementById('vmax'),tblMalha=document.getElementById('tblMalha').querySelector('tbody'),tblCargas=document.getElementById('tblCargas').querySelector('tbody'),btnGerar=document.getElementById('btnGerar'),btnAddBarra=document.getElementById('btnAddBarra'),btnAddLinha=document.getElementById('btnAddLinha'),btnExemplo10=document.getElementById('btnExemplo10'),selLinhaFalha=document.getElementById('linhaFalha'),elGaPopSize=document.getElementById('gaPopSize'),elGaMaxGen=document.getElementById('gaMaxGen'),elGaMutationRate=document.getElementById('gaMutationRate'),elGaPesoChave=document.getElementById('gaPesoChave'),btnFluxo=document.getElementById('btnFluxo'),btnOtimizar=document.getElementById('btnOtimizar'),gaStatus=document.getElementById('ga-status'),gaProgressBar=document.getElementById('ga-progress-bar'),bestFitnessDisplay=document.getElementById('best-fitness-display'),unservedLoadDisplay=document.getElementById('unserved-load-display'),lossesDisplay=document.getElementById('losses-display'),activeSwitchesDisplay=document.getElementById('active-switches-display'),switchCostDisplay=document.getElementById('switch-cost-display'),gaLogDetail=document.getElementById('ga-log-detail'),svg=document.getElementById('svg'),tblResBarras=document.getElementById('tblResBarras').querySelector('tbody'),tblResRamos=document.getElementById('tblResRamos').querySelector('tbody');
         
-        // --- IDs dos novos campos NA ---
+        // MUDANÇA 2: btnDelBarra foi removido das constantes
+        const elNb=document.getElementById('numBarras'),elSbase=document.getElementById('sbase'),elVbase=document.getElementById('vbase'),elVmin=document.getElementById('vmin'),elVmax=document.getElementById('vmax'),tblMalha=document.getElementById('tblMalha').querySelector('tbody'),tblCargasTbody=document.getElementById('tblCargas').querySelector('tbody'),tblCargasThead=document.getElementById('tblCargas').querySelector('thead'),btnGerar=document.getElementById('btnGerar'),btnAddBarra=document.getElementById('btnAddBarra'),btnAddLinha=document.getElementById('btnAddLinha'),btnExemplo10=document.getElementById('btnExemplo10'),selLinhaFalha=document.getElementById('linhaFalha'),elGaPopSize=document.getElementById('gaPopSize'),elGaMaxGen=document.getElementById('gaMaxGen'),elGaMutationRate=document.getElementById('gaMutationRate'),elGaPesoChave=document.getElementById('gaPesoChave'),btnFluxo=document.getElementById('btnFluxo'),btnOtimizar=document.getElementById('btnOtimizar'),gaStatus=document.getElementById('ga-status'),gaProgressBar=document.getElementById('ga-progress-bar'),bestFitnessDisplay=document.getElementById('best-fitness-display'),unservedLoadDisplay=document.getElementById('unserved-load-display'),lossesDisplay=document.getElementById('losses-display'),activeSwitchesDisplay=document.getElementById('active-switches-display'),switchCostDisplay=document.getElementById('switch-cost-display'),gaLogDetail=document.getElementById('ga-log-detail'),svgWrap=document.getElementById('svgWrap'),svg=document.getElementById('svg'),tblResBarras=document.getElementById('tblResBarras').querySelector('tbody'),tblResRamos=document.getElementById('tblResRamos').querySelector('tbody');
+        
         const elGaCustoNA = document.getElementById('gaCustoNA');
         const elGaMaxNA = document.getElementById('gaMaxNA');
         const elGaR_NA = document.getElementById('gaR_NA');
@@ -138,18 +167,268 @@
 
         let cargas={}; let baseMstLineKeys = new Set();
         function getNb(){const n=parseInt(elNb.value,10);return isFinite(n)&&n>=2?n:2} function logGADetail(m,t=''){const s=document.createElement('div');s.textContent=`[${new Date().toLocaleTimeString()}] ${m}`;if(t)s.className=`log-${t}`;gaLogDetail.appendChild(s);gaLogDetail.scrollTop=gaLogDetail.scrollHeight}
-        function gerarTabelaCargas(){const n=getNb(),oC={...cargas};cargas={};tblCargas.innerHTML='';for(let b=2;b<=n;b++){const r=document.createElement('tr'),tB=document.createElement('td');tB.textContent=b;const tP=document.createElement('td'),tQ=document.createElement('td'),iP=document.createElement('input');iP.type='number';iP.step='0.001';iP.value=oC[b]?.P??0;iP.className='mono';iP.min="0";iP.addEventListener('input',()=>{cargas[b]={P:parseFloat(iP.value||0),Q:parseFloat(iQ.value||0)}});const iQ=document.createElement('input');iQ.type='number';iQ.step='0.001';iQ.value=oC[b]?.Q??0;iQ.className='mono';iQ.addEventListener('input',()=>{cargas[b]={P:parseFloat(iP.value||0),Q:parseFloat(iQ.value||0)}});tP.appendChild(iP);tQ.appendChild(iQ);r.appendChild(tB);r.appendChild(tP);r.appendChild(tQ);tblCargas.appendChild(r);cargas[b]={P:parseFloat(iP.value||0),Q:parseFloat(iQ.value||0)}}atualizarSelectsLinhas()}
+        
+        // --- MUDANÇA 2 (Lógica de Remover Barra Específica) ---
+        function gerarTabelaCargas(){
+            const n=getNb(),oC={...cargas};
+            cargas={};
+            tblCargasTbody.innerHTML=''; 
+            tblCargasThead.innerHTML = '<tr><th>Barra</th><th>P (MW)</th><th>Q (MVAr)</th><th>Coord. X</th><th>Coord. Y</th><th>Ações</th></tr>';
+
+            // Adiciona a Barra 1 (Slack) - APENAS PARA COORDENADAS
+            const r1=document.createElement('tr'), tB1=document.createElement('td'); tB1.textContent='1 (Slack)';
+            const tP1=document.createElement('td'); tP1.textContent = '---';
+            const tQ1=document.createElement('td'); tQ1.textContent = '---';
+            const tX1=document.createElement('td'), tY1=document.createElement('td');
+            const iX1=document.createElement('input'); iX1.type='number'; iX1.value=oC[1]?.X??0; iX1.className='mono';
+            const iY1=document.createElement('input'); iY1.type='number'; iY1.value=oC[1]?.Y??0; iY1.className='mono';
+            iX1.addEventListener('input',()=>{cargas[1]={...cargas[1], X:parseFloat(iX1.value||0), Y:parseFloat(iY1.value||0)}});
+            iY1.addEventListener('input',()=>{cargas[1]={...cargas[1], X:parseFloat(iX1.value||0), Y:parseFloat(iY1.value||0)}});
+            tX1.appendChild(iX1); tY1.appendChild(iY1);
+            const tA1=document.createElement('td'); tA1.textContent = '---'; // Coluna Ações
+            r1.appendChild(tB1); r1.appendChild(tP1); r1.appendChild(tQ1); r1.appendChild(tX1); r1.appendChild(tY1); r1.appendChild(tA1);
+            tblCargasTbody.appendChild(r1);
+            cargas[1] = { P: 0, Q: 0, X: parseFloat(iX1.value||0), Y: parseFloat(iY1.value||0) };
+
+            // Barras de Carga (2 até N)
+            for(let b=2;b<=n;b++){
+                const r=document.createElement('tr'),tB=document.createElement('td');
+                tB.textContent=b;
+                
+                const tP=document.createElement('td'),tQ=document.createElement('td');
+                const iP=document.createElement('input');iP.type='number';iP.step='0.001';iP.value=oC[b]?.P??0;iP.className='mono';iP.min="0";
+                const iQ=document.createElement('input');iQ.type='number';iQ.step='0.001';iQ.value=oC[b]?.Q??0;iQ.className='mono';
+                
+                const tX=document.createElement('td'),tY=document.createElement('td');
+                const iX=document.createElement('input'); iX.type='number'; iX.value=oC[b]?.X??(b*10); iX.className='mono';
+                const iY=document.createElement('input'); iY.type='number'; iY.value=oC[b]?.Y??(b*5); iY.className='mono';
+                
+                const tA=document.createElement('td');
+                const bD=document.createElement('button'); bD.textContent='Remover'; bD.className='btn secondary';
+                bD.style.cssText = 'background-color: var(--bad); color: white; border-color: #a12b37; padding: 8px 12px; font-size: 12px;';
+                
+                // IIFE para capturar o valor 'b' corretamente no loop
+                ((barraAtual) => {
+                    bD.addEventListener('click', (e) => { 
+                        e.preventDefault(); 
+                        if(confirm(`Tem certeza que deseja remover a Barra ${barraAtual}? Isso removerá também todas as linhas conectadas a ela.`)) {
+                            removerBarra(barraAtual); 
+                        }
+                    });
+                })(b);
+
+                tA.appendChild(bD);
+
+                const updateCarga = () => {
+                     cargas[b]={
+                         P:parseFloat(iP.value||0),
+                         Q:parseFloat(iQ.value||0),
+                         X:parseFloat(iX.value||0),
+                         Y:parseFloat(iY.value||0)
+                     }
+                };
+                iP.addEventListener('input', updateCarga);
+                iQ.addEventListener('input', updateCarga);
+                iX.addEventListener('input', updateCarga);
+                iY.addEventListener('input', updateCarga);
+
+                tP.appendChild(iP);tQ.appendChild(iQ);
+                tX.appendChild(iX);tY.appendChild(iY);
+                r.appendChild(tB);r.appendChild(tP);r.appendChild(tQ);r.appendChild(tX);r.appendChild(tY);r.appendChild(tA);
+                tblCargasTbody.appendChild(r);
+                
+                cargas[b]={P:parseFloat(iP.value||0),Q:parseFloat(iQ.value||0), X:parseFloat(iX.value||0), Y:parseFloat(iY.value||0)};
+            }
+            atualizarSelectsLinhas();
+        }
+
+        function removerBarra(barraNumero) {
+            if (barraNumero <= 1) {
+                alert("Não é possível remover a Barra 1 (Slack).");
+                return;
+            }
+            const nbAntigo = getNb();
+            if (barraNumero > nbAntigo) return;
+
+            const nbNovo = nbAntigo - 1;
+            elNb.value = nbNovo;
+
+            // 1. Re-indexar objeto 'cargas'
+            const newCargas = {};
+            newCargas[1] = cargas[1]; // Mantém a barra 1
+            let idxNovo = 2;
+            for (let b = 2; b <= nbAntigo; b++) {
+                if (b === barraNumero) continue; // Pula a barra removida
+                if (cargas[b]) {
+                    newCargas[idxNovo] = cargas[b];
+                }
+                idxNovo++;
+            }
+            cargas = newCargas;
+
+            // 2. Re-indexar 'tblMalha'
+            let linhas = getLinhasFromTable(tblMalha);
+            const newLinhas = [];
+            for (const l of linhas) {
+                // Remove linhas conectadas à barra
+                if (l.de === barraNumero || l.para === barraNumero) {
+                    continue; 
+                }
+                
+                // Re-mapeia as barras
+                let newDe = (l.de > barraNumero) ? l.de - 1 : l.de;
+                let newPara = (l.para > barraNumero) ? l.para - 1 : l.para;
+
+                if (newDe !== newPara) {
+                    // Mantém os dados da linha (R, X, Smax), mas atualiza 'de' e 'para'
+                    newLinhas.push({ ...l, de: String(newDe), para: String(newPara) });
+                }
+            }
+            
+            // 3. Recarregar tabelas
+            gerarTabelaCargas(); // Recarrega a tabela de cargas (agora com N-1 barras)
+
+            tblMalha.innerHTML = ''; // Limpa a tabela de linhas
+            newLinhas.forEach(l => addLinhaRow(tblMalha, l)); // Adiciona as linhas re-mapeadas
+
+            atualizarSelectsLinhas(); // Atualiza os dropdowns
+        }
+        // --- FIM MUDANÇA 2 ---
+
         function addLinhaRow(t,p){const n=getNb(),r=document.createElement('tr'),x=t.children.length+1,tX=document.createElement('td');tX.textContent=x;const tD=document.createElement('td'),sD=document.createElement('select');sD.className='mono selDe';for(let b=1;b<=n;b++){const o=document.createElement('option');o.value=String(b);o.textContent=b;sD.appendChild(o)}sD.value=p?.de??'1';const tP=document.createElement('td'),sP=document.createElement('select');sP.className='mono selPara';for(let b=1;b<=n;b++){const o=document.createElement('option');o.value=String(b);o.textContent=b;sP.appendChild(o)}sP.value=p?.para??String(Math.min(2,n));const tR=document.createElement('td'),iR=document.createElement('input');iR.type='number';iR.step='0.000001';iR.value=p?.R??0.05;iR.className='mono';iR.min="0";const tX2=document.createElement('td'),iX=document.createElement('input');iX.type='number';iX.step='0.000001';iX.value=p?.X??0.10;iX.className='mono';iX.min="0";const tS=document.createElement('td'),iS=document.createElement('input');iS.type='number';iS.step='0.1';iS.value=p?.Smax??5.0;iS.className='mono inpSmax';iS.min="0.1";const tA=document.createElement('td'),bD=document.createElement('button');bD.textContent='Remover';bD.className='btn secondary';bD.addEventListener('click',()=>{r.remove();renumerarLinhas(t);updateLinhaFalhaSelect()});tD.appendChild(sD);tP.appendChild(sP);tR.appendChild(iR);tX2.appendChild(iX);tS.appendChild(iS);tA.appendChild(bD);r.appendChild(tX);r.appendChild(tD);r.appendChild(tP);r.appendChild(tR);r.appendChild(tX2);r.appendChild(tS);r.appendChild(tA);t.appendChild(r);updateLinhaFalhaSelect()}
         function renumerarLinhas(t){[...t.children].forEach((r,i)=>{r.children[0].textContent=i+1})}
         function atualizarSelectsLinhas(){const n=getNb(),rs=[...tblMalha.children];rs.forEach(r=>{const sD=r.querySelector('.selDe'),sP=r.querySelector('.selPara'),oD=sD.value,oP=sP.value;sD.innerHTML='';sP.innerHTML='';for(let b=1;b<=n;b++){const o1=document.createElement('option');o1.value=String(b);o1.textContent=b;sD.appendChild(o1);const o2=document.createElement('option');o2.value=String(b);o2.textContent=b;sP.appendChild(o2)}sD.value=parseInt(oD,10)<=n?oD:'1';sP.value=parseInt(oP,10)<=n?oP:String(Math.min(2,n))});updateLinhaFalhaSelect()}
         function updateLinhaFalhaSelect() { const oldValues = new Set(Array.from(selLinhaFalha.selectedOptions).map(opt => opt.value)); selLinhaFalha.innerHTML = ''; const optSemFalha = document.createElement('option'); optSemFalha.value = 'SEM_FALHA'; optSemFalha.textContent = 'Sistema Normal (Sem Falha)'; selLinhaFalha.appendChild(optSemFalha); const linhasMalha = getLinhasFromTable(tblMalha); linhasMalha.forEach((l) => { const key = `${l.de}-${l.para}`; const opt = document.createElement('option'); opt.value = key; opt.textContent = `Linha ${l.id} (${l.de} \u2192 ${l.para})`; if (oldValues.has(key)) opt.selected = true; selLinhaFalha.appendChild(opt); }); if (selLinhaFalha.selectedOptions.length === 0 && !oldValues.has('SEM_FALHA')) { selLinhaFalha.value = 'SEM_FALHA'; } else if (selLinhaFalha.selectedOptions.length > 1 && selLinhaFalha.querySelector('option[value="SEM_FALHA"]').selected) { selLinhaFalha.querySelector('option[value="SEM_FALHA"]').selected = false; } else if (selLinhaFalha.selectedOptions.length === 0 && oldValues.has('SEM_FALHA')) { selLinhaFalha.value = 'SEM_FALHA'; } }
         function getLinhasFromTable(t){const lD=[];[...t.children].forEach((r,i)=>{const d=parseInt(r.querySelector('.selDe').value,10),p=parseInt(r.querySelector('.selPara').value,10),R=parseFloat(r.children[3].querySelector('input').value||0),X=parseFloat(r.children[4].querySelector('input').value||0),S=parseFloat(r.children[5].querySelector('.inpSmax').value||999);if(d!==p)lD.push({id:i+1,de:d,para:p,R:R,X:X,Smax:S,Z:Math.hypot(R,X),isNA:!1})});return lD}
-        function carregarExemplo10(){tblMalha.innerHTML='';elNb.value=10;gerarTabelaCargas();addLinhaRow(tblMalha,{de:'1',para:'2',R:0.1,X:0.2,Smax:8.0});addLinhaRow(tblMalha,{de:'2',para:'3',R:0.08,X:0.16,Smax:6.0});addLinhaRow(tblMalha,{de:'3',para:'4',R:0.05,X:0.1,Smax:4.0});addLinhaRow(tblMalha,{de:'4',para:'5',R:0.05,X:0.1,Smax:3.0});addLinhaRow(tblMalha,{de:'1',para:'6',R:0.12,X:0.24,Smax:8.0});addLinhaRow(tblMalha,{de:'6',para:'7',R:0.07,X:0.14,Smax:5.0});addLinhaRow(tblMalha,{de:'7',para:'8',R:0.06,X:0.12,Smax:4.0});addLinhaRow(tblMalha,{de:'8',para:'9',R:0.04,X:0.08,Smax:3.0});addLinhaRow(tblMalha,{de:'9',para:'10',R:0.03,X:0.06,Smax:2.0});addLinhaRow(tblMalha,{de:'5',para:'7',R:0.06,X:0.12,Smax:3.0});addLinhaRow(tblMalha,{de:'4',para:'8',R:0.08,X:0.16,Smax:3.5});addLinhaRow(tblMalha,{de:'3',para:'9',R:0.10,X:0.20,Smax:4.0});const nC={2:{P:1.0,Q:0.4},3:{P:0.8,Q:0.3},4:{P:0.6,Q:0.2},5:{P:0.4,Q:0.1},6:{P:1.2,Q:0.5},7:{P:0.9,Q:0.35},8:{P:0.7,Q:0.25},9:{P:0.5,Q:0.2},10:{P:0.3,Q:0.1},};for(const b in nC){const w=tblCargas.children[b-2];if(w){const i=w.querySelectorAll('input[type="number"]');if(i.length>=2){i[0].value=nC[b].P;i[1].value=nC[b].Q;cargas[b]=nC[b]}}}updateLinhaFalhaSelect();if(selLinhaFalha.querySelector('option[value="3-4"]'))selLinhaFalha.value='3-4';else selLinhaFalha.value='SEM_FALHA'}
+        
+        // --- MUDANÇA 1 (Exemplo 10 Barras) ---
+        function carregarExemplo10(){
+            tblMalha.innerHTML='';
+            elNb.value=10;
+            gerarTabelaCargas();
+            
+            // Barras com Coordenadas
+            const nC={
+                1:{P:0, Q:0, X:0, Y:20}, // Barra 1 (Coords)
+                2:{P:1.0,Q:0.4, X:10, Y:20},
+                3:{P:0.8,Q:0.3, X:20, Y:20},
+                4:{P:0.6,Q:0.2, X:30, Y:20},
+                5:{P:0.4,Q:0.1, X:40, Y:20},
+                6:{P:1.2,Q:0.5, X:10, Y:10},
+                7:{P:0.9,Q:0.35, X:20, Y:10},
+                8:{P:0.7,Q:0.25, X:30, Y:10},
+                9:{P:0.5,Q:0.2, X:40, Y:10},
+                10:{P:0.3,Q:0.1, X:50, Y:10},
+            };
+            // Atualiza o objeto 'cargas' e a tabela
+            cargas = {...nC};
+            for (let b = 1; b <= 10; b++) {
+                const row = tblCargasTbody.children[b-1];
+                if (!row) continue;
+                const inputs = row.querySelectorAll('input[type="number"]');
+                if (b === 1) { // Barra 1
+                    if (inputs.length >= 2) {
+                        inputs[0].value = nC[b].X;
+                        inputs[1].value = nC[b].Y;
+                    }
+                } else { // Barras 2-10
+                    if (inputs.length >= 4) {
+                        inputs[0].value = nC[b].P;
+                        inputs[1].value = nC[b].Q;
+                        inputs[2].value = nC[b].X;
+                        inputs[3].value = nC[b].Y;
+                    }
+                }
+            }
+
+            // Adiciona Linhas Base
+            addLinhaRow(tblMalha,{de:'1',para:'2',R:0.1,X:0.2,Smax:8.0});
+            addLinhaRow(tblMalha,{de:'2',para:'3',R:0.08,X:0.16,Smax:6.0});
+            addLinhaRow(tblMalha,{de:'3',para:'4',R:0.05,X:0.1,Smax:4.0});
+            addLinhaRow(tblMalha,{de:'4',para:'5',R:0.05,X:0.1,Smax:3.0});
+            
+            // addLinhaRow(tblMalha,{de:'1',para:'6',R:0.12,X:0.24,Smax:8.0}); // <-- MUDANÇA 1: Removido
+            addLinhaRow(tblMalha,{de:'6',para:'7',R:0.07,X:0.14,Smax:5.0});
+            addLinhaRow(tblMalha,{de:'7',para:'8',R:0.06,X:0.12,Smax:4.0});
+            addLinhaRow(tblMalha,{de:'8',para:'9',R:0.04,X:0.08,Smax:3.0});
+            addLinhaRow(tblMalha,{de:'9',para:'10',R:0.03,X:0.06,Smax:2.0});
+            
+            // Adiciona Linhas de Tie (Redundantes)
+            addLinhaRow(tblMalha,{de:'5',para:'7',R:0.06,X:0.12,Smax:3.0}); 
+            // addLinhaRow(tblMalha,{de:'4',para:'8',R:0.08,X:0.16,Smax:3.5}); // <-- MUDANÇA 1: Removido
+            // addLinhaRow(tblMalha,{de:'3',para:'9',R:0.10,X:0.20,Smax:4.0}); // <-- MUDANÇA 1: Removido
+            
+            updateLinhaFalhaSelect();
+            if(selLinhaFalha.querySelector('option[value="3-4"]')) selLinhaFalha.value='3-4';
+            else selLinhaFalha.value='SEM_FALHA';
+        }
+        // --- FIM MUDANÇA 1 ---
+
         function renderResultados(resBarras, resRamos, newlyAddedKeys = new Set()) { tblResBarras.innerHTML = ''; tblResRamos.innerHTML = ''; const vMin = parseFloat(elVmin.value); const vMax = parseFloat(elVmax.value); if (!Array.isArray(resBarras)) { console.error("render: resBarras não é array"); return; } resBarras.forEach(r => { const tr = document.createElement('tr'); if (!r.isConnected) { tr.style.opacity = '0.5'; tr.style.fontStyle = 'italic'; } const vm = (typeof r.Vmag === 'number' && isFinite(r.Vmag)) ? r.Vmag : 0; const va = (typeof r.Vang === 'number' && isFinite(r.Vang)) ? r.Vang : 0; const p = (typeof r.Pmw === 'number' && isFinite(r.Pmw)) ? r.Pmw : 0; const q = (typeof r.Qmvar === 'number' && isFinite(r.Qmvar)) ? r.Qmvar : 0; tr.innerHTML = `<td>${r.barra} ${!r.isConnected ? '(Isolada)' : ''}</td> <td class="mono ${r.isConnected && (vm < vMin || vm > vMax) ? 'status-bad' : ''}">${vm.toFixed(5)}</td> <td class="mono">${va.toFixed(2)}</td> <td class="mono">${p.toFixed(3)}</td> <td class="mono">${q.toFixed(3)}</td>`; tblResBarras.appendChild(tr); }); if (!Array.isArray(resRamos)) { console.error("render: resRamos não é array"); return; } resRamos.forEach(r => { const smva = (typeof r.Smva === 'number' && isFinite(r.Smva)) ? r.Smva : 0; const smax = (typeof r.Smax === 'number' && isFinite(r.Smax) && r.Smax > 1e-9) ? r.Smax : 1; const p_r = (typeof r.Pmw === 'number' && isFinite(r.Pmw)) ? r.Pmw : 0; const q_r = (typeof r.Qmvar === 'number' && isFinite(r.Qmvar)) ? r.Qmvar : 0; const loss = (typeof r.perdasMW === 'number' && isFinite(r.perdasMW)) ? r.perdasMW : 0; const loading = smax > 1e-9 ? smva / smax : 0 ; let statusClass = ''; if (loading > 1.0) statusClass = 'status-bad'; else if (loading > 0.85) statusClass = 'status-warn'; const tr = document.createElement('tr'); const lineKey1 = `${r.de}-${r.para}`; const lineKey2 = `${r.para}-${r.de}`; const isNew = newlyAddedKeys.has(lineKey1) || newlyAddedKeys.has(lineKey2); if(isNew) tr.classList.add('newly-added-line'); const isNA = r.isNA === true; tr.innerHTML = `<td>${r.idx}${isNA ? ' (NA)' : ''}${isNew ? ' (Nova)' : ''}</td> <td>${r.de}</td> <td>${r.para}</td> <td class="mono">${p_r.toFixed(3)}</td> <td class="mono">${q_r.toFixed(3)}</td> <td class="mono ${statusClass}">${smva.toFixed(3)}</td> <td class="mono">${smax.toFixed(2)}</td> <td class="mono">${loss.toFixed(4)}</td>`; tblResRamos.appendChild(tr); }); }
         function desenharRede(nb, resRamos, resBarras, newlyAddedKeys = new Set()) { if (!Array.isArray(resRamos) || !Array.isArray(resBarras)) { console.error("draw: dados inválidos"); svg.innerHTML = '<text x="10" y="20" fill="red">Erro: Dados inválidos.</text>'; return; } const ramos = Array.isArray(resRamos) ? resRamos.map(r => ({ ...r })) : []; const adj = Array(nb + 1).fill(0).map(() => []); const parentMap = new Map(); ramos.forEach(r => { adj[r.de].push(r.para); adj[r.para].push(r.de); }); const depth = Array(nb + 1).fill(Infinity); const qBFS = [1]; depth[1] = 0; const visitedBFS = new Set([1]); let headBFS = 0; while(headBFS < qBFS.length) { const u = qBFS[headBFS++]; adj[u].forEach(v => { if (v>=1 && v<=nb && !visitedBFS.has(v)) { visitedBFS.add(v); depth[v] = depth[u] + 1; parentMap.set(v, u); qBFS.push(v); } }); } const groups = {}; for (let b = 1; b <= nb; b++) { const d = visitedBFS.has(b) ? (depth[b] === Infinity ? 0 : depth[b]) : 99; if (!groups[d]) groups[d] = []; groups[d].push(b); } const connectedDepths = Object.keys(groups).map(k => parseInt(k, 10)).filter(k => k < 99); const maxDepth = connectedDepths.length > 0 ? Math.max(...connectedDepths) : 0; const W = 1200, H = 520; const padX = 80, padY = 40; const cols = maxDepth + 1; const dx = (W - 2 * padX) / Math.max(1, cols - 1); const levelYs = {}; for (const dStr of Object.keys(groups)) { const d = parseInt(dStr, 10); const arr = groups[d]; const rows = arr.length; const minSpacing = 30; const totalHeight = H - 2 * padY; const dy = Math.max(totalHeight / (rows + 1), minSpacing); let startY = padY + dy; if (rows * dy < totalHeight) startY = padY + (totalHeight - (rows - 1) * dy) / 2; levelYs[d] = arr.map((_, i) => startY + i * dy); arr.sort((a, b) => a - b); } const pos = {}; for (const dStr of Object.keys(groups)) { const d = parseInt(dStr, 10); const arr = groups[d]; arr.forEach((b, i) => { const x = (d === 99) ? (W - padX + 20) : (padX + d * dx); const y = levelYs[d]?.[i] || (padY + (i + 1) * 40); pos[b] = { x, y }; }); } svg.innerHTML = ''; svg.insertAdjacentHTML('afterbegin', `<defs><marker id="arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" class="arrow-head" /></marker><marker id="arrowhead-overload" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" class="arrow-head overload" /></marker><marker id="arrowhead-new" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" class="newly-added-arrow-head" /></marker></defs>`);
-            for (const r of ramos) { const p1 = pos[r.de], p2 = pos[r.para]; if (!p1 || !p2) continue; const line = document.createElementNS('http://www.w3.org/2000/svg', 'line'); const smax = (typeof r.Smax === 'number' && isFinite(r.Smax) && r.Smax > 1e-9) ? r.Smax : 1; const smva = (typeof r.Smva === 'number' && isFinite(r.Smva)) ? r.Smva : 0; const isOverloaded = smva > smax; const lineKey1 = `${r.de}-${r.para}`; const lineKey2 = `${r.para}-${r.de}`; const isNew = newlyAddedKeys.has(lineKey1) || newlyAddedKeys.has(lineKey2); const isNA = r.isNA === true; let markerId = isOverloaded ? 'url(#arrowhead-overload)' : (isNew ? 'url(#arrowhead-new)' : 'url(#arrowhead)'); let actualDe = r.de, actualPara = r.para; if (parentMap.get(r.de) === r.para) { actualDe = r.para; actualPara = r.de; } else if (parentMap.get(r.para) !== r.de) markerId = ''; line.setAttribute('x1', pos[actualDe].x); line.setAttribute('y1', pos[actualDe].y); line.setAttribute('x2', pos[actualPara].x); line.setAttribute('y2', pos[actualPara].y); if(isNew) line.classList.add('newly-added-line-svg'); line.setAttribute('stroke', isOverloaded ? 'var(--bad)' : (isNew ? 'var(--highlight-green)' : 'var(--utfpr-blue-light)')); line.setAttribute('stroke-width', isOverloaded ? '5' : (isNew ? '4' : '3')); if (isNA) line.setAttribute('stroke-dasharray', '8 4'); if (markerId) line.setAttribute('marker-end', markerId); svg.appendChild(line); const midx = (p1.x + p2.x) / 2, midy = (p1.y + p2.y) / 2; const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text'); txt.setAttribute('x', midx + 6); txt.setAttribute('y', midy - 6); txt.setAttribute('fill', isOverloaded ? 'var(--bad)' : (isNew ? 'var(--highlight-green)' : 'var(--text-dark)')); txt.setAttribute('font-size', '12'); txt.setAttribute('class', 'mono'); const p_t = (typeof r.Pmw === 'number' && isFinite(r.Pmw)) ? r.Pmw : 0; const q_t = (typeof r.Qmvar === 'number' && isFinite(r.Qmvar)) ? r.Qmvar : 0; txt.textContent = `P=${p_t.toFixed(2)} Q=${q_t.toFixed(2)}`; svg.appendChild(txt); }
-            for (let b = 1; b <= nb; b++) { const p = pos[b]; if (!p) continue; const rb = resBarras.find(x => x.barra === b); const isConnected = rb?.isConnected ?? false; const v = rb?.Vmag ?? 0; const vMin = parseFloat(elVmin.value); const vMax = parseFloat(elVmax.value); let vColor = 'var(--utfpr-blue-dark)'; if (isConnected && (v < vMin || v > vMax)) vColor = 'var(--bad)'; else if (!isConnected) vColor = 'var(--muted-text)'; const circ = document.createElementNS('http://www.w3.org/2000/svg', 'circle'); circ.setAttribute('cx', p.x); circ.setAttribute('cy', p.y); circ.setAttribute('r', 18); circ.setAttribute('fill', b === 1 ? 'var(--utfpr-blue-dark)' : 'var(--utfpr-blue-light)'); circ.setAttribute('stroke', vColor); circ.setAttribute('stroke-width', '3'); if (!isConnected) { circ.setAttribute('fill', 'var(--utfpr-gray-medium)'); circ.setAttribute('stroke-dasharray', '5 5'); } svg.appendChild(circ); const label = document.createElementNS('http://www.w3.org/2000/svg', 'text'); label.setAttribute('x', p.x); label.setAttribute('y', p.y + 5); label.setAttribute('text-anchor', 'middle'); label.setAttribute('fill', isConnected ? 'var(--utfpr-white)' : 'var(--text-dark)'); label.setAttribute('font-size', '14'); label.setAttribute('font-weight', '700'); label.textContent = b; svg.appendChild(label); const info = document.createElementNS('http://www.w3.org/2000/svg', 'text'); info.setAttribute('x', p.x + 25); info.setAttribute('y', p.y + 4); info.setAttribute('fill', isConnected ? 'var(--text-dark)' : 'var(--muted-text)'); info.setAttribute('font-size', '12'); info.setAttribute('class', 'mono'); const vmi = (rb && typeof rb.Vmag === 'number' && isFinite(rb.Vmag)) ? rb.Vmag : 0; const vai = (rb && typeof rb.Vang === 'number' && isFinite(rb.Vang)) ? rb.Vang : 0; info.textContent = (isConnected && rb) ? `|V|=${vmi.toFixed(4)} \u2220 ${vai.toFixed(2)}\xB0` : 'ISOLADA'; if (isConnected && (v < vMin || v > vMax)) info.setAttribute('fill', 'var(--bad)'); svg.appendChild(info); }
+            
+            // MUDANÇA 3: Adiciona um <g> para Panning
+            const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            svg.appendChild(g);
+
+            for (const r of ramos) { const p1 = pos[r.de], p2 = pos[r.para]; if (!p1 || !p2) continue; const line = document.createElementNS('http://www.w3.org/2000/svg', 'line'); const smax = (typeof r.Smax === 'number' && isFinite(r.Smax) && r.Smax > 1e-9) ? r.Smax : 1; const smva = (typeof r.Smva === 'number' && isFinite(r.Smva)) ? r.Smva : 0; const isOverloaded = smva > smax; const lineKey1 = `${r.de}-${r.para}`; const lineKey2 = `${r.para}-${r.de}`; const isNew = newlyAddedKeys.has(lineKey1) || newlyAddedKeys.has(lineKey2); const isNA = r.isNA === true; let markerId = isOverloaded ? 'url(#arrowhead-overload)' : (isNew ? 'url(#arrowhead-new)' : 'url(#arrowhead)'); let actualDe = r.de, actualPara = r.para; if (parentMap.get(r.de) === r.para) { actualDe = r.para; actualPara = r.de; } else if (parentMap.get(r.para) !== r.de) markerId = ''; line.setAttribute('x1', pos[actualDe].x); line.setAttribute('y1', pos[actualDe].y); line.setAttribute('x2', pos[actualPara].x); line.setAttribute('y2', pos[actualPara].y); if(isNew) line.classList.add('newly-added-line-svg'); line.setAttribute('stroke', isOverloaded ? 'var(--bad)' : (isNew ? 'var(--highlight-green)' : 'var(--utfpr-blue-light)')); line.setAttribute('stroke-width', isOverloaded ? '5' : (isNew ? '4' : '3')); if (isNA) line.setAttribute('stroke-dasharray', '8 4'); if (markerId) line.setAttribute('marker-end', markerId); g.appendChild(line); const midx = (p1.x + p2.x) / 2, midy = (p1.y + p2.y) / 2; const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text'); txt.setAttribute('x', midx + 6); txt.setAttribute('y', midy - 6); txt.setAttribute('fill', isOverloaded ? 'var(--bad)' : (isNew ? 'var(--highlight-green)' : 'var(--text-dark)')); txt.setAttribute('font-size', '12'); txt.setAttribute('class', 'mono'); const p_t = (typeof r.Pmw === 'number' && isFinite(r.Pmw)) ? r.Pmw : 0; const q_t = (typeof r.Qmvar === 'number' && isFinite(r.Qmvar)) ? r.Qmvar : 0; txt.textContent = `P=${p_t.toFixed(2)} Q=${q_t.toFixed(2)}`; g.appendChild(txt); }
+            for (let b = 1; b <= nb; b++) { const p = pos[b]; if (!p) continue; const rb = resBarras.find(x => x.barra === b); const isConnected = rb?.isConnected ?? false; const v = rb?.Vmag ?? 0; const vMin = parseFloat(elVmin.value); const vMax = parseFloat(elVmax.value); let vColor = 'var(--utfpr-blue-dark)'; if (isConnected && (v < vMin || v > vMax)) vColor = 'var(--bad)'; else if (!isConnected) vColor = 'var(--muted-text)'; const circ = document.createElementNS('http://www.w3.org/2000/svg', 'circle'); circ.setAttribute('cx', p.x); circ.setAttribute('cy', p.y); circ.setAttribute('r', 18); circ.setAttribute('fill', b === 1 ? 'var(--utfpr-blue-dark)' : 'var(--utfpr-blue-light)'); circ.setAttribute('stroke', vColor); circ.setAttribute('stroke-width', '3'); if (!isConnected) { circ.setAttribute('fill', 'var(--utfpr-gray-medium)'); circ.setAttribute('stroke-dasharray', '5 5'); } g.appendChild(circ); const label = document.createElementNS('http://www.w3.org/2000/svg', 'text'); label.setAttribute('x', p.x); label.setAttribute('y', p.y + 5); label.setAttribute('text-anchor', 'middle'); label.setAttribute('fill', isConnected ? 'var(--utfpr-white)' : 'var(--text-dark)'); label.setAttribute('font-size', '14'); label.setAttribute('font-weight', '700'); label.textContent = b; g.appendChild(label); const info = document.createElementNS('http://www.w3.org/2000/svg', 'text'); info.setAttribute('x', p.x + 25); info.setAttribute('y', p.y + 4); info.setAttribute('fill', isConnected ? 'var(--text-dark)' : 'var(--muted-text)'); info.setAttribute('font-size', '12'); info.setAttribute('class', 'mono'); const vmi = (rb && typeof rb.Vmag === 'number' && isFinite(rb.Vmag)) ? rb.Vmag : 0; const vai = (rb && typeof rb.Vang === 'number' && isFinite(rb.Vang)) ? rb.Vang : 0; info.textContent = (isConnected && rb) ? `|V|=${vmi.toFixed(4)} \u2220 ${vai.toFixed(2)}\xB0` : 'ISOLADA'; if (isConnected && (v < vMin || v > vMax)) info.setAttribute('fill', 'var(--bad)'); g.appendChild(info); }
         }
+
+        // --- MUDANÇA 3 (Lógica de Panning) ---
+        (function setupSvgPanning() {
+            let isPanning = false;
+            let startX = 0;
+            let startY = 0;
+            let viewBox = { x: 0, y: 0, w: 1200, h: 520 };
+
+            svgWrap.addEventListener('mousedown', (e) => {
+                isPanning = true;
+                const CTM = svg.getScreenCTM();
+                if (!CTM) return;
+                startX = (e.clientX - CTM.e) / CTM.a;
+                startY = (e.clientY - CTM.f) / CTM.d;
+                svgWrap.style.cursor = 'grabbing';
+            });
+
+            svgWrap.addEventListener('mousemove', (e) => {
+                if (!isPanning) return;
+                e.preventDefault();
+                const CTM = svg.getScreenCTM();
+                if (!CTM) return;
+                
+                // Obter a viewBox atual
+                const vb = svg.getAttribute('viewBox');
+                if (vb) {
+                    const parts = vb.split(' ').map(Number);
+                    if(parts.length === 4) viewBox = { x: parts[0], y: parts[1], w: parts[2], h: parts[3] };
+                }
+
+                const newX = (e.clientX - CTM.e) / CTM.a;
+                const newY = (e.clientY - CTM.f) / CTM.d;
+                
+                const dx = startX - newX;
+                const dy = startY - newY;
+
+                svg.setAttribute('viewBox', `${viewBox.x + dx} ${viewBox.y + dy} ${viewBox.w} ${viewBox.h}`);
+            });
+
+            const endPanning = () => {
+                isPanning = false;
+                svgWrap.style.cursor = 'grab';
+                // Salva a última posição da viewBox
+                const vb = svg.getAttribute('viewBox');
+                if (vb) {
+                     const parts = vb.split(' ').map(Number);
+                     if(parts.length === 4) viewBox = { x: parts[0], y: parts[1], w: parts[2], h: parts[3] };
+                }
+            };
+
+            svgWrap.addEventListener('mouseup', endPanning);
+            svgWrap.addEventListener('mouseleave', endPanning);
+        })();
+        // --- FIM MUDANÇA 3 ---
+
 
         // --- Funções do AG (Seleção, Crossover, Mutação) ---
         function createPopulation(numLinhas, popSize) { const pop = []; const nb = getNb(); const req = nb > 1 ? nb - 1 : 0; for (let i = 0; i < popSize; i++) { const ind = Array(numLinhas).fill(0).map(() => Math.random() < 0.6 ? 1 : 0); let ones = ind.reduce((s, v) => s + v, 0); if (ones < req && req > 0) { let needed = req - ones; const zeros = []; ind.forEach((v,k)=>{if(v===0)zeros.push(k);}); shuffleArray(zeros); for(let k=0; k < Math.min(needed, zeros.length); k++) ind[zeros[k]] = 1; } pop.push(ind); } return pop; }
@@ -163,7 +442,7 @@
         let taskQueue = [];
         let resultsReceived = [];
         let resolveGeneration;
-        let generationPromises = []; // Definido em escopo mais amplo
+        let generationPromises = []; 
 
         function initializeWorkers(numWorkers) {
             terminateWorkers(); workerPool = []; const workerFileName = 'ga_worker.js';
@@ -203,10 +482,8 @@
             const worker = error.target; 
             logGADetail(`ERRO GERAL NO WORKER ${worker?.id}: ${error.message}`, 'bad');
             
-            // Tenta encontrar a tarefa que este worker estava processando
             const failedTaskIndex = taskQueue.findIndex(t => t.workerId === worker.id) || resultsReceived.findIndex(r => r === undefined);
             
-            // Marca a tarefa como falha
             if (failedTaskIndex !== -1 && resultsReceived[failedTaskIndex] === undefined) {
                  logGADetail(`Marcando índice ${failedTaskIndex} como falho devido a erro do worker.`, 'bad');
                  resultsReceived[failedTaskIndex] = { fitness: Infinity, data: {}, error: `Worker ${worker?.id} falhou: ${error.message}` };
@@ -227,18 +504,14 @@
             const nb = getNb();
             const linhaFalhaKeys = Array.from(selLinhaFalha.selectedOptions).map(opt => opt.value).filter(val => val !== 'SEM_FALHA');
             
-            // Parâmetros de Custo e Limite
             const custoBase = parseFloat(elGaPesoChave.value);
             const custoNA = parseFloat(elGaCustoNA.value);
             const maxNALinhas = parseInt(elGaMaxNA.value, 10);
             
-            // Parâmetros da Linha NA Padrão
-            const R_NA = parseFloat(elGaR_NA.value);
-            const X_NA = parseFloat(elGaX_NA.value);
+            const R_NA_per_km = parseFloat(elGaR_NA.value);
+            const X_NA_per_km = parseFloat(elGaX_NA.value);
             const Smax_NA = parseFloat(elGaSmax_NA.value);
-            const Z_NA = Math.hypot(R_NA, X_NA);
 
-            // Obter Linhas Base (da tabela)
             let linhasBase = getLinhasFromTable(tblMalha);
             const existingPairs = new Set();
             let idCounter = 1;
@@ -251,29 +524,46 @@
                 existingPairs.add(`${l.para}-${l.de}`);
             });
 
-            // Gerar Linhas NA Candidatas (Automático)
             const linhasNA_Candidatas = [];
+            const busCoords = {};
+            for (let b = 1; b <= nb; b++) {
+                if (cargas[b]) {
+                    busCoords[b] = { x: cargas[b].X || 0, y: cargas[b].Y || 0 };
+                } else {
+                    busCoords[b] = { x: 0, y: 0 }; 
+                }
+            }
+
             for (let i = 1; i <= nb; i++) {
                 for (let j = i + 1; j <= nb; j++) {
                     if (!existingPairs.has(`${i}-${j}`)) {
+                        const pos_i = busCoords[i];
+                        const pos_j = busCoords[j];
+                        const distancia = Math.hypot(pos_j.x - pos_i.x, pos_j.y - pos_i.y);
+                        
+                        if (distancia < 1e-6) continue;
+
+                        const R_linha = R_NA_per_km * distancia;
+                        const X_linha = X_NA_per_km * distancia;
+                        const Z_linha = Math.hypot(R_linha, X_linha);
+
                         linhasNA_Candidatas.push({
                             id: idCounter++,
                             de: i,
                             para: j,
-                            R: R_NA,
-                            X: X_NA,
+                            R: R_linha,
+                            X: X_linha,
                             Smax: Smax_NA,
-                            Z: Z_NA,
-                            custo: custoNA,
+                            Z: Z_linha,
+                            custo: custoNA, // Ou: custoNA * distancia
                             isNA: true
                         });
                     }
                 }
             }
 
-            // Combinar listas
             const allLines = [...linhasBase, ...linhasNA_Candidatas];
-            const numLinhas = allLines.length; // Tamanho total do cromossomo
+            const numLinhas = allLines.length; 
             // --- FIM DA MONTAGEM 'allLines' ---
 
             const popSize = parseInt(elGaPopSize.value, 10); const maxGen = parseInt(elGaMaxGen.value, 10);
@@ -285,18 +575,16 @@
             logGADetail(`Linhas: ${linhasBase.length} Base, ${linhasNA_Candidatas.length} NA Candidatas (Total ${numLinhas} genes).`);
             logGADetail(`Custo Base: ${custoBase}, Custo NA: ${custoNA}, Limite NA: ${maxNALinhas}`);
 
-            // Preparar staticData para os workers
             const staticData = {
                 allLines: allLines,
                 linhaFalhaKeys: linhaFalhaKeys,
                 nb: nb,
                 vMin: parseFloat(elVmin.value),
                 vMax: parseFloat(elVmax.value),
-                maxNALinhas: maxNALinhas, // Novo limite
+                maxNALinhas: maxNALinhas,
                 cargas: JSON.parse(JSON.stringify(cargas)),
                 Sbase: parseFloat(elSbase.value),
                 Vbase_kV: parseFloat(elVbase.value)
-                // pesoChave foi removido
             };
 
             const numWorkers = Math.max(1, (navigator.hardwareConcurrency || 4) - 1);
@@ -312,13 +600,13 @@
 
                 population.forEach((individual, index) => {
                     const task = { individual: individual, index: index, staticData: staticData };
-                    generationPromises[index] = new Promise(resolve => {}); // Placeholder
+                    generationPromises[index] = new Promise(resolve => {}); 
                     const availableWorker = workerPool.find(w => !w.isBusy);
                     if (availableWorker) { availableWorker.isBusy = true; availableWorker.postMessage(task); } else { taskQueue.push(task); }
                 });
 
                 gaStatus.textContent = `Rodando G ${g + 1}/${maxGen}... (Workers processando ${popSize} inds)`;
-                const results = await generationPromise; // Espera
+                const results = await generationPromise; 
 
                 let popFit = population.map((ind, i) => { const res = resultsReceived[i]; if(res && typeof res.fitness === 'number') { return { individual: ind, fitness: res.fitness, data: res.data || {} }; } else { console.warn(`Resultado inválido/ausente para ind ${i}`, res); return { individual: ind, fitness: Infinity, data: { error: res?.error } }; } });
                 
@@ -373,10 +661,18 @@
         }
 
         // --- Eventos ---
-        btnGerar.addEventListener('click', gerarTabelaCargas); btnAddBarra.addEventListener('click', () => { elNb.value = getNb() + 1; gerarTabelaCargas(); }); btnAddLinha.addEventListener('click', () => addLinhaRow(tblMalha)); btnExemplo10.addEventListener('click', carregarExemplo10); btnOtimizar.addEventListener('click', runGA);
+        btnGerar.addEventListener('click', gerarTabelaCargas);
+        btnAddBarra.addEventListener('click', () => { 
+            const nbAtual = getNb();
+            elNb.value = nbAtual + 1;
+            cargas[nbAtual + 1] = { P: 0, Q: 0, X: (nbAtual + 1) * 10, Y: (nbAtual + 1) * 5 }; // Adiciona dados padrão
+            gerarTabelaCargas(); 
+        });
+        btnAddLinha.addEventListener('click', () => addLinhaRow(tblMalha)); 
+        btnExemplo10.addEventListener('click', carregarExemplo10); 
+        btnOtimizar.addEventListener('click', runGA);
 
         // *** CÓPIA LOCAL de DSU, validarRadial e runFluxo para o botão btnFluxo ***
-        // (Necessário pois as originais estão no worker)
         function validarRadialLocal(n,l){if(l.length===0){const u=new Set();for(let b=2;b<=n;b++)u.add(b);return{ok:n<=1,msg:n<=1?'OK':'Não conectado (sem linhas)',unservedBuses:u}} const adj=Array(n+1).fill(0).map(()=>[]);let hasLoopOrMultiParent = false; const q=[1],visited=new Set([1]),parent={}; let head = 0; for(const e of l){ if(!e || typeof e.de !== 'number' || typeof e.para !== 'number' || e.de < 1 || e.de > n || e.para < 1 || e.para > n) { console.warn("Linha inválida em validarRadialLocal:", e); continue; } if(e.para===1)return{ok:!1,msg:'Slack não pode ter entrada',unservedBuses:new Set()}; adj[e.de].push(e.para); } while(head < q.length){ const u=q[head++]; for(const v of adj[u]){ if(!v || v < 1 || v > n) { console.warn("Índice v inválido em validarRadialLocal:", v, "vindo de u:", u); continue; } if(visited.has(v)){ hasLoopOrMultiParent = true; break; } visited.add(v); parent[v]=u; q.push(v); } if(hasLoopOrMultiParent) break;} if(hasLoopOrMultiParent) return {ok:false, msg:'Loop ou barra multi-alimentada detectado.', unservedBuses: new Set()}; const connectedCount=visited.size, uB=new Set(); for(let b=1;b<=n;b++)if(!visited.has(b))uB.add(b); if(connectedCount<n)return{ok:!0,msg:`Parcialmente conectado. ${uB.size} isoladas.`,unservedBuses:uB}; return{ok:!0,msg:'Rede OK',unservedBuses:uB}}
         async function runFluxoLocal(linhasData) {
             const nb = getNb(); const Sbase = parseFloat(elSbase.value); const Vbase_kV = parseFloat(elVbase.value); const tol = 1e-6; const iterMax = 100; let perdasMWtotal = 0; const orientedLinhas = []; const adj = Array(nb + 1).fill(0).map(() => []);
@@ -386,7 +682,7 @@
             validLinhasData.forEach(l => { adj[l.de].push(l.para); adj[l.para].push(l.de); });
             const parent = Array(nb + 1).fill(0); const q = [1]; const visited = Array(nb + 1).fill(false); visited[1] = true; const connectedBuses = new Set([1]); let head = 0;
             while(head < q.length) { const u = q[head++]; for (const v of adj[u]) { if (v >= 1 && v <= nb && !visited[v]) { visited[v] = true; parent[v] = u; connectedBuses.add(v); q.push(v); const l = validLinhasData.find(line => (line.de === u && line.para === v) || (line.de === v && line.para === u)); if (l) orientedLinhas.push({ ...l, de: u, para: v }); } } }
-            const validationResult = validarRadialLocal(nb, orientedLinhas); // Chamando a função local
+            const validationResult = validarRadialLocal(nb, orientedLinhas); 
             if (!validationResult.ok && !validationResult.msg.includes('Parcialmente conectado') && !validationResult.msg.includes('Não conectado')) { console.error("runFluxoLocal: Validação crítica falhou:", validationResult.msg); throw new Error('Falha validação local (erro crítico): ' + validationResult.msg); }
             const unservedBusesFromValidation = validationResult.unservedBuses;
             const Zbase = (Vbase_kV * Vbase_kV) / Sbase; const V = Array(nb + 1).fill(0).map(() => c(1, 0)); const S = Array(nb + 1).fill(0).map(() => c(0, 0)); for (let b = 2; b <= nb; b++) { if (connectedBuses.has(b) && cargas[b]) S[b] = c(parseFloat(cargas[b].P || 0) / Sbase, parseFloat(cargas[b].Q || 0) / Sbase); else S[b] = c(0, 0); }
