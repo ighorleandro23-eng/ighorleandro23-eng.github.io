@@ -188,8 +188,9 @@ self.onmessage = async (event) => {
     const { allLines, linhaFalhaKeys, nb, vMin, vMax, maxNALinhas, cargas, Sbase, Vbase_kV } = staticData;
 
     try {
+        // *** CORREÇÃO APLICADA AQUI ***
         // Passa maxNALinhas para a função
-        const result = await calculateFitness(individual, allLines, linhaFalhaKeys, nb, vMin, vMax, maxNALinhas, cargas, Sbase, VVbase_kV);
+        const result = await calculateFitness(individual, allLines, linhaFalhaKeys, nb, vMin, vMax, maxNALinhas, cargas, Sbase, Vbase_kV);
         self.postMessage({ index: index, result: result });
     } catch (error) {
         console.error(`[Worker] Erro fatal indivíduo ${index}:`, error);
