@@ -1,567 +1,439 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    10.73 12 10.73C12.66 10.73 13.29 10.62 13.88 10.4C14.47 10.18 15.02 9.88 15.5 9.5V11.5ZM12 8.5C10.62 8.5 9.5 7.38 9.5 6C9.5 4.62 10.62 3.5 12 3.5C13.38 3.5 14.5 4.62 14.5 6C14.5 7.38 13.38 8.5 12 8.5Z" fill="white"/> </svg> </div>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Otimização Topológica (GA c/ Corte Opcional + Worker) + Fluxo (UTFPR)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-main: #f0f2f5; --bg-light: #ffffff; --panel-bg: #e6e9f2;
+            --text-dark: #333333; --text-light: #f0f2f5; --muted-text: #666666;
+            --border-color: #cccccc;
+            --utfpr-blue-dark: #003366; --utfpr-blue-light: #006699; --utfpr-white: #ffffff;
+            --utfpr-gray-light: #f5f5f5; --utfpr-gray-medium: #cccccc;
+            --ok: #32a852; --warn: #fbbd08; --bad: #dc3545; --info: #17a2b8;
+            --highlight-green: #28a745; /* Verde para linhas adicionadas */
+        }
+        * { box-sizing: border-box; }
+        body { margin: 0; padding: 0; font-family: 'Inter', Segoe UI, Roboto, system-ui, -apple-system, Arial, sans-serif; color: var(--text-dark); background: var(--bg-main); }
+        .mono { font-family: 'Roboto Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; }
+        h1, h2, h3 { margin: 0 0 8px; font-weight: 600; color: var(--utfpr-blue-dark); }
+        h1 { font-size: 28px; color: var(--utfpr-white); text-align: center; }
+        h2 { font-size: 22px; color: var(--utfpr-blue-light); margin-bottom: 15px; }
+        h3 { font-size: 16px; color: var(--utfpr-blue-dark); font-weight: 500; margin-top: 20px; margin-bottom: 10px; }
+        .header { text-align: center; padding: 24px 16px; background: var(--utfpr-blue-dark); color: var(--utfpr-white); border-bottom: 5px solid var(--utfpr-blue-light); }
+        .header h1 { margin-bottom: 10px; }
+        .header p { max-width: 800px; margin: 8px auto 0; color: var(--utfpr-gray-medium); font-size: 1.1em; }
+        .header .logo-container { margin-bottom: 15px; }
+        .header .logo-container img, .header .logo-container svg { height: 80px; width: auto; }
+        .main-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(500px, 1fr)); gap: 20px; padding: 20px; max-width: 1400px; margin: 0 auto; }
+        .grid-span-all { grid-column: 1 / -1; }
+        .card { background: var(--bg-light); border: 1px solid var(--border-color); border-radius: 12px; padding: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); }
+        .row { display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 16px; }
+        label { font-size: 13px; color: var(--muted-text); display: block; margin-bottom: 6px; font-weight: 500; }
+        input, select, button { font-family: inherit; font-size: 14px; }
+        input[type="number"], input[type="text"], select { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--utfpr-gray-light); color: var(--text-dark); outline: none; transition: .15s border, .15s box-shadow; }
+        select[multiple] { height: auto; min-height: 80px; padding: 10px; }
+        input::placeholder { color: var(--muted-text) }
+        input:focus, select:focus { border-color: var(--utfpr-blue-light); box-shadow: 0 0 0 3px rgba(0, 102, 153, 0.2); }
+        .btn { padding: 12px 20px; border-radius: 8px; border: none; background: var(--utfpr-blue-dark); border-bottom: 2px solid #002a52; color: var(--utfpr-white); cursor: pointer; font-weight: 600; letter-spacing: .2px; transition: all .15s ease; display: inline-flex; align-items: center; gap: 8px; }
+        .btn:hover { transform: translateY(-1px); filter: brightness(1.1); }
+        .btn:active { transform: translateY(0); filter: brightness(1.0); }
+        .btn.primary { background: var(--utfpr-blue-light); border-color: #004a6e; }
+        .btn.secondary { background: var(--utfpr-gray-medium); border-color: #a0a0a0; color: var(--text-dark); }
+        .btn.warn { background: var(--warn); border-color: #e0ac00; color: #111; }
+        .btn:disabled { opacity: .6; cursor: not-allowed; transform: none; filter: none; }
+        .table-scroll { width: 100%; overflow: auto; border: 1px solid var(--border-color); border-radius: 10px; background: var(--utfpr-gray-light); }
+        table { width: 100%; border-collapse: separate; border-spacing: 0; min-width: 600px; }
+        th, td { padding: 12px 15px; border-bottom: 1px solid var(--border-color); vertical-align: middle; text-align: left; color: var(--text-dark); font-size: 14px; }
+        th { background: var(--utfpr-blue-dark); position: sticky; top: 0; z-index: 1; font-weight: 600; color: var(--utfpr-white); }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: rgba(0, 102, 153, 0.05) }
+        .status-bad { color: var(--bad); font-weight: 600; }
+        .status-warn { color: var(--warn); font-weight: 600; }
+        .newly-added-line td { background-color: rgba(40, 167, 69, 0.1); font-weight: 500; }
+        .svg-wrap { width: 100%; height: auto; padding-bottom: calc(520 / 1200 * 100%); position: relative; background: var(--utfpr-gray-light); border: 1px solid var(--border-color); border-radius: 12px; overflow: hidden; }
+        .svg-wrap svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+        .legend { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px }
+        .pill { display: inline-flex; gap: 8px; align-items: center; background: var(--utfpr-gray-light); border: 1px solid var(--border-color); color: var(--text-dark); padding: 8px 15px; border-radius: 999px; font-size: 12px; font-weight: 500;}
+        .pill small { color: var(--muted-text) }
+        .divider { border-top: 1px dashed var(--border-color); margin: 25px 0; }
+        .ga-card { border-left: 5px solid var(--utfpr-blue-light); }
+        .ga-params-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 20px;}
+        .ga-dashboard { background: var(--utfpr-gray-light); border-radius: 10px; padding: 20px; border: 1px solid var(--border-color); }
+        .progress-bar-container { width: 100%; background: var(--border-color); border-radius: 99px; height: 14px; overflow: hidden; margin-bottom: 12px; }
+        #ga-progress-bar { width: 0%; height: 100%; background: linear-gradient(90deg, var(--utfpr-blue-light) 0%, var(--utfpr-blue-dark) 100%); transition: width 0.3s ease-out; }
+        #ga-status { font-weight: 600; color: var(--utfpr-blue-dark); margin-bottom: 16px; font-size: 1.1em; }
+        .ga-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; }
+        .stat-item { background: var(--bg-light); padding: 15px; border-radius: 8px; border-left: 3px solid var(--utfpr-blue-light); box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .stat-item label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted-text); }
+        .stat-item .value { font-size: 22px; font-weight: 700; color: var(--utfpr-blue-dark); margin-top: 5px; }
+        #ga-log-detail { background: #fcfcfc; border: 1px solid var(--border-color); border-radius: 10px; padding: 15px; font-size: 13px; height: 180px; overflow-y: auto; margin-top: 20px; color: var(--muted-text); line-height: 1.5; }
+        #ga-log-detail div { padding: 2px 0; }
+        #ga-log-detail .log-ok { color: var(--ok); } #ga-log-detail .log-warn { color: var(--warn); } #ga-log-detail .log-bad { color: var(--bad); } #ga-log-detail .log-best { color: var(--utfpr-blue-light); font-weight: 600; }
+        svg line { stroke-linecap: round; } svg circle { stroke-linecap: round; }
+        .arrow-head { fill: var(--utfpr-blue-light); stroke: none; } .arrow-head.overload { fill: var(--bad); }
+        .newly-added-line-svg { stroke: var(--highlight-green) !important; }
+        .newly-added-arrow-head { fill: var(--highlight-green) !important; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo-container"> <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="80" height="80"> <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM15.5 16.5C14.73 17.29 13.56 17.8 12 17.8C10.44 17.8 9.27 17.29 8.5 16.5V14.5C8.98 14.88 9.53 15.18 10.12 15.4C10.71 15.62 11.34 15.73 12 15.73C12.66 15.73 13.29 15.62 13.88 15.4C14.47 15.18 15.02 14.88 15.5 14.5V16.5ZM15.5 11.5C14.73 12.29 13.56 12.8 12 12.8C10.44 12.8 9.27 12.29 8.5 11.5V9.5C8.98 9.88 9.53 10.18 10.12 10.4C10.71 10.62 11.34 10.73 12 10.73C12.66 10.73 13.29 10.62 13.88 10.4C14.47 10.18 15.02 9.88 15.5 9.5V11.5ZM12 8.5C10.62 8.5 9.5 7.38 9.5 6C9.5 4.62 10.62 3.5 12 3.5C13.38 3.5 14.5 4.62 14.5 6C14.5 7.38 13.38 8.5 12 8.5Z" fill="white"/> </svg> </div>
         <h1>Otimização Topológica de Redes Elétricas</h1>
         <p>Ferramenta para encontrar a melhor topologia de rede radial (MST) usando AG, considerando custo de chaves vs. atendimento de carga.</p>
     </div>
 
     <div class="main-grid">
+        <div>
             <div class="card">
                 <h2>Parâmetros da Rede</h2>
                 <div class="row"> <div> <label for="numBarras">Nº de Barras</label> <input id="numBarras" type="number" min="2" value="10" class="mono" /> </div> <div> <label for="sbase">Sbase (MVA)</label> <input id="sbase" type="number" class="mono" value="10" step="0.1" min="0.1"/> </div> <div> <label for="vbase">Vbase (kV LL)</label> <input id="vbase" type="number" class="mono" value="13.8" step="0.1" min="0.1"/> </div> </div>
-                <h3>Limites Operacionais</h3> <div class="row"> <div> 
-<label for="vmin">Tensão Mínima (pu)</label> <input id="vmin" type="number" class="mono" value="0.95" step="0.01" min="0"/> </div> <div> <label for="vmax">Tensão Máxima (pu)</label> <input id="vmax" type="number" class="mono" value="1.05" step="0.01" min="0"/> </div> </div>
+                <h3>Limites Operacionais</h3> <div class="row"> <div> <label for="vmin">Tensão Mínima (pu)</label> <input id="vmin" type="number" class="mono" value="0.95" step="0.01" min="0"/> </div> <div> <label for="vmax">Tensão Máxima (pu)</label> <input id="vmax" type="number" class="mono" value="1.05" step="0.01" min="0"/> </div> </div>
             </div>
-                        <div class="card" style="margin-top: 20px;">
+            <div class="card" style="margin-top: 20px;">
                 <h2>Dados da Rede</h2>
-                <div class="row" style="margin-bottom: 20px; justify-content: space-between;"> 
-                    <button class="btn secondary" id="btnGerar">Atualizar Barras/Cargas</button> 
-                    <button class="btn secondary" id="btnAddBarra">+ Add Barra</button> 
-                    <button class="btn primary" id="btnExemplo10">Carregar Exemplo 10 Barras</button> 
-                </div>
-    
-            <h3>Malha da Rede (Sistema Base)</h3> <button class="btn primary" id="btnAddLinha" style="margin-bottom:12px">+ Add Linha</button> <div class="table-scroll"> <table id="tblMalha"> <thead><tr><th>#</th><th>De</th><th>Para</th><th>R (ohm)</th><th>X (ohm)</th><th>Smax (MVA)</th><th>Ações</th></tr></thead> <tbody></tbody> </table> </div>
-                <h3>Cargas nas Barras</h3> 
-                <div class="table-scroll"> 
-                    <table id="tblCargas"> 
-                 <thead>
-                            </thead> 
-                        <tbody></tbody> 
-                    </table> 
-        </div>
+                <div class="row" style="margin-bottom: 20px; justify-content: space-between;"> <button class="btn secondary" id="btnGerar">Atualizar Barras/Cargas</button> <button class="btn secondary" id="btnAddBarra">+ Add Barra</button> <button class="btn primary" id="btnExemplo10">Carregar Exemplo 10 Barras</button> </div>
+                <h3>Malha da Rede (Sistema Base)</h3> <button class="btn primary" id="btnAddLinha" style="margin-bottom:12px">+ Add Linha</button> <div class="table-scroll"> <table id="tblMalha"> <thead><tr><th>#</th><th>De</th><th>Para</th><th>R (ohm)</th><th>X (ohm)</th><th>Smax (MVA)</th><th>Ações</th></tr></thead> <tbody></tbody> </table> </div>
+                <h3>Cargas nas Barras</h3> <div class="table-scroll"> <table id="tblCargas"> <thead><tr><th>Barra</th><th>P (MW)</th><th>Q (MVAr)</th></tr></thead> <tbody></tbody> </table> </div>
             </div>
         </div>
         <div>
             <div class="card ga-card">
                 <h2> <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -5px; margin-right: 5px; color: var(--utfpr-blue-light);"><path d="M12.22 2h-4.44a2 2 0 0 0-2 2v.77a2 2 0 0 0 .59 1.42l4.44 4.44a2 2 0 0 1 .59 1.42v4.44a2 2 0 0 0 2 2h.77a2 2 0 0 0 1.42-.59l4.44-4.44a2 2 0 0 1 1.42-.59h4.44a2 2 0 0 0 2-2v-4.44a2 2 0 0 0-2-2h-4.44a2 2 0 0 1-1.42-.59L13.64 2.59A2 2 0 0 0 12.22 2z"></path><path d="M18.5 2.5 21.5 5.5"></path><path d="m2 2 3 3"></path><path d="M12 12 8 8"></path></svg> Zona de Otimização (GA) </h2>
-                <h3>1. Defina a(s) Contingência(s)</h3> <div class="row"> <div style="flex-grow:1"> 
-<label for="linhaFalha">Linha(s) em Falha (Ctrl+Click)</label> <select id="linhaFalha" class="mono" multiple size="5"></select> </div> </div>
+                <h3>1. Defina a(s) Contingência(s)</h3> <div class="row"> <div style="flex-grow:1"> <label for="linhaFalha">Linha(s) em Falha (Ctrl+Click)</label> <select id="linhaFalha" class="mono" multiple size="5"></select> </div> </div>
                 
-                <h3>2. Parâmetros do GA</h3>
+                <h3>2. Parâmetros do GA</h3> <div class="ga-params-grid"> <div> <label for="gaPopSize">População</label> <input id="gaPopSize" type="number" class="mono" value="100" step="10" min="10"/> </div> <div> <label for="gaMaxGen">Gerações</label> <input id="gaMaxGen" type="number" class="mono" value="100" step="10" min="10"/> </div> <div> <label for="gaMutationRate">Mutação (%)</label> <input id="gaMutationRate" type="number" class="mono" value="15" min="0" max="100" step="1"/> </div> <div> <label for="gaPesoChave">Peso Custo Linha Base</label> <input id="gaPesoChave" type="number" class="mono" value="0.5" min="0" step="0.05" /> </div> </div>
                 
-                <div class="row"> <div style="flex-grow:1">
-                    <label for="substationBuses">Barras das Subestações (Fontes)</label>
-                    <input id="substationBuses" type="text" class="mono" value="1" placeholder="Ex: 1,20,30" />
-                </div> </div>
-                <div class="ga-params-grid"> <div> <label for="gaPopSize">População</label> <input id="gaPopSize" type="number" class="mono" value="100" step="10" min="10"/> </div> <div> <label for="gaMaxGen">Gerações</label> <input id="gaMaxGen" type="number" class="mono" value="100" step="10" min="10"/> </div> <div> <label for="gaMutationRate">Mutação (%)</label> <input id="gaMutationRate" type="number" class="mono" value="15" min="0" max="100" step="1"/> </div> <div> <label for="gaPesoChave">Peso Custo Linha Base</label> <input id="gaPesoChave" type="number" class="mono" value="0.5" min="0" step="0.05" /> </div> </div>
- 
-               
-                <h3>3. Parâmetros de Expansão (Linhas NA)</h3> 
-                                <div class="ga-params-grid"> <div> <label for="gaCustoNA">Custo Linha NA</label> <input id="gaCustoNA" type="number" class="mono" value="10.0" min="0" step="0.1"/> </div> <div> <label for="gaMaxNA">Nº Máx. Linhas NA</label> <input id="gaMaxNA" type="number" class="mono" value="3" min="0" step="1"/> </div> <div> <label for="gaR_NA">R Padrão (ohm/km)</label> <input id="gaR_NA" type="number" class="mono" value="0.1" step="0.01" min="0"/> </div> <div> <label for="gaX_NA">X Padrão (ohm/km)</label> <input id="gaX_NA" type="number" class="mono" value="0.2" step="0.01" min="0"/> </div> <div> <label for="gaSmax_NA">Smax Padrão (MVA)</label> <input id="gaSmax_NA" type="number" class="mono" value="5.0" step="0.1" min="0.1"/> </div> </div>
+                <h3>3. Parâmetros de Expansão (Linhas NA)</h3> <div class="ga-params-grid"> <div> <label for="gaCustoNA">Custo Linha NA</label> <input id="gaCustoNA" type="number" class="mono" value="10.0" min="0" step="0.1"/> </div> <div> <label for="gaMaxNA">Nº Máx. Linhas NA</label> <input id="gaMaxNA" type="number" class="mono" value="3" min="0" step="1"/> </div> <div> <label for="gaR_NA">R Padrão (ohm)</label> <input id="gaR_NA" type="number" class="mono" value="0.1" step="0.01" min="0"/> </div> <div> <label for="gaX_NA">X Padrão (ohm)</label> <input id="gaX_NA" type="number" class="mono" value="0.2" step="0.01" min="0"/> </div> <div> <label for="gaSmax_NA">Smax Padrão (MVA)</label> <input id="gaSmax_NA" type="number" class="mono" value="5.0" step="0.1" min="0.1"/> </div> </div>
 
-                <h3>4. Execução</h3> 
-                class="progress-bar-container"><div id="ga-progress-bar"></div></div> <div class="ga-stats"> <div class="stat-item"> <label>Melhor Fitness</label> <div class="value mono" id="best-fitness-display">---</div> </div> <div class="stat-item"> <label>Carga Não Atendida</label> <div class="value mono" id="unserved-load-display">--- MW</div> </div> <div class="stat-item"> <label>Perdas Totais</label> <div class="value mono" id="losses-display">--- MW</div> </div> <div class="stat-item"> <label>Chaves Ativas (NA)</label> <div class="value mono" id="active-switches-display">-- (--)</div> </div> <div class="stat-item" style="grid-column: 1 / -1;"> <label>Custo Chaves (Fit)</label> <div class="value mono" id="switch-cost-display">---</div> </div> </div> <div id="ga-log-detail" class="mono">Log...</div> </div>
+                <h3>4. Execução</h3> <div class="row" style="justify-content:flex-end; gap: 10px;"> <button class="btn secondary" id="btnFluxo">Fluxo Base (MST)</button> <button class="btn primary" id="btnOtimizar"> <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg> Otimizar Topologia </button> </div>
+                <div class="divider"></div>
+                
+                <h3>Dashboard</h3> <div class="ga-dashboard"> <div id="ga-status">Aguardando...</div> <div class="progress-bar-container"><div id="ga-progress-bar"></div></div> <div class="ga-stats"> <div class="stat-item"> <label>Melhor Fitness</label> <div class="value mono" id="best-fitness-display">---</div> </div> <div class="stat-item"> <label>Carga Não Atendida</label> <div class="value mono" id="unserved-load-display">--- MW</div> </div> <div class="stat-item"> <label>Perdas Totais</label> <div class="value mono" id="losses-display">--- MW</div> </div> <div class="stat-item"> <label>Chaves Ativas (NA)</label> <div class="value mono" id="active-switches-display">-- (--)</div> </div> <div class="stat-item" style="grid-column: 1 / -1;"> <label>Custo Chaves (Fit)</label> <div class="value mono" id="switch-cost-display">---</div> </div> </div> <div id="ga-log-detail" class="mono">Log...</div> </div>
             </div>
         </div>
         <div class="card grid-span-all">
-       
-             <h2>Resultados</h2> <div class="svg-wrap" id="svgWrap"> <svg id="svg" width="100%" height="100%" viewBox="0 0 1200 520" preserveAspectRatio="xMidYMid meet"> <defs> <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" class="arrow-head" /></marker> <marker id="arrowhead-overload" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" class="arrow-head overload" /></marker> <marker id="arrowhead-new" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" class="newly-added-arrow-head" /></marker> </defs> </svg> </div>
-            <div class="legend"> <span class="pill"><small>V barra:</small> |V|
-pu e Âng(°)</span> <span class="pill"><small>Fluxo:</small> P/Q MW/MVAr</span> <span class="pill" style="background: var(--utfpr-blue-light); border-color:var(--utfpr-blue-light); color:white"><small>Linha Base</small></span> <span class="pill" style="background: var(--highlight-green); border-color:var(--highlight-green); color:white;"><small>Linha Nova/Manobra</small></span> <span class="pill" style="border-style: dashed; border-color: var(--utfpr-blue-light);"><small>Linha NA Padrão</small></span> <span class="pill" style="background: var(--bad); border-color:var(--bad); color:white; font-weight: bold;"><small>Sobrecarga</small></span> </div>
-            <div class="divider"></div> <h3>Tensões nas Barras</h3> <div class="table-scroll"> <table id="tblResBarras"> <thead><tr><th>Barra</th><th>|V|
-(pu)</th><th>Ângulo (°)</th><th>P carga (MW)</th><th>Q carga (MVAr)</th></tr></thead> <tbody></tbody> </table> </div>
-            <h3 style="margin-top: 20px;">Fluxo e Perdas nos Ramos</h3> <div class="table-scroll"> <table id="tblResRamos"> <thead><tr><th>#</th><th>De</th><th>Para</th><th>P (MW)</th><th>Q (MVAr)</th><th>|S|
-(MVA)</th><th>Smax (MVA)</th><th>Perdas P (MW)</th></tr></thead> <tbody></tbody> </table> </div>
+            <h2>Resultados</h2> <div class="svg-wrap" id="svgWrap"> <svg id="svg" width="100%" height="100%" viewBox="0 0 1200 520" preserveAspectRatio="xMidYMid meet"> <defs> <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" class="arrow-head" /></marker> <marker id="arrowhead-overload" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" class="arrow-head overload" /></marker> <marker id="arrowhead-new" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" class="newly-added-arrow-head" /></marker> </defs> </svg> </div>
+            <div class="legend"> <span class="pill"><small>V barra:</small> |V| pu e Âng(°)</span> <span class="pill"><small>Fluxo:</small> P/Q MW/MVAr</span> <span class="pill" style="background: var(--utfpr-blue-light); border-color:var(--utfpr-blue-light); color:white"><small>Linha Base</small></span> <span class="pill" style="background: var(--highlight-green); border-color:var(--highlight-green); color:white;"><small>Linha Nova/Manobra</small></span> <span class="pill" style="border-style: dashed; border-color: var(--utfpr-blue-light);"><small>Linha NA Padrão</small></span> <span class="pill" style="background: var(--bad); border-color:var(--bad); color:white; font-weight: bold;"><small>Sobrecarga</small></span> </div>
+            <div class="divider"></div> <h3>Tensões nas Barras</h3> <div class="table-scroll"> <table id="tblResBarras"> <thead><tr><th>Barra</th><th>|V| (pu)</th><th>Ângulo (°)</th><th>P carga (MW)</th><th>Q carga (MVAr)</th></tr></thead> <tbody></tbody> </table> </div>
+            <h3 style="margin-top: 20px;">Fluxo e Perdas nos Ramos</h3> <div class="table-scroll"> <table id="tblResRamos"> <thead><tr><th>#</th><th>De</th><th>Para</th><th>P (MW)</th><th>Q (MVAr)</th><th>|S| (MVA)</th><th>Smax (MVA)</th><th>Perdas P (MW)</th></tr></thead> <tbody></tbody> </table> </div>
         </div>
     </div>
 
     <script>
         // --- Funções Auxiliares (c(), addLinhaRow, etc. - Sem lógica do AG/Fluxo) ---
         function c(re=0,im=0){return{re,im}} function cAdd(a,b){return c(a.re+b.re,a.im+b.im)} function cSub(a,b){return c(a.re-b.re,a.im-b.im)} function cMul(a,b){return c(a.re*b.re-a.im*b.im,a.re*b.im+a.im*b.re)} function cConj(a){return c(a.re,-a.im)} function cAbs(a){return Math.hypot(a.re,a.im)} function cDiv(a,b){const d=b.re*b.re+b.im*b.im||1e-30;return c((a.re*b.re+a.im*b.im)/d,(a.im*b.re-a.re*b.im)/d)} function pol2rec(m,d){const r=d*Math.PI/180;return c(m*Math.cos(r),m*Math.sin(r))} function angDeg(a){return Math.atan2(a.im,a.re)*180/Math.PI}
+        const elNb=document.getElementById('numBarras'),elSbase=document.getElementById('sbase'),elVbase=document.getElementById('vbase'),elVmin=document.getElementById('vmin'),elVmax=document.getElementById('vmax'),tblMalha=document.getElementById('tblMalha').querySelector('tbody'),tblCargas=document.getElementById('tblCargas').querySelector('tbody'),btnGerar=document.getElementById('btnGerar'),btnAddBarra=document.getElementById('btnAddBarra'),btnAddLinha=document.getElementById('btnAddLinha'),btnExemplo10=document.getElementById('btnExemplo10'),selLinhaFalha=document.getElementById('linhaFalha'),elGaPopSize=document.getElementById('gaPopSize'),elGaMaxGen=document.getElementById('gaMaxGen'),elGaMutationRate=document.getElementById('gaMutationRate'),elGaPesoChave=document.getElementById('gaPesoChave'),btnFluxo=document.getElementById('btnFluxo'),btnOtimizar=document.getElementById('btnOtimizar'),gaStatus=document.getElementById('ga-status'),gaProgressBar=document.getElementById('ga-progress-bar'),bestFitnessDisplay=document.getElementById('best-fitness-display'),unservedLoadDisplay=document.getElementById('unserved-load-display'),lossesDisplay=document.getElementById('losses-display'),activeSwitchesDisplay=document.getElementById('active-switches-display'),switchCostDisplay=document.getElementById('switch-cost-display'),gaLogDetail=document.getElementById('ga-log-detail'),svg=document.getElementById('svg'),tblResBarras=document.getElementById('tblResBarras').querySelector('tbody'),tblResRamos=document.getElementById('tblResRamos').querySelector('tbody');
         
-        const elNb=document.getElementById('numBarras'),elSbase=document.getElementById('sbase'),elVbase=document.getElementById('vbase'),elVmin=document.getElementById('vmin'),elVmax=document.getElementById('vmax'),tblMalha=document.getElementById('tblMalha').querySelector('tbody'),tblCargasTbody=document.getElementById('tblCargas').querySelector('tbody'),tblCargasThead=document.getElementById('tblCargas').querySelector('thead'),btnGerar=document.getElementById('btnGerar'),btnAddBarra=document.getElementById('btnAddBarra'),btnAddLinha=document.getElementById('btnAddLinha'),btnExemplo10=document.getElementById('btnExemplo10'),selLinhaFalha=document.getElementById('linhaFalha'),elGaPopSize=document.getElementById('gaPopSize'),elGaMaxGen=document.getElementById('gaMaxGen'),elGaMutationRate=document.getElementById('gaMutationRate'),elGaPesoChave=document.getElementById('gaPesoChave'),btnFluxo=document.getElementById('btnFluxo'),btnOtimizar=document.getElementById('btnOtimizar'),gaStatus=document.getElementById('ga-status'),gaProgressBar=document.getElementById('ga-progress-bar'),bestFitnessDisplay=document.getElementById('best-fitness-display'),unservedLoadDisplay=document.getElementById('unserved-load-display'),lossesDisplay=document.getElementById('losses-display'),activeSwitchesDisplay=document.getElementById('active-switches-display'),switchCostDisplay=document.getElementById('switch-cost-display'),gaLogDetail=document.getElementById('ga-log-detail'),svgWrap=document.getElementById('svgWrap'),svg=document.getElementById('svg'),tblResBarras=document.getElementById('tblResBarras').querySelector('tbody'),tblResRamos=document.getElementById('tblResRamos').querySelector('tbody');
-        
-        // *** NOVA CONSTANTE ADICIONADA ***
-        const elSubstationBuses = document.getElementById('substationBuses');
-        // *** FIM DA ADIÇÃO ***
-        
+        // --- IDs dos novos campos NA ---
         const elGaCustoNA = document.getElementById('gaCustoNA');
-        const elGaMaxNA = document.getElementById('gaMaxNA'); const elGaR_NA = document.getElementById('gaR_NA');
+        const elGaMaxNA = document.getElementById('gaMaxNA');
+        const elGaR_NA = document.getElementById('gaR_NA');
         const elGaX_NA = document.getElementById('gaX_NA');
         const elGaSmax_NA = document.getElementById('gaSmax_NA');
 
         let cargas={}; let baseMstLineKeys = new Set();
         function getNb(){const n=parseInt(elNb.value,10);return isFinite(n)&&n>=2?n:2} function logGADetail(m,t=''){const s=document.createElement('div');s.textContent=`[${new Date().toLocaleTimeString()}] ${m}`;if(t)s.className=`log-${t}`;gaLogDetail.appendChild(s);gaLogDetail.scrollTop=gaLogDetail.scrollHeight}
-        
-        // --- MUDANÇA: Lógica de Cargas e Barras (Leitura das fontes) ---
-        function getSubstationBuses() {
+        function gerarTabelaCargas(){const n=getNb(),oC={...cargas};cargas={};tblCargas.innerHTML='';for(let b=2;b<=n;b++){const r=document.createElement('tr'),tB=document.createElement('td');tB.textContent=b;const tP=document.createElement('td'),tQ=document.createElement('td'),iP=document.createElement('input');iP.type='number';iP.step='0.001';iP.value=oC[b]?.P??0;iP.className='mono';iP.min="0";iP.addEventListener('input',()=>{cargas[b]={P:parseFloat(iP.value||0),Q:parseFloat(iQ.value||0)}});const iQ=document.createElement('input');iQ.type='number';iQ.step='0.001';iQ.value=oC[b]?.Q??0;iQ.className='mono';iQ.addEventListener('input',()=>{cargas[b]={P:parseFloat(iP.value||0),Q:parseFloat(iQ.value||0)}});tP.appendChild(iP);tQ.appendChild(iQ);r.appendChild(tB);r.appendChild(tP);r.appendChild(tQ);tblCargas.appendChild(r);cargas[b]={P:parseFloat(iP.value||0),Q:parseFloat(iQ.value||0)}}atualizarSelectsLinhas()}
+        function addLinhaRow(t,p){const n=getNb(),r=document.createElement('tr'),x=t.children.length+1,tX=document.createElement('td');tX.textContent=x;const tD=document.createElement('td'),sD=document.createElement('select');sD.className='mono selDe';for(let b=1;b<=n;b++){const o=document.createElement('option');o.value=String(b);o.textContent=b;sD.appendChild(o)}sD.value=p?.de??'1';const tP=document.createElement('td'),sP=document.createElement('select');sP.className='mono selPara';for(let b=1;b<=n;b++){const o=document.createElement('option');o.value=String(b);o.textContent=b;sP.appendChild(o)}sP.value=p?.para??String(Math.min(2,n));const tR=document.createElement('td'),iR=document.createElement('input');iR.type='number';iR.step='0.000001';iR.value=p?.R??0.05;iR.className='mono';iR.min="0";const tX2=document.createElement('td'),iX=document.createElement('input');iX.type='number';iX.step='0.000001';iX.value=p?.X??0.10;iX.className='mono';iX.min="0";const tS=document.createElement('td'),iS=document.createElement('input');iS.type='number';iS.step='0.1';iS.value=p?.Smax??5.0;iS.className='mono inpSmax';iS.min="0.1";const tA=document.createElement('td'),bD=document.createElement('button');bD.textContent='Remover';bD.className='btn secondary';bD.addEventListener('click',()=>{r.remove();renumerarLinhas(t);updateLinhaFalhaSelect()});tD.appendChild(sD);tP.appendChild(sP);tR.appendChild(iR);tX2.appendChild(iX);tS.appendChild(iS);tA.appendChild(bD);r.appendChild(tX);r.appendChild(tD);r.appendChild(tP);r.appendChild(tR);r.appendChild(tX2);r.appendChild(tS);r.appendChild(tA);t.appendChild(r);updateLinhaFalhaSelect()}
+        function renumerarLinhas(t){[...t.children].forEach((r,i)=>{r.children[0].textContent=i+1})}
+        function atualizarSelectsLinhas(){const n=getNb(),rs=[...tblMalha.children];rs.forEach(r=>{const sD=r.querySelector('.selDe'),sP=r.querySelector('.selPara'),oD=sD.value,oP=sP.value;sD.innerHTML='';sP.innerHTML='';for(let b=1;b<=n;b++){const o1=document.createElement('option');o1.value=String(b);o1.textContent=b;sD.appendChild(o1);const o2=document.createElement('option');o2.value=String(b);o2.textContent=b;sP.appendChild(o2)}sD.value=parseInt(oD,10)<=n?oD:'1';sP.value=parseInt(oP,10)<=n?oP:String(Math.min(2,n))});updateLinhaFalhaSelect()}
+        function updateLinhaFalhaSelect() { const oldValues = new Set(Array.from(selLinhaFalha.selectedOptions).map(opt => opt.value)); selLinhaFalha.innerHTML = ''; const optSemFalha = document.createElement('option'); optSemFalha.value = 'SEM_FALHA'; optSemFalha.textContent = 'Sistema Normal (Sem Falha)'; selLinhaFalha.appendChild(optSemFalha); const linhasMalha = getLinhasFromTable(tblMalha); linhasMalha.forEach((l) => { const key = `${l.de}-${l.para}`; const opt = document.createElement('option'); opt.value = key; opt.textContent = `Linha ${l.id} (${l.de} \u2192 ${l.para})`; if (oldValues.has(key)) opt.selected = true; selLinhaFalha.appendChild(opt); }); if (selLinhaFalha.selectedOptions.length === 0 && !oldValues.has('SEM_FALHA')) { selLinhaFalha.value = 'SEM_FALHA'; } else if (selLinhaFalha.selectedOptions.length > 1 && selLinhaFalha.querySelector('option[value="SEM_FALHA"]').selected) { selLinhaFalha.querySelector('option[value="SEM_FALHA"]').selected = false; } else if (selLinhaFalha.selectedOptions.length === 0 && oldValues.has('SEM_FALHA')) { selLinhaFalha.value = 'SEM_FALHA'; } }
+        function getLinhasFromTable(t){const lD=[];[...t.children].forEach((r,i)=>{const d=parseInt(r.querySelector('.selDe').value,10),p=parseInt(r.querySelector('.selPara').value,10),R=parseFloat(r.children[3].querySelector('input').value||0),X=parseFloat(r.children[4].querySelector('input').value||0),S=parseFloat(r.children[5].querySelector('.inpSmax').value||999);if(d!==p)lD.push({id:i+1,de:d,para:p,R:R,X:X,Smax:S,Z:Math.hypot(R,X),isNA:!1})});return lD}
+        function carregarExemplo10(){tblMalha.innerHTML='';elNb.value=10;gerarTabelaCargas();addLinhaRow(tblMalha,{de:'1',para:'2',R:0.1,X:0.2,Smax:8.0});addLinhaRow(tblMalha,{de:'2',para:'3',R:0.08,X:0.16,Smax:6.0});addLinhaRow(tblMalha,{de:'3',para:'4',R:0.05,X:0.1,Smax:4.0});addLinhaRow(tblMalha,{de:'4',para:'5',R:0.05,X:0.1,Smax:3.0});addLinhaRow(tblMalha,{de:'1',para:'6',R:0.12,X:0.24,Smax:8.0});addLinhaRow(tblMalha,{de:'6',para:'7',R:0.07,X:0.14,Smax:5.0});addLinhaRow(tblMalha,{de:'7',para:'8',R:0.06,X:0.12,Smax:4.0});addLinhaRow(tblMalha,{de:'8',para:'9',R:0.04,X:0.08,Smax:3.0});addLinhaRow(tblMalha,{de:'9',para:'10',R:0.03,X:0.06,Smax:2.0});addLinhaRow(tblMalha,{de:'5',para:'7',R:0.06,X:0.12,Smax:3.0});addLinhaRow(tblMalha,{de:'4',para:'8',R:0.08,X:0.16,Smax:3.5});addLinhaRow(tblMalha,{de:'3',para:'9',R:0.10,X:0.20,Smax:4.0});const nC={2:{P:1.0,Q:0.4},3:{P:0.8,Q:0.3},4:{P:0.6,Q:0.2},5:{P:0.4,Q:0.1},6:{P:1.2,Q:0.5},7:{P:0.9,Q:0.35},8:{P:0.7,Q:0.25},9:{P:0.5,Q:0.2},10:{P:0.3,Q:0.1},};for(const b in nC){const w=tblCargas.children[b-2];if(w){const i=w.querySelectorAll('input[type="number"]');if(i.length>=2){i[0].value=nC[b].P;i[1].value=nC[b].Q;cargas[b]=nC[b]}}}updateLinhaFalhaSelect();if(selLinhaFalha.querySelector('option[value="3-4"]'))selLinhaFalha.value='3-4';else selLinhaFalha.value='SEM_FALHA'}
+        function renderResultados(resBarras, resRamos, newlyAddedKeys = new Set()) { tblResBarras.innerHTML = ''; tblResRamos.innerHTML = ''; const vMin = parseFloat(elVmin.value); const vMax = parseFloat(elVmax.value); if (!Array.isArray(resBarras)) { console.error("render: resBarras não é array"); return; } resBarras.forEach(r => { const tr = document.createElement('tr'); if (!r.isConnected) { tr.style.opacity = '0.5'; tr.style.fontStyle = 'italic'; } const vm = (typeof r.Vmag === 'number' && isFinite(r.Vmag)) ? r.Vmag : 0; const va = (typeof r.Vang === 'number' && isFinite(r.Vang)) ? r.Vang : 0; const p = (typeof r.Pmw === 'number' && isFinite(r.Pmw)) ? r.Pmw : 0; const q = (typeof r.Qmvar === 'number' && isFinite(r.Qmvar)) ? r.Qmvar : 0; tr.innerHTML = `<td>${r.barra} ${!r.isConnected ? '(Isolada)' : ''}</td> <td class="mono ${r.isConnected && (vm < vMin || vm > vMax) ? 'status-bad' : ''}">${vm.toFixed(5)}</td> <td class="mono">${va.toFixed(2)}</td> <td class="mono">${p.toFixed(3)}</td> <td class="mono">${q.toFixed(3)}</td>`; tblResBarras.appendChild(tr); }); if (!Array.isArray(resRamos)) { console.error("render: resRamos não é array"); return; } resRamos.forEach(r => { const smva = (typeof r.Smva === 'number' && isFinite(r.Smva)) ? r.Smva : 0; const smax = (typeof r.Smax === 'number' && isFinite(r.Smax) && r.Smax > 1e-9) ? r.Smax : 1; const p_r = (typeof r.Pmw === 'number' && isFinite(r.Pmw)) ? r.Pmw : 0; const q_r = (typeof r.Qmvar === 'number' && isFinite(r.Qmvar)) ? r.Qmvar : 0; const loss = (typeof r.perdasMW === 'number' && isFinite(r.perdasMW)) ? r.perdasMW : 0; const loading = smax > 1e-9 ? smva / smax : 0 ; let statusClass = ''; if (loading > 1.0) statusClass = 'status-bad'; else if (loading > 0.85) statusClass = 'status-warn'; const tr = document.createElement('tr'); const lineKey1 = `${r.de}-${r.para}`; const lineKey2 = `${r.para}-${r.de}`; const isNew = newlyAddedKeys.has(lineKey1) || newlyAddedKeys.has(lineKey2); if(isNew) tr.classList.add('newly-added-line'); const isNA = r.isNA === true; tr.innerHTML = `<td>${r.idx}${isNA ? ' (NA)' : ''}${isNew ? ' (Nova)' : ''}</td> <td>${r.de}</td> <td>${r.para}</td> <td class="mono">${p_r.toFixed(3)}</td> <td class="mono">${q_r.toFixed(3)}</td> <td class="mono ${statusClass}">${smva.toFixed(3)}</td> <td class="mono">${smax.toFixed(2)}</td> <td class="mono">${loss.toFixed(4)}</td>`; tblResRamos.appendChild(tr); }); }
+        function desenharRede(nb, resRamos, resBarras, newlyAddedKeys = new Set()) { if (!Array.isArray(resRamos) || !Array.isArray(resBarras)) { console.error("draw: dados inválidos"); svg.innerHTML = '<text x="10" y="20" fill="red">Erro: Dados inválidos.</text>'; return; } const ramos = Array.isArray(resRamos) ? resRamos.map(r => ({ ...r })) : []; const adj = Array(nb + 1).fill(0).map(() => []); const parentMap = new Map(); ramos.forEach(r => { adj[r.de].push(r.para); adj[r.para].push(r.de); }); const depth = Array(nb + 1).fill(Infinity); const qBFS = [1]; depth[1] = 0; const visitedBFS = new Set([1]); let headBFS = 0; while(headBFS < qBFS.length) { const u = qBFS[headBFS++]; adj[u].forEach(v => { if (v>=1 && v<=nb && !visitedBFS.has(v)) { visitedBFS.add(v); depth[v] = depth[u] + 1; parentMap.set(v, u); qBFS.push(v); } }); } const groups = {}; for (let b = 1; b <= nb; b++) { const d = visitedBFS.has(b) ? (depth[b] === Infinity ? 0 : depth[b]) : 99; if (!groups[d]) groups[d] = []; groups[d].push(b); } const connectedDepths = Object.keys(groups).map(k => parseInt(k, 10)).filter(k => k < 99); const maxDepth = connectedDepths.length > 0 ? Math.max(...connectedDepths) : 0; const W = 1200, H = 520; const padX = 80, padY = 40; const cols = maxDepth + 1; const dx = (W - 2 * padX) / Math.max(1, cols - 1); const levelYs = {}; for (const dStr of Object.keys(groups)) { const d = parseInt(dStr, 10); const arr = groups[d]; const rows = arr.length; const minSpacing = 30; const totalHeight = H - 2 * padY; const dy = Math.max(totalHeight / (rows + 1), minSpacing); let startY = padY + dy; if (rows * dy < totalHeight) startY = padY + (totalHeight - (rows - 1) * dy) / 2; levelYs[d] = arr.map((_, i) => startY + i * dy); arr.sort((a, b) => a - b); } const pos = {}; for (const dStr of Object.keys(groups)) { const d = parseInt(dStr, 10); const arr = groups[d]; arr.forEach((b, i) => { const x = (d === 99) ? (W - padX + 20) : (padX + d * dx); const y = levelYs[d]?.[i] || (padY + (i + 1) * 40); pos[b] = { x, y }; }); } svg.innerHTML = ''; svg.insertAdjacentHTML('afterbegin', `<defs><marker id="arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" class="arrow-head" /></marker><marker id="arrowhead-overload" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" class="arrow-head overload" /></marker><marker id="arrowhead-new" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" class="newly-added-arrow-head" /></marker></defs>`);
+            for (const r of ramos) { const p1 = pos[r.de], p2 = pos[r.para]; if (!p1 || !p2) continue; const line = document.createElementNS('http://www.w3.org/2000/svg', 'line'); const smax = (typeof r.Smax === 'number' && isFinite(r.Smax) && r.Smax > 1e-9) ? r.Smax : 1; const smva = (typeof r.Smva === 'number' && isFinite(r.Smva)) ? r.Smva : 0; const isOverloaded = smva > smax; const lineKey1 = `${r.de}-${r.para}`; const lineKey2 = `${r.para}-${r.de}`; const isNew = newlyAddedKeys.has(lineKey1) || newlyAddedKeys.has(lineKey2); const isNA = r.isNA === true; let markerId = isOverloaded ? 'url(#arrowhead-overload)' : (isNew ? 'url(#arrowhead-new)' : 'url(#arrowhead)'); let actualDe = r.de, actualPara = r.para; if (parentMap.get(r.de) === r.para) { actualDe = r.para; actualPara = r.de; } else if (parentMap.get(r.para) !== r.de) markerId = ''; line.setAttribute('x1', pos[actualDe].x); line.setAttribute('y1', pos[actualDe].y); line.setAttribute('x2', pos[actualPara].x); line.setAttribute('y2', pos[actualPara].y); if(isNew) line.classList.add('newly-added-line-svg'); line.setAttribute('stroke', isOverloaded ? 'var(--bad)' : (isNew ? 'var(--highlight-green)' : 'var(--utfpr-blue-light)')); line.setAttribute('stroke-width', isOverloaded ? '5' : (isNew ? '4' : '3')); if (isNA) line.setAttribute('stroke-dasharray', '8 4'); if (markerId) line.setAttribute('marker-end', markerId); svg.appendChild(line); const midx = (p1.x + p2.x) / 2, midy = (p1.y + p2.y) / 2; const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text'); txt.setAttribute('x', midx + 6); txt.setAttribute('y', midy - 6); txt.setAttribute('fill', isOverloaded ? 'var(--bad)' : (isNew ? 'var(--highlight-green)' : 'var(--text-dark)')); txt.setAttribute('font-size', '12'); txt.setAttribute('class', 'mono'); const p_t = (typeof r.Pmw === 'number' && isFinite(r.Pmw)) ? r.Pmw : 0; const q_t = (typeof r.Qmvar === 'number' && isFinite(r.Qmvar)) ? r.Qmvar : 0; txt.textContent = `P=${p_t.toFixed(2)} Q=${q_t.toFixed(2)}`; svg.appendChild(txt); }
+            for (let b = 1; b <= nb; b++) { const p = pos[b]; if (!p) continue; const rb = resBarras.find(x => x.barra === b); const isConnected = rb?.isConnected ?? false; const v = rb?.Vmag ?? 0; const vMin = parseFloat(elVmin.value); const vMax = parseFloat(elVmax.value); let vColor = 'var(--utfpr-blue-dark)'; if (isConnected && (v < vMin || v > vMax)) vColor = 'var(--bad)'; else if (!isConnected) vColor = 'var(--muted-text)'; const circ = document.createElementNS('http://www.w3.org/2000/svg', 'circle'); circ.setAttribute('cx', p.x); circ.setAttribute('cy', p.y); circ.setAttribute('r', 18); circ.setAttribute('fill', b === 1 ? 'var(--utfpr-blue-dark)' : 'var(--utfpr-blue-light)'); circ.setAttribute('stroke', vColor); circ.setAttribute('stroke-width', '3'); if (!isConnected) { circ.setAttribute('fill', 'var(--utfpr-gray-medium)'); circ.setAttribute('stroke-dasharray', '5 5'); } svg.appendChild(circ); const label = document.createElementNS('http://www.w3.org/2000/svg', 'text'); label.setAttribute('x', p.x); label.setAttribute('y', p.y + 5); label.setAttribute('text-anchor', 'middle'); label.setAttribute('fill', isConnected ? 'var(--utfpr-white)' : 'var(--text-dark)'); label.setAttribute('font-size', '14'); label.setAttribute('font-weight', '700'); label.textContent = b; svg.appendChild(label); const info = document.createElementNS('http://www.w3.org/2000/svg', 'text'); info.setAttribute('x', p.x + 25); info.setAttribute('y', p.y + 4); info.setAttribute('fill', isConnected ? 'var(--text-dark)' : 'var(--muted-text)'); info.setAttribute('font-size', '12'); info.setAttribute('class', 'mono'); const vmi = (rb && typeof rb.Vmag === 'number' && isFinite(rb.Vmag)) ? rb.Vmag : 0; const vai = (rb && typeof rb.Vang === 'number' && isFinite(rb.Vang)) ? rb.Vang : 0; info.textContent = (isConnected && rb) ? `|V|=${vmi.toFixed(4)} \u2220 ${vai.toFixed(2)}\xB0` : 'ISOLADA'; if (isConnected && (v < vMin || v > vMax)) info.setAttribute('fill', 'var(--bad)'); svg.appendChild(info); }
+        }
+
+        // --- Funções do AG (Seleção, Crossover, Mutação) ---
+        function createPopulation(numLinhas, popSize) { const pop = []; const nb = getNb(); const req = nb > 1 ? nb - 1 : 0; for (let i = 0; i < popSize; i++) { const ind = Array(numLinhas).fill(0).map(() => Math.random() < 0.6 ? 1 : 0); let ones = ind.reduce((s, v) => s + v, 0); if (ones < req && req > 0) { let needed = req - ones; const zeros = []; ind.forEach((v,k)=>{if(v===0)zeros.push(k);}); shuffleArray(zeros); for(let k=0; k < Math.min(needed, zeros.length); k++) ind[zeros[k]] = 1; } pop.push(ind); } return pop; }
+        function selectionTournament(popComFitness, tournamentSize) { let best = null; const actualSize = Math.min(tournamentSize, popComFitness.length); for (let i = 0; i < actualSize; i++) { const idx = Math.floor(Math.random() * popComFitness.length); const ind = popComFitness[idx]; if (ind && typeof ind.fitness === 'number' && (best === null || ind.fitness < best.fitness)) best = ind; } return best ? best.individual : (popComFitness.length > 0 ? popComFitness[0].individual : []); }
+        function crossoverSinglePoint(p1, p2, crossoverRate) { if (!Array.isArray(p1) || !Array.isArray(p2) || p1.length === 0 || p1.length !== p2.length) return [[...(Array.isArray(p1) ? p1 : [])], [...(Array.isArray(p2) ? p2 : [])]]; if (Math.random() > crossoverRate || p1.length < 2) return [[...p1], [...p2]]; const point = Math.floor(Math.random() * (p1.length - 1)) + 1; const c1 = [...p1.slice(0, point), ...p2.slice(point)]; const c2 = [...p2.slice(0, point), ...p1.slice(point)]; return [c1, c2]; }
+        function mutateBitFlip(individual, mutationRate) { if (!Array.isArray(individual)) return []; const mutated = [...individual]; let changes = 0; for (let i = 0; i < mutated.length; i++) if (Math.random() < mutationRate) { mutated[i] = 1 - mutated[i]; changes++; } const req = getNb() - 1; let ones = mutated.reduce((s, v) => s + v, 0); if (ones < req && changes > 0 && req > 0) { let needed = req - ones; const zeros = []; mutated.forEach((v, i) => { if(v === 0) zeros.push(i); }); shuffleArray(zeros); for(let i=0; i < Math.min(needed, zeros.length); i++) mutated[zeros[i]] = 1; } return mutated; }
+        function shuffleArray(array) { for (let i = array.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [array[i], array[j]] = [array[j], array[i]]; } }
+
+        // --- Gerenciamento do Web Worker ---
+        let workerPool = [];
+        let taskQueue = [];
+        let resultsReceived = [];
+        let resolveGeneration;
+        let generationPromises = []; // Definido em escopo mais amplo
+
+        function initializeWorkers(numWorkers) {
+            terminateWorkers(); workerPool = []; const workerFileName = 'ga_worker.js';
+            for (let i = 0; i < numWorkers; i++) {
+                try {
+                    const worker = new Worker(workerFileName);
+                    worker.id = i; worker.isBusy = false;
+                    worker.onmessage = handleWorkerMessage;
+                    worker.onerror = handleWorkerError;
+                    workerPool.push(worker);
+                } catch (e) {
+                    console.error("Erro ao criar worker:", e); logGADetail(`Erro ao criar worker ${i}: ${e.message}`, 'bad');
+                    if(e.name === 'SecurityError') { alert("Erro de segurança: Web Workers não podem ser carregados de 'file:///'. Por favor, use um servidor web local (http://localhost)."); }
+                }
+            }
+             if (workerPool.length > 0) logGADetail(`Pool de ${workerPool.length} workers inicializado.`);
+        }
+        function terminateWorkers() { workerPool.forEach(worker => worker.terminate()); workerPool = []; logGADetail("Workers terminados."); }
+
+        function checkGenerationCompletion() {
+            const receivedCount = resultsReceived.filter(r => r !== undefined).length;
+            if (receivedCount === (generationPromises?.length || 0) && resolveGeneration) {
+                resolveGeneration(resultsReceived);
+                resolveGeneration = null;
+            }
+        }
+        function handleWorkerMessage(event) {
+            const { index, result, error } = event.data;
+            const worker = event.target;
+            if (error) { logGADetail(`Worker ${worker.id} erro ind. ${index}: ${error}`, 'bad'); resultsReceived[index] = { fitness: Infinity, data: {}, error: error }; } else { resultsReceived[index] = result; }
+            worker.isBusy = false;
+            if (taskQueue.length > 0) { const nextTask = taskQueue.shift(); worker.isBusy = true; worker.postMessage(nextTask); }
+            checkGenerationCompletion();
+        }
+        function handleWorkerError(error) {
+            console.error("Erro no Worker:", error.message, "em", error.filename, ":", error.lineno); 
+            const worker = error.target; 
+            logGADetail(`ERRO GERAL NO WORKER ${worker?.id}: ${error.message}`, 'bad');
+            
+            // Tenta encontrar a tarefa que este worker estava processando
+            const failedTaskIndex = taskQueue.findIndex(t => t.workerId === worker.id) || resultsReceived.findIndex(r => r === undefined);
+            
+            // Marca a tarefa como falha
+            if (failedTaskIndex !== -1 && resultsReceived[failedTaskIndex] === undefined) {
+                 logGADetail(`Marcando índice ${failedTaskIndex} como falho devido a erro do worker.`, 'bad');
+                 resultsReceived[failedTaskIndex] = { fitness: Infinity, data: {}, error: `Worker ${worker?.id} falhou: ${error.message}` };
+            }
+
+            if(worker) worker.isBusy = false;
+            if (taskQueue.length > 0) { const nextTask = taskQueue.shift(); if(worker) { worker.isBusy = true; worker.postMessage(nextTask); } }
+            checkGenerationCompletion();
+        }
+
+        // --- Loop Principal do AG (Removido critério de parada por estagnação) ---
+        async function runGA() {
+            gaLogDetail.innerHTML = ''; gaStatus.textContent = "Iniciando otimização..."; gaStatus.style.color = 'var(--info)';
+            bestFitnessDisplay.textContent = '---'; unservedLoadDisplay.textContent = '--- MW'; lossesDisplay.textContent = '--- MW'; activeSwitchesDisplay.textContent = '-- (--)'; switchCostDisplay.textContent = '---'; gaProgressBar.style.width = '0%';
+            btnOtimizar.disabled = true; btnFluxo.disabled = true;
+
+            // --- 1. LER PARÂMETROS E MONTAR 'allLines' ---
             const nb = getNb();
-            const sBusesInput = elSubstationBuses.value;
-            const substationBuses = sBusesInput.split(',').map(Number).filter(n => n >= 1 && n <= nb);
-            if (substationBuses.length === 0) {
-                 substationBuses.push(1); // Garante pelo menos a fonte 1
-                 elSubstationBuses.value = "1";
-            }
-            return substationBuses;
-        }
-
-        function gerarTabelaCargas(){
-            const n=getNb(),oC={...cargas};
-            cargas={};
-            tblCargasTbody.innerHTML=''; 
-            tblCargasThead.innerHTML = '<tr><th>Barra</th><th>P (MW)</th><th>Q (MVAr)</th><th>Coord. X</th><th>Coord. Y</th><th>Ações</th></tr>';
-
-            const substationBuses = getSubstationBuses(); // Pega as fontes
+            const linhaFalhaKeys = Array.from(selLinhaFalha.selectedOptions).map(opt => opt.value).filter(val => val !== 'SEM_FALHA');
             
-            for(let b=1; b<=n; b++) {
-                const isSlack = substationBuses.includes(b);
-                const r=document.createElement('tr'), tB=document.createElement('td');
-                tB.textContent = `${b}${isSlack ? ' (Fonte)' : ''}`;
-                
-                const tP=document.createElement('td'),tQ=document.createElement('td');
-                const tX=document.createElement('td'),tY=document.createElement('td');
-                const tA=document.createElement('td');
-                
-                let iP, iQ, iX, iY, bD;
-
-                if (isSlack) {
-                    tP.textContent = '---';
-                    tQ.textContent = '---';
-                    iX=document.createElement('input'); iX.type='number'; iX.value=oC[b]?.X??(b*10-10); iX.className='mono';
-                    iY=document.createElement('input'); iY.type='number'; iY.value=oC[b]?.Y??(b*5); iY.className='mono';
-                    tA.textContent = '---'; // Não pode remover fonte
-                } else {
-                    iP=document.createElement('input');iP.type='number';iP.step='0.001';iP.value=oC[b]?.P??0;iP.className='mono';iP.min="0";
-                    iQ=document.createElement('input');iQ.type='number';iQ.step='0.001';iQ.value=oC[b]?.Q??0;iQ.className='mono';
-                    iX=document.createElement('input'); iX.type='number'; iX.value=oC[b]?.X??(b*10); iX.className='mono';
-                    iY=document.createElement('input'); iY.type='number'; iY.value=oC[b]?.Y??(b*5); iY.className='mono';
-                    
-                    bD=document.createElement('button'); bD.textContent='Remover'; bD.className='btn secondary';
-                    bD.style.cssText = 'background-color: var(--bad); color: white; border-color: #a12b37; padding: 8px 12px; font-size: 12px;';
-                    
-                    ((barraAtual) => {
-                        bD.addEventListener('click', (e) => { 
-                            e.preventDefault(); 
-                            if(confirm(`Tem certeza que deseja remover a Barra ${barraAtual}? Isso removerá também todas as linhas conectadas a ela.`)) {
-                                removerBarra(barraAtual); 
-                            }
-                        });
-                    })(b);
-                    tA.appendChild(bD);
-                }
-                
-                const updateCarga = () => {
-                     cargas[b]={
-                         P: (isSlack ? 0 : parseFloat(iP.value||0)),
-                         Q: (isSlack ? 0 : parseFloat(iQ.value||0)),
-                         X: parseFloat(iX.value||0),
-                         Y: parseFloat(iY.value||0)
-                     }
-                };
-                
-                if (iP) iP.addEventListener('input', updateCarga);
-                if (iQ) iQ.addEventListener('input', updateCarga);
-                iX.addEventListener('input', updateCarga);
-                iY.addEventListener('input', updateCarga);
-
-                if (iP) tP.appendChild(iP);
-                if (iQ) tQ.appendChild(iQ);
-                tX.appendChild(iX);tY.appendChild(iY);
-                r.appendChild(tB);r.appendChild(tP);r.appendChild(tQ);r.appendChild(tX);r.appendChild(tY);r.appendChild(tA);
-                tblCargasTbody.appendChild(r);
-                
-                cargas[b]={
-                    P: (isSlack ? 0 : parseFloat(iP?.value||0)),
-                    Q: (isSlack ? 0 : parseFloat(iQ?.value||0)),
-                    X: parseFloat(iX.value||0),
-                    Y: parseFloat(iY.value||0)
-                };
-            }
-            atualizarSelectsLinhas();
-        }
-
-        function removerBarra(barraNumero) {
-            const substationBuses = getSubstationBuses();
-            if (substationBuses.includes(barraNumero)) {
-                alert("Não é possível remover uma Barra de Subestação (Fonte).");
-                return;
-            }
-            // ... (resto da função removerBarra [cite: 108-126] idêntico) ...
-const nbAntigo = getNb();
-if (barraNumero > nbAntigo) return;
-
-            const nbNovo = nbAntigo - 1;
-            elNb.value = nbNovo;
-const newCargas = {};
-// Mantém as fontes e re-indexa
-            let idxNovo = 1;
-            const newSlackMap = {}; // Mapeia antigo -> novo
-            
-            // 1. Recria as fontes
-            substationBuses.forEach(sBus => {
-                if (sBus < barraNumero) {
-                    newCargas[sBus] = cargas[sBus];
-                    newSlackMap[sBus] = sBus;
-                } else if (sBus > barraNumero) {
-                    const newIdx = sBus - 1;
-                    newCargas[newIdx] = cargas[sBus];
-                    newSlackMap[sBus] = newIdx;
-                }
-                // Se sBus === barraNumero, ela é pulada (mas já foi bloqueada acima)
-            });
-            
-            // 2. Recria as cargas
-            idxNovo = 1;
-            for (let b = 1; b <= nbAntigo; b++) {
-                if (substationBuses.includes(b)) continue; // Já processado
-                if (b === barraNumero) continue; // Pula a removida
-                
-                while(newCargas[idxNovo]) idxNovo++; // Acha o próximo slot livre
-                
-                let newIdx = (b > barraNumero) ? b - 1 : b;
-                if (newCargas[newIdx]) newIdx = idxNovo; // Ajusta se o slot já foi pego por uma fonte
-                
-                newCargas[newIdx] = cargas[b];
-            }
-            
-            // Atualiza a string de subestações
-            elSubstationBuses.value = substationBuses.map(sBus => newSlackMap[sBus]).filter(Boolean).join(',');
-
-// 3. Re-indexar 'tblMalha'
-            let linhas = getLinhasFromTable(tblMalha);
-const newLinhas = [];
-            for (const l of linhas) {
-                if (l.de === barraNumero || l.para === barraNumero) {
-                    continue;
-                }
-let newDe = (l.de > barraNumero) ? l.de - 1 : l.de;
-let newPara = (l.para > barraNumero) ? l.para - 1 : l.para;
-if (newDe !== newPara) {
-                    newLinhas.push({ ...l, de: String(newDe), para: String(newPara) });
-}
-            }
-            
-            cargas = newCargas;
-gerarTabelaCargas();
-tblMalha.innerHTML = '';
-newLinhas.forEach(l => addLinhaRow(tblMalha, l));
-atualizarSelectsLinhas();
-        }
-        // --- FIM MUDANÇA ---
-        
-        // ... (funções addLinhaRow, renumerarLinhas, atualizarSelectsLinhas, updateLinhaFalhaSelect, getLinhasFromTable ... idênticas) ...
-
-        // ... (função carregarExemplo10 [cite: 133-145] ... idêntica, mas atualize as fontes) ...
-        function carregarExemplo10(){
-            tblMalha.innerHTML='';
-elNb.value=10;
-            // *** MUDANÇA ***
-            elSubstationBuses.value = "1"; // Exemplo 10 só tem uma fonte
-            // *** FIM MUDANÇA ***
-            gerarTabelaCargas();
-            
-            // ... (resto da função [cite: 133-145] idêntico) ...
-}
-        
-        // ... (função renderResultados [cite: 145-151] idêntica) ...
-        // ... (função desenharRede [cite: 151-197] idêntica) ...
-        // ... (função setupSvgPanning [cite: 197-211] idêntica) ...
-        // ... (Funções do AG (Seleção, Crossover, Mutação) [cite: 211-231] idênticas) ...
-        // ... (Gerenciamento do Web Worker [cite: 231-255] idêntico) ...
-        
-        // --- MUDANÇA: runGA (Passa as fontes para o worker) ---
-async function runGA() {
-            // ... (limpeza de UI [cite: 256-257] idêntica) ...
-btnOtimizar.disabled = true; btnFluxo.disabled = true;
-            const nb = getNb();
-const linhaFalhaKeys = Array.from(selLinhaFalha.selectedOptions).map(opt => opt.value).filter(val => val !== 'SEM_FALHA');
-            
-            // *** ADIÇÃO: LER FONTES ***
-            const substationBuses = getSubstationBuses();
-            logGADetail(`Fontes (Subestações): ${substationBuses.join(', ')}`);
-            // *** FIM ADIÇÃO ***
-            
-const custoBase = parseFloat(elGaPesoChave.value);
+            // Parâmetros de Custo e Limite
+            const custoBase = parseFloat(elGaPesoChave.value);
             const custoNA = parseFloat(elGaCustoNA.value);
             const maxNALinhas = parseInt(elGaMaxNA.value, 10);
             
-            // ... (código de montagem 'allLines' [cite: 260-273] idêntico) ...
-            
-logGADetail(`Custo Base: ${custoBase}, Custo NA: ${custoNA}, Limite NA: ${maxNALinhas}`);
+            // Parâmetros da Linha NA Padrão
+            const R_NA = parseFloat(elGaR_NA.value);
+            const X_NA = parseFloat(elGaX_NA.value);
+            const Smax_NA = parseFloat(elGaSmax_NA.value);
+            const Z_NA = Math.hypot(R_NA, X_NA);
 
+            // Obter Linhas Base (da tabela)
+            let linhasBase = getLinhasFromTable(tblMalha);
+            const existingPairs = new Set();
+            let idCounter = 1;
+            
+            linhasBase.forEach(l => {
+                l.custo = custoBase;
+                l.isNA = false;
+                l.id = idCounter++;
+                existingPairs.add(`${l.de}-${l.para}`);
+                existingPairs.add(`${l.para}-${l.de}`);
+            });
+
+            // Gerar Linhas NA Candidatas (Automático)
+            const linhasNA_Candidatas = [];
+            for (let i = 1; i <= nb; i++) {
+                for (let j = i + 1; j <= nb; j++) {
+                    if (!existingPairs.has(`${i}-${j}`)) {
+                        linhasNA_Candidatas.push({
+                            id: idCounter++,
+                            de: i,
+                            para: j,
+                            R: R_NA,
+                            X: X_NA,
+                            Smax: Smax_NA,
+                            Z: Z_NA,
+                            custo: custoNA,
+                            isNA: true
+                        });
+                    }
+                }
+            }
+
+            // Combinar listas
+            const allLines = [...linhasBase, ...linhasNA_Candidatas];
+            const numLinhas = allLines.length; // Tamanho total do cromossomo
+            // --- FIM DA MONTAGEM 'allLines' ---
+
+            const popSize = parseInt(elGaPopSize.value, 10); const maxGen = parseInt(elGaMaxGen.value, 10);
+            const mutationRate = parseFloat(elGaMutationRate.value) / 100.0; const crossoverRate = 0.9; const tournamentSize = 3;
+            const reqLines = nb > 1 ? nb - 1 : 0;
+
+            if (numLinhas < reqLines && nb > 1) { gaStatus.textContent = `Erro: Mínimo ${reqLines} linhas para ${nb} barras.`; gaStatus.style.color = 'var(--bad)'; btnOtimizar.disabled = false; btnFluxo.disabled = false; return; }
+            logGADetail(`Config: ${popSize} inds, ${maxGen} G.`); logGADetail(`Falha(s): ${linhaFalhaKeys.length > 0 ? linhaFalhaKeys.join(', ') : 'Nenhuma'}`);
+            logGADetail(`Linhas: ${linhasBase.length} Base, ${linhasNA_Candidatas.length} NA Candidatas (Total ${numLinhas} genes).`);
+            logGADetail(`Custo Base: ${custoBase}, Custo NA: ${custoNA}, Limite NA: ${maxNALinhas}`);
+
+            // Preparar staticData para os workers
             const staticData = {
                 allLines: allLines,
                 linhaFalhaKeys: linhaFalhaKeys,
                 nb: nb,
                 vMin: parseFloat(elVmin.value),
                 vMax: parseFloat(elVmax.value),
-maxNALinhas: maxNALinhas,
-                // *** ADIÇÃO ***
-                substationBuses: substationBuses,
-                // *** FIM ADIÇÃO ***
+                maxNALinhas: maxNALinhas, // Novo limite
                 cargas: JSON.parse(JSON.stringify(cargas)),
                 Sbase: parseFloat(elSbase.value),
                 Vbase_kV: parseFloat(elVbase.value)
+                // pesoChave foi removido
             };
-            
-            // ... (Restante de runGA [cite: 282-321] idêntico) ...
-}
+
+            const numWorkers = Math.max(1, (navigator.hardwareConcurrency || 4) - 1);
+            initializeWorkers(numWorkers);
+            if (workerPool.length === 0) { gaStatus.textContent = 'Erro: Falha ao inicializar Web Workers. Verifique se está em um servidor (http://) e o arquivo ga_worker.js existe.'; gaStatus.style.color = 'var(--bad)'; btnOtimizar.disabled = false; btnFluxo.disabled = false; return; }
+
+            let population = createPopulation(numLinhas, popSize); let bestOverall = null;
+
+            for (let g = 0; g < maxGen; g++) {
+                gaStatus.textContent = `Rodando G ${g + 1}/${maxGen}... (Aguardando workers)`; gaProgressBar.style.width = `${((g + 1) / maxGen) * 100}%`;
+                resultsReceived = new Array(popSize); generationPromises = new Array(popSize); taskQueue = [];
+                let generationPromise = new Promise(resolve => { resolveGeneration = resolve; });
+
+                population.forEach((individual, index) => {
+                    const task = { individual: individual, index: index, staticData: staticData };
+                    generationPromises[index] = new Promise(resolve => {}); // Placeholder
+                    const availableWorker = workerPool.find(w => !w.isBusy);
+                    if (availableWorker) { availableWorker.isBusy = true; availableWorker.postMessage(task); } else { taskQueue.push(task); }
+                });
+
+                gaStatus.textContent = `Rodando G ${g + 1}/${maxGen}... (Workers processando ${popSize} inds)`;
+                const results = await generationPromise; // Espera
+
+                let popFit = population.map((ind, i) => { const res = resultsReceived[i]; if(res && typeof res.fitness === 'number') { return { individual: ind, fitness: res.fitness, data: res.data || {} }; } else { console.warn(`Resultado inválido/ausente para ind ${i}`, res); return { individual: ind, fitness: Infinity, data: { error: res?.error } }; } });
+                
+                const validPopFit = popFit.filter(item => isFinite(item.fitness)); 
+                if (validPopFit.length === 0) { 
+                    console.error(`G ${g+1}: Nenhum indivíduo válido.`, resultsReceived); 
+                    gaStatus.textContent = `Erro G ${g+1}: Nenhum válido. Verifique o log.`; 
+                    gaStatus.style.color = 'var(--bad)'; 
+                    logGADetail(`G ${g+1} falhou. Nenhum resultado válido.`, 'bad');
+                    break; 
+                }
+                
+                validPopFit.sort((a, b) => a.fitness - b.fitness); const bestGen = validPopFit[0];
+                
+                if (bestOverall === null || (bestGen && typeof bestGen.fitness === 'number' && bestGen.fitness < bestOverall.fitness)) {
+                    logGADetail(`NOVO MELHOR G ${g + 1}: Fit = ${(bestGen.fitness).toFixed(2)}`, 'best');
+                    bestOverall = { ...bestGen };
+                    if (bestOverall && bestOverall.data) { 
+                        bestFitnessDisplay.textContent = (bestOverall.fitness).toFixed(2); 
+                        unservedLoadDisplay.textContent = `${(bestOverall.data.unservedLoadP ?? 0).toFixed(2)} MW`; 
+                        lossesDisplay.textContent = `${(bestOverall.data.perdasMWtotal ?? 0).toFixed(2)} MW`; 
+                        activeSwitchesDisplay.textContent = `${(bestOverall.data.numChavesAtivas ?? 0)} (${(bestOverall.data.numNA_Usadas ?? 0)} NA)`;
+                        switchCostDisplay.textContent = (bestOverall.data.custoChaves ?? 0).toFixed(2); 
+                    }
+                }
+                
+                const newPop = []; 
+                if (bestGen && bestGen.individual) newPop.push([...bestGen.individual]); 
+                else if (bestOverall && bestOverall.individual) newPop.push([...bestOverall.individual]); 
+                else newPop.push(createPopulation(numLinhas, 1)[0]);
+                
+                while (newPop.length < popSize) { 
+                    const p1 = selectionTournament(validPopFit.length > 0 ? validPopFit : popFit, tournamentSize); 
+                    const p2 = selectionTournament(validPopFit.length > 0 ? validPopFit : popFit, tournamentSize); 
+                    if (!p1 || !p2 || p1.length !== numLinhas || p2.length !== numLinhas) { 
+                        if (newPop.length < popSize) newPop.push(createPopulation(numLinhas, 1)[0]); 
+                        if (newPop.length < popSize) newPop.push(createPopulation(numLinhas, 1)[0]); 
+                        continue; 
+                    } 
+                    let [c1, c2] = crossoverSinglePoint(p1, p2, crossoverRate); 
+                    c1 = mutateBitFlip(c1, mutationRate); c2 = mutateBitFlip(c2, mutationRate); 
+                    if (c1 && c1.length === numLinhas) newPop.push(c1); 
+                    if (c2 && c2.length === numLinhas && newPop.length < popSize) newPop.push(c2); 
+                } 
+                population = newPop;
+            } // Fim loop G
+
+            terminateWorkers();
+
+            if (!bestOverall || !bestOverall.data || !bestOverall.data.currentLinhas) { gaStatus.textContent = 'Otimização concluída, sem solução válida.'; gaStatus.style.color = 'var(--warn)'; logGADetail('--- Otimização Concluída (Sem Solução) ---', 'warn'); try { await btnFluxo.click(); } catch(e){ console.error("Erro fallback:", e);} } else { gaStatus.textContent = 'Otimização Concluída!'; gaStatus.style.color = 'var(--ok)'; logGADetail('--- Otimização Concluída! ---', 'best'); try { const { resBarras, resRamos, currentLinhas, numChavesAtivas, numNA_Usadas } = bestOverall.data; logGADetail(`Melhor Topologia: ${numChavesAtivas} chaves (${numNA_Usadas} NA).`, 'best'); const newlyAddedKeys = new Set(); if (Array.isArray(currentLinhas)) { currentLinhas.forEach(line => { const k1 = `${line.de}-${line.para}`, k2 = `${line.para}-${line.de}`; if (!baseMstLineKeys.has(k1) && !baseMstLineKeys.has(k2)) newlyAddedKeys.add(k1); }); logGADetail(`${newlyAddedKeys.size} linha(s) 'nova(s)' em relação ao MST base.`, 'info'); } if(Array.isArray(resBarras) && Array.isArray(resRamos) && resBarras.length > 0){ renderResultados(resBarras, resRamos, newlyAddedKeys); desenharRede(getNb(), resRamos, resBarras, newlyAddedKeys); } else { logGADetail("Melhor indivíduo sem resultados válidos.", 'warn'); logGADetail("Recalculando fluxo...", 'info'); try { const finalResult = await runFluxoLocal(currentLinhas || []); /* Usa runFluxoLocal */ renderResultados(finalResult.resBarras, finalResult.resRamos, newlyAddedKeys); desenharRede(getNb(), finalResult.resRamos, finalResult.resBarras, newlyAddedKeys); } catch (recalcError){ logGADetail(`Erro recalcular: ${recalcError.message}`, 'bad'); alert('Erro exibir melhor: ' + recalcError.message); } } } catch (error) { logGADetail(`Erro renderizar melhor: ${error.message}`, 'bad'); alert('Erro exibir melhor: ' + error.message); } }
+            btnOtimizar.disabled = false; btnFluxo.disabled = false;
+        }
 
         // --- Eventos ---
-        btnGerar.addEventListener('click', gerarTabelaCargas);
-        // ... (outros eventos [cite: 322-323]) ...
-        btnExemplo10.addEventListener('click', carregarExemplo10); 
-        btnOtimizar.addEventListener('click', runGA);
+        btnGerar.addEventListener('click', gerarTabelaCargas); btnAddBarra.addEventListener('click', () => { elNb.value = getNb() + 1; gerarTabelaCargas(); }); btnAddLinha.addEventListener('click', () => addLinhaRow(tblMalha)); btnExemplo10.addEventListener('click', carregarExemplo10); btnOtimizar.addEventListener('click', runGA);
 
-        // *** CÓPIA LOCAL de DSU, validarRadial e runFluxo (MODIFICADOS) ***
-        
-        // --- MUDANÇA: validarRadialLocal aceita slackBusId ---
-function validarRadialLocal(n, l, slackBusId = 1){
-            if(l.length===0){const u=new Set();for(let b=1;b<=n;b++) if(b !== slackBusId) u.add(b);return{ok:n<=1,msg:n<=1?'OK':'Não conectado (sem linhas)',unservedBuses:u}} const adj=Array(n+1).fill(0).map(()=>[]);let hasLoopOrMultiParent = false;
-const q=[slackBusId],visited=new Set([slackBusId]),parent={}; let head = 0; for(const e of l){ if(!e || typeof e.de !== 'number' || typeof e.para !== 'number' || e.de < 1 || e.de > n || e.para < 1 || e.para > n) { console.warn("Linha inválida em validarRadialLocal:", e);
-continue; } if(e.para===slackBusId)return{ok:!1,msg:`Fonte (Barra ${slackBusId}) não pode ter entrada`,unservedBuses:new Set()}; adj[e.de].push(e.para); } while(head < q.length){ const u=q[head++];
-for(const v of adj[u]){ if(!v || v < 1 || v > n) { console.warn("Índice v inválido em validarRadialLocal:", v, "vindo de u:", u);
-continue; } if(visited.has(v)){ hasLoopOrMultiParent = true; break; } visited.add(v); parent[v]=u; q.push(v);
-} if(hasLoopOrMultiParent) break;} if(hasLoopOrMultiParent) return {ok:false, msg:'Loop ou barra multi-alimentada detectado.', unservedBuses: new Set()}; const connectedCount=visited.size, uB=new Set(); for(let b=1;b<=n;b++)if(!visited.has(b))uB.add(b);
-if(connectedCount<n)return{ok:!0,msg:`Parcialmente conectado. ${uB.size} isoladas.`,unservedBuses:uB}; return{ok:!0,msg:'Rede OK',unservedBuses:uB}}
-        
-        // --- MUDANÇA: runFluxoLocal aceita slackBusId ---
-async function runFluxoLocal(linhasData, slackBusId = 1) {
-            const nb = getNb();
-const Sbase = parseFloat(elSbase.value); const Vbase_kV = parseFloat(elVbase.value); const tol = 1e-6; const iterMax = 100; let perdasMWtotal = 0;
-const orientedLinhas = []; const adj = Array(nb + 1).fill(0).map(() => []);
-            if (!Array.isArray(linhasData)) { const rBE = [];
-for(let b=1; b<=nb; b++) rBE.push({barra:b, Vmag:(b===slackBusId?1:0), Vang:0, Pmw:(cargas[b]?.P||0), Qmvar:(cargas[b]?.Q||0), isConnected:(b===slackBusId)}); const uE = new Set();
-for(let b=1; b<=nb; b++) if(b !== slackBusId && cargas[b] && (cargas[b].P > 0 || cargas[b].Q > 0)) uE.add(b);
-return { resBarras: rBE, resRamos: [], perdasMWtotal: 0, unservedBuses: uE };
-}
+        // *** CÓPIA LOCAL de DSU, validarRadial e runFluxo para o botão btnFluxo ***
+        // (Necessário pois as originais estão no worker)
+        function validarRadialLocal(n,l){if(l.length===0){const u=new Set();for(let b=2;b<=n;b++)u.add(b);return{ok:n<=1,msg:n<=1?'OK':'Não conectado (sem linhas)',unservedBuses:u}} const adj=Array(n+1).fill(0).map(()=>[]);let hasLoopOrMultiParent = false; const q=[1],visited=new Set([1]),parent={}; let head = 0; for(const e of l){ if(!e || typeof e.de !== 'number' || typeof e.para !== 'number' || e.de < 1 || e.de > n || e.para < 1 || e.para > n) { console.warn("Linha inválida em validarRadialLocal:", e); continue; } if(e.para===1)return{ok:!1,msg:'Slack não pode ter entrada',unservedBuses:new Set()}; adj[e.de].push(e.para); } while(head < q.length){ const u=q[head++]; for(const v of adj[u]){ if(!v || v < 1 || v > n) { console.warn("Índice v inválido em validarRadialLocal:", v, "vindo de u:", u); continue; } if(visited.has(v)){ hasLoopOrMultiParent = true; break; } visited.add(v); parent[v]=u; q.push(v); } if(hasLoopOrMultiParent) break;} if(hasLoopOrMultiParent) return {ok:false, msg:'Loop ou barra multi-alimentada detectado.', unservedBuses: new Set()}; const connectedCount=visited.size, uB=new Set(); for(let b=1;b<=n;b++)if(!visited.has(b))uB.add(b); if(connectedCount<n)return{ok:!0,msg:`Parcialmente conectado. ${uB.size} isoladas.`,unservedBuses:uB}; return{ok:!0,msg:'Rede OK',unservedBuses:uB}}
+        async function runFluxoLocal(linhasData) {
+            const nb = getNb(); const Sbase = parseFloat(elSbase.value); const Vbase_kV = parseFloat(elVbase.value); const tol = 1e-6; const iterMax = 100; let perdasMWtotal = 0; const orientedLinhas = []; const adj = Array(nb + 1).fill(0).map(() => []);
+            if (!Array.isArray(linhasData)) { const rBE = []; for(let b=1; b<=nb; b++) rBE.push({barra:b, Vmag:(b===1?1:0), Vang:0, Pmw:(cargas[b]?.P||0), Qmvar:(cargas[b]?.Q||0), isConnected:(b===1)}); const uE = new Set(); for(let b=2; b<=nb; b++) if(cargas[b] && (cargas[b].P > 0 || cargas[b].Q > 0)) uE.add(b); return { resBarras: rBE, resRamos: [], perdasMWtotal: 0, unservedBuses: uE }; }
             const validLinhasData = linhasData.filter(l => l && typeof l.de === 'number' && typeof l.para === 'number' && l.de >= 1 && l.de <= nb && l.para >= 1 && l.para <= nb);
-if (validLinhasData.length === 0 && nb > 1) { const rBE = [];
-for(let b=1; b<=nb; b++) rBE.push({barra:b, Vmag:(b===slackBusId?1:0), Vang:0, Pmw:(cargas[b]?.P||0), Qmvar:(cargas[b]?.Q||0), isConnected:(b===slackBusId)}); const uE = new Set();
-for(let b=1; b<=nb; b++) if(b !== slackBusId && cargas[b] && (cargas[b].P > 0 || cargas[b].Q > 0)) uE.add(b);
-return { resBarras: rBE, resRamos: [], perdasMWtotal: 0, unservedBuses: uE };
-}
+             if (validLinhasData.length === 0 && nb > 1) { const rBE = []; for(let b=1; b<=nb; b++) rBE.push({barra:b, Vmag:(b===1?1:0), Vang:0, Pmw:(cargas[b]?.P||0), Qmvar:(cargas[b]?.Q||0), isConnected:(b===1)}); const uE = new Set(); for(let b=2; b<=nb; b++) if(cargas[b] && (cargas[b].P > 0 || cargas[b].Q > 0)) uE.add(b); return { resBarras: rBE, resRamos: [], perdasMWtotal: 0, unservedBuses: uE }; }
             validLinhasData.forEach(l => { adj[l.de].push(l.para); adj[l.para].push(l.de); });
-const parent = Array(nb + 1).fill(0); const q = [slackBusId]; const visited = Array(nb + 1).fill(false); visited[slackBusId] = true;
-const connectedBuses = new Set([slackBusId]); let head = 0;
-            while(head < q.length) { const u = q[head++];
-for (const v of adj[u]) { if (v >= 1 && v <= nb && !visited[v]) { visited[v] = true;
-parent[v] = u; connectedBuses.add(v); q.push(v); const l = validLinhasData.find(line => (line.de === u && line.para === v) || (line.de === v && line.para === u));
-if (l) orientedLinhas.push({ ...l, de: u, para: v }); } } }
-            
-            // *** MUDANÇA: Passa o slackBusId ***
-            const validationResult = validarRadialLocal(nb, orientedLinhas, slackBusId);
-if (!validationResult.ok && !validationResult.msg.includes('Parcialmente conectado') && !validationResult.msg.includes('Não conectado')) { console.error("runFluxoLocal: Validação crítica falhou:", validationResult.msg);
-throw new Error('Falha validação local (erro crítico): ' + validationResult.msg);
-}
+            const parent = Array(nb + 1).fill(0); const q = [1]; const visited = Array(nb + 1).fill(false); visited[1] = true; const connectedBuses = new Set([1]); let head = 0;
+            while(head < q.length) { const u = q[head++]; for (const v of adj[u]) { if (v >= 1 && v <= nb && !visited[v]) { visited[v] = true; parent[v] = u; connectedBuses.add(v); q.push(v); const l = validLinhasData.find(line => (line.de === u && line.para === v) || (line.de === v && line.para === u)); if (l) orientedLinhas.push({ ...l, de: u, para: v }); } } }
+            const validationResult = validarRadialLocal(nb, orientedLinhas); // Chamando a função local
+            if (!validationResult.ok && !validationResult.msg.includes('Parcialmente conectado') && !validationResult.msg.includes('Não conectado')) { console.error("runFluxoLocal: Validação crítica falhou:", validationResult.msg); throw new Error('Falha validação local (erro crítico): ' + validationResult.msg); }
             const unservedBusesFromValidation = validationResult.unservedBuses;
-const Zbase = (Vbase_kV * Vbase_kV) / Sbase; const V = Array(nb + 1).fill(0).map(() => c(1, 0)); // V inicial é 1 pu
-const S = Array(nb + 1).fill(0).map(() => c(0, 0));
-            
-            // *** MUDANÇA: Loop ignora o slackBusId atual ***
-            for (let b = 1; b <= nb; b++) {
-                if (b === slackBusId) continue; // Fontes não são cargas
-                if (connectedBuses.has(b) && cargas[b]) S[b] = c(parseFloat(cargas[b].P || 0) / Sbase, parseFloat(cargas[b].Q || 0) / Sbase);
-else S[b] = c(0, 0); }
-            
-             if (orientedLinhas.length === 0 && nb > 1) { const rBE=[];
-for (let b=1; b<=nb; b++) rBE.push({ barra:b, Vmag:(b===slackBusId ? 1:0), Vang:0, Pmw:(cargas[b]?.P||0), Qmvar:(cargas[b]?.Q||0), isConnected:(b===slackBusId) }); const uBE=new Set(unservedBusesFromValidation);
-for(let b=1; b<=nb; b++) if(b !== slackBusId && !connectedBuses.has(b) && cargas[b] && (cargas[b].P > 0 || cargas[b].Q > 0)) uBE.add(b);
-return { resBarras:rBE, resRamos:[], perdasMWtotal:0, unservedBuses:uBE }; }
-            
-const ramos = orientedLinhas.map((e) => { const R = typeof e.R ==='number'&&isFinite(e.R)?e.R:0; const X = typeof e.X ==='number'&&isFinite(e.X)?e.X:0; const Zr = Zbase > 1e-9 ? R / Zbase : 0; const Zi = Zbase > 1e-9 ? X / Zbase : 0; return { idx:e.id, de:e.de, para:e.para, Z:c(Zr, Zi), Smax:e.Smax, isNA:e.isNA }; });
-const adjFilhos = Array(nb + 1).fill(0).map(() => []); ramos.forEach(r => adjFilhos[r.de].push(r.para)); const depth = Array(nb + 1).fill(0);
-const orderFwd = []; const orderBwd = []; { const qFwd = [slackBusId]; depth[slackBusId] = 0;
-const visitedOrder = new Set([slackBusId]); let headFwd = 0; while (headFwd < qFwd.length) { const u = qFwd[headFwd++]; orderFwd.push(u);
-adjFilhos[u].forEach(v => { if (v >= 1 && v <= nb && !visitedOrder.has(v)) { depth[v] = depth[u] + 1; qFwd.push(v); visitedOrder.add(v); } });
-} const nodes = []; visitedOrder.forEach(b => { if (b !== slackBusId) nodes.push(b); }); nodes.sort((a, b) => depth[b] - depth[a]);
-orderBwd.push(...nodes); } const ramoIdx = {}; ramos.forEach(r => { ramoIdx[`${r.de}-${r.para}`] = r; }); let conv = false;
-let V_ant = V.map(v => c(v.re, v.im));
-            for (let it = 0; it < iterMax; it++) { await new Promise(r => setTimeout(r, 0));
-const Iload = Array(nb + 1).fill(0).map(() => c(0, 0));
-                
-                // *** MUDANÇA: Loop ignora o slackBusId atual ***
-                for (let b = 1; b <= nb; b++) {
-                    if (b === slackBusId) continue;
-                    if(connectedBuses.has(b)){ const S_b = S[b];
-if (cAbs(V[b]) > 1e-9 && (Math.abs(S_b.re) + Math.abs(S_b.im) > 0)) Iload[b] = cConj(cDiv(S_b, V[b])); else Iload[b] = c(0, 0);
-} else Iload[b] = c(0,0); } 
-                
-                const Iramo = {}; const Idow = Array(nb + 1).fill(0).map(() => c(0, 0));
-for (const b of orderBwd) { const curr = cAdd(Iload[b], Idow[b]); const p = parent[b];
-if (p > 0 && p <= nb) { Iramo[`${p}-${b}`] = curr; Idow[p] = cAdd(Idow[p], curr);
-} } V_ant = V.map(v => c(v.re, v.im)); V[slackBusId] = c(1, 0); for(let b=1; b<=nb; b++) if(!connectedBuses.has(b)) V[b] = c(0,0);
-for (const u of orderFwd) { for (const v of adjFilhos[u]) { const r = ramoIdx[`${u}-${v}`];
-if (r) { const Ir = Iramo[`${u}-${v}`] || c(0, 0); const Z_val = r.Z || c(0,0);
-V[v] = cSub(V[u], cMul(Z_val, Ir)); } } } let maxDv = 0;
-for(const b of connectedBuses) maxDv = Math.max(maxDv, cAbs(cSub(V[b], V_ant[b]))); if (maxDv < tol) { conv = true; break;
-} }
-            
-            const resBarras = [];
-const substationBuses = getSubstationBuses(); // Pega todas as fontes
-            for (let b = 1; b <= nb; b++) { const isC = connectedBuses.has(b); const Vm = isC ?
-cAbs(V[b]) : 0; const Va = isC ? angDeg(V[b]) : 0;
-                // *** MUDANÇA: Carga é 0 se for QUALQUER fonte ***
-                const Pmw = (substationBuses.includes(b) ? 0 : (cargas[b]?.P || 0));
-const Qmvar = (substationBuses.includes(b) ? 0 : (cargas[b]?.Q || 0));
-                resBarras.push({ barra: b, Vmag: Vm, Vang: Va, Pmw, Qmvar, isConnected: isC });
-} const IloadFinal = Array(nb + 1).fill(0).map(() => c(0, 0));
-            
-            // *** MUDANÇA: Loop ignora o slackBusId atual ***
-for (let b = 1; b <= nb; b++) {
-                if (b === slackBusId) continue;
-                if (connectedBuses.has(b)) { const S_b = S[b];
-if (cAbs(V[b]) > 1e-9 && (Math.abs(S_b.re) + Math.abs(S_b.im) > 0)) IloadFinal[b] = cConj(cDiv(S_b, V[b])); else IloadFinal[b] = c(0,0);
-} else IloadFinal[b] = c(0,0); }
-            
-            const IdowFinal = Array(nb + 1).fill(0).map(() => c(0, 0)); const IramoFinal = {};
-for (const b of orderBwd) { const curr = cAdd(IloadFinal[b], IdowFinal[b]); const p = parent[b];
-if (p > 0 && p <= nb) { IramoFinal[`${p}-${b}`] = curr; IdowFinal[p] = cAdd(IdowFinal[p], curr);
-} } const resRamos = []; perdasMWtotal = 0; for (const r of ramos) { const i = IramoFinal[`${r.de}-${r.para}`] ||
-c(0, 0); const Vde = connectedBuses.has(r.de) ? V[r.de] : c(0,0); const Sij = cMul(Vde, cConj(i));
-const Pmw = Sij.re * Sbase; const Qmvar = Sij.im * Sbase; const Smva = cAbs(Sij) * Sbase;
-const Zr = r.Z?.re || 0; const pMW = cAbs(i) * cAbs(i) * Zr * Sbase;
-if (isFinite(pMW)) perdasMWtotal += pMW; else console.warn(`runFluxoLocal: Perdas inválida ${r.de}-${r.para}`);
-resRamos.push({ idx: r.idx, de: r.de, para: r.para, Pmw, Qmvar, Smva, Smax: r.Smax, perdasMW: isFinite(pMW)? pMW : 0, isNA: r.isNA });
-} const finalUnserved = new Set(unservedBusesFromValidation);
-            for(let b=1; b<=nb; b++) {
-                if(b !== slackBusId && !connectedBuses.has(b) && cargas[b] && (cargas[b].P > 0 || cargas[b].Q > 0)) finalUnserved.add(b);
-            }
-if (!isFinite(perdasMWtotal)) { console.warn("runFluxoLocal: perdasMWtotal NaN/Inf"); perdasMWtotal = 0; }
+            const Zbase = (Vbase_kV * Vbase_kV) / Sbase; const V = Array(nb + 1).fill(0).map(() => c(1, 0)); const S = Array(nb + 1).fill(0).map(() => c(0, 0)); for (let b = 2; b <= nb; b++) { if (connectedBuses.has(b) && cargas[b]) S[b] = c(parseFloat(cargas[b].P || 0) / Sbase, parseFloat(cargas[b].Q || 0) / Sbase); else S[b] = c(0, 0); }
+             if (orientedLinhas.length === 0 && nb > 1) { const rBE=[]; for (let b=1; b<=nb; b++) rBE.push({ barra:b, Vmag:(b===1 ? 1:0), Vang:0, Pmw:(cargas[b]?.P||0), Qmvar:(cargas[b]?.Q||0), isConnected:(b===1) }); const uBE=new Set(unservedBusesFromValidation); for(let b=2; b<=nb; b++) if(!connectedBuses.has(b) && cargas[b] && (cargas[b].P > 0 || cargas[b].Q > 0)) uBE.add(b); return { resBarras:rBE, resRamos:[], perdasMWtotal:0, unservedBuses:uBE }; }
+            const ramos = orientedLinhas.map((e) => { const R = typeof e.R ==='number'&&isFinite(e.R)?e.R:0; const X = typeof e.X ==='number'&&isFinite(e.X)?e.X:0; const Zr = Zbase > 1e-9 ? R / Zbase : 0; const Zi = Zbase > 1e-9 ? X / Zbase : 0; return { idx:e.id, de:e.de, para:e.para, Z:c(Zr, Zi), Smax:e.Smax, isNA:e.isNA }; }); const adjFilhos = Array(nb + 1).fill(0).map(() => []); ramos.forEach(r => adjFilhos[r.de].push(r.para)); const depth = Array(nb + 1).fill(0); const orderFwd = []; const orderBwd = []; { const qFwd = [1]; depth[1] = 0; const visitedOrder = new Set([1]); let headFwd = 0; while (headFwd < qFwd.length) { const u = qFwd[headFwd++]; orderFwd.push(u); adjFilhos[u].forEach(v => { if (v >= 1 && v <= nb && !visitedOrder.has(v)) { depth[v] = depth[u] + 1; qFwd.push(v); visitedOrder.add(v); } }); } const nodes = []; visitedOrder.forEach(b => { if (b !== 1) nodes.push(b); }); nodes.sort((a, b) => depth[b] - depth[a]); orderBwd.push(...nodes); } const ramoIdx = {}; ramos.forEach(r => { ramoIdx[`${r.de}-${r.para}`] = r; }); let conv = false; let V_ant = V.map(v => c(v.re, v.im));
+            for (let it = 0; it < iterMax; it++) { await new Promise(r => setTimeout(r, 0)); const Iload = Array(nb + 1).fill(0).map(() => c(0, 0)); for (let b = 2; b <= nb; b++) { if(connectedBuses.has(b)){ const S_b = S[b]; if (cAbs(V[b]) > 1e-9 && (Math.abs(S_b.re) + Math.abs(S_b.im) > 0)) Iload[b] = cConj(cDiv(S_b, V[b])); else Iload[b] = c(0, 0); } else Iload[b] = c(0,0); } const Iramo = {}; const Idow = Array(nb + 1).fill(0).map(() => c(0, 0)); for (const b of orderBwd) { const curr = cAdd(Iload[b], Idow[b]); const p = parent[b]; if (p > 0 && p <= nb) { Iramo[`${p}-${b}`] = curr; Idow[p] = cAdd(Idow[p], curr); } } V_ant = V.map(v => c(v.re, v.im)); V[1] = c(1, 0); for(let b=2; b<=nb; b++) if(!connectedBuses.has(b)) V[b] = c(0,0); for (const u of orderFwd) { for (const v of adjFilhos[u]) { const r = ramoIdx[`${u}-${v}`]; if (r) { const Ir = Iramo[`${u}-${v}`] || c(0, 0); const Z_val = r.Z || c(0,0); V[v] = cSub(V[u], cMul(Z_val, Ir)); } } } let maxDv = 0; for(const b of connectedBuses) maxDv = Math.max(maxDv, cAbs(cSub(V[b], V_ant[b]))); if (maxDv < tol) { conv = true; break; } }
+            const resBarras = []; for (let b = 1; b <= nb; b++) { const isC = connectedBuses.has(b); const Vm = isC ? cAbs(V[b]) : 0; const Va = isC ? angDeg(V[b]) : 0; const Pmw = (cargas[b]?.P || 0); const Qmvar = (cargas[b]?.Q || 0); resBarras.push({ barra: b, Vmag: Vm, Vang: Va, Pmw, Qmvar, isConnected: isC }); } const IloadFinal = Array(nb + 1).fill(0).map(() => c(0, 0)); for (let b = 2; b <= nb; b++) { if (connectedBuses.has(b)) { const S_b = S[b]; if (cAbs(V[b]) > 1e-9 && (Math.abs(S_b.re) + Math.abs(S_b.im) > 0)) IloadFinal[b] = cConj(cDiv(S_b, V[b])); else IloadFinal[b] = c(0,0); } else IloadFinal[b] = c(0,0); } const IdowFinal = Array(nb + 1).fill(0).map(() => c(0, 0)); const IramoFinal = {}; for (const b of orderBwd) { const curr = cAdd(IloadFinal[b], IdowFinal[b]); const p = parent[b]; if (p > 0 && p <= nb) { IramoFinal[`${p}-${b}`] = curr; IdowFinal[p] = cAdd(IdowFinal[p], curr); } } const resRamos = []; perdasMWtotal = 0; for (const r of ramos) { const i = IramoFinal[`${r.de}-${r.para}`] || c(0, 0); const Vde = connectedBuses.has(r.de) ? V[r.de] : c(0,0); const Sij = cMul(Vde, cConj(i)); const Pmw = Sij.re * Sbase; const Qmvar = Sij.im * Sbase; const Smva = cAbs(Sij) * Sbase; const Zr = r.Z?.re || 0; const pMW = cAbs(i) * cAbs(i) * Zr * Sbase; if (isFinite(pMW)) perdasMWtotal += pMW; else console.warn(`runFluxoLocal: Perdas inválida ${r.de}-${r.para}`); resRamos.push({ idx: r.idx, de: r.de, para: r.para, Pmw, Qmvar, Smva, Smax: r.Smax, perdasMW: isFinite(pMW)? pMW : 0, isNA: r.isNA }); } const finalUnserved = new Set(unservedBusesFromValidation); for(let b=2; b<=nb; b++) if(!connectedBuses.has(b) && cargas[b] && (cargas[b].P > 0 || cargas[b].Q > 0)) finalUnserved.add(b); if (!isFinite(perdasMWtotal)) { console.warn("runFluxoLocal: perdasMWtotal NaN/Inf"); perdasMWtotal = 0; }
             return { resBarras, resRamos, perdasMWtotal, unservedBuses: finalUnserved };
-}
-        // *** FIM DA CÓPIA LOCAL MODIFICADA ***
+        }
+        // *** FIM DA CÓPIA LOCAL ***
 
-        // --- MUDANÇA: btnFluxo (implementa lógica "dividir para conquistar") ---
-btnFluxo.addEventListener('click', async () => {
+        btnFluxo.addEventListener('click', async () => {
             gaStatus.textContent = 'Calculando MST Base Pós-Falha...'; gaStatus.style.color = 'var(--info)'; btnOtimizar.disabled = true; btnFluxo.disabled = true; gaLogDetail.innerHTML = ''; baseMstLineKeys.clear();
-            const linhasMalha = getLinhasFromTable(tblMalha); const linhaFalhaKeys = Array.from(selLinhaFalha.selectedOptions).map(opt => opt.value).filter(val => val !== 'SEM_FALHA'); const linhaFalhaSet = new Set(linhaFalhaKeys); const isSemFalha = linhaFalhaKeys.length === 0 && Array.from(selLinhaFalha.selectedOptions).some(opt => opt.value === 'SEM_FALHA'); const 
-nb = getNb(); const reqLines = nb > 1 ? nb - 1 : 0; // Isso não é mais exato
-            
-            // *** ADIÇÃO: LER FONTES ***
-            const substationBuses = getSubstationBuses();
-            const reqLinesMin = nb - substationBuses.length; // Mínimo de linhas para conectar tudo
-            logGADetail(`Fontes (Subestações): ${substationBuses.join(', ')}`);
-            // *** FIM ADIÇÃO ***
-            
-if (linhaFalhaKeys.length > 0 && Array.from(selLinhaFalha.selectedOptions).some(opt => opt.value === 'SEM_FALHA')) { gaStatus.textContent = 'Erro: "Sistema Normal" não pode ser selecionado com falhas.'; gaStatus.style.color = 'var(--bad)'; btnOtimizar.disabled = false;
-btnFluxo.disabled = false; return; }
-            // *** MUDANÇA: Checa o novo mínimo de linhas ***
-            if (linhasMalha.length < reqLinesMin && nb > 1) { gaStatus.textContent = `Erro: Mínimo ${reqLinesMin} linhas para ${nb} barras com ${substationBuses.length} fontes.`;
-gaStatus.style.color = 'var(--bad)'; btnOtimizar.disabled = false; btnFluxo.disabled = false; return;
-}
-            
-            // ... (Validação de seleção de falha [cite: 394-398] idêntica) ...
-let candidateLines = linhasMalha.filter(l => isSemFalha || (!linhaFalhaSet.has(`${l.de}-${l.para}`) && !linhaFalhaSet.has(`${l.para}-${l.de}`)));
-candidateLines.sort((a, b) => (a.Z || Infinity) - (b.Z || Infinity));
-const dsu = new (class DSU { constructor(n){this.parent=Array(n+1).fill(0).map((_,i)=>i);this.numSets=n}find(i){if(this.parent[i]===i)return i;return this.parent[i]=this.find(this.parent[i])}union(i,j){const rI=this.find(i);const rJ=this.find(j);if(rI!==rJ){this.parent[rI]=rJ;this.numSets--;return!0}return!1}})(nb);
+            const linhasMalha = getLinhasFromTable(tblMalha); const linhaFalhaKeys = Array.from(selLinhaFalha.selectedOptions).map(opt => opt.value).filter(val => val !== 'SEM_FALHA'); const linhaFalhaSet = new Set(linhaFalhaKeys); const isSemFalha = linhaFalhaKeys.length === 0 && Array.from(selLinhaFalha.selectedOptions).some(opt => opt.value === 'SEM_FALHA'); const nb = getNb(); const reqLines = nb > 1 ? nb - 1 : 0;
+            if (linhaFalhaKeys.length > 0 && Array.from(selLinhaFalha.selectedOptions).some(opt => opt.value === 'SEM_FALHA')) { gaStatus.textContent = 'Erro: "Sistema Normal" não pode ser selecionado com falhas.'; gaStatus.style.color = 'var(--bad)'; btnOtimizar.disabled = false; btnFluxo.disabled = false; return; }
+            if (linhasMalha.length < reqLines && nb > 1) { gaStatus.textContent = `Erro: Mínimo ${reqLines} linhas para ${nb} barras.`; gaStatus.style.color = 'var(--bad)'; btnOtimizar.disabled = false; btnFluxo.disabled = false; return; }
+            let invalidSelection = false; const malhaKeys = new Set(); linhasMalha.forEach(l => { malhaKeys.add(`${l.de}-${l.para}`); malhaKeys.add(`${l.para}-${l.de}`); }); if (!isSemFalha) linhaFalhaKeys.forEach(key => { if (!malhaKeys.has(key)) invalidSelection = true; }); if (invalidSelection) { gaStatus.textContent = 'Erro: Linha(s) de falha selecionada(s) inválida(s).'; gaStatus.style.color = 'var(--bad)'; btnOtimizar.disabled = false; btnFluxo.disabled = false; return; }
+
+            let candidateLines = linhasMalha.filter(l => isSemFalha || (!linhaFalhaSet.has(`${l.de}-${l.para}`) && !linhaFalhaSet.has(`${l.para}-${l.de}`)));
+            candidateLines.sort((a, b) => (a.Z || Infinity) - (b.Z || Infinity));
+            const dsu = new (class DSU { constructor(n){this.parent=Array(n+1).fill(0).map((_,i)=>i);this.numSets=n}find(i){if(this.parent[i]===i)return i;return this.parent[i]=this.find(this.parent[i])}union(i,j){const rI=this.find(i);const rJ=this.find(j);if(rI!==rJ){this.parent[rI]=rJ;this.numSets--;return!0}return!1}})(nb);
             const mstLines = [];
-for (const line of candidateLines) { if (line.de>=1 && line.de<=nb && line.para>=1 && line.para<=nb && dsu.union(line.de, line.para)) mstLines.push(line);
-// *** MUDANÇA: Não podemos mais parar em N-1 ***
-            // if (mstLines.length >= reqLines && dsu.numSets === 1) break; 
-            }
+            for (const line of candidateLines) { if (line.de>=1 && line.de<=nb && line.para>=1 && line.para<=nb && dsu.union(line.de, line.para)) mstLines.push(line); if (mstLines.length >= reqLines && dsu.numSets === 1) break; }
             logGADetail(`MST base: ${mstLines.length} chaves. Falha(s): ${isSemFalha ? 'Nenhuma' : linhaFalhaKeys.join(', ')}`);
-baseMstLineKeys.clear(); mstLines.forEach(l => baseMstLineKeys.add(`${l.de}-${l.para}`));
+            baseMstLineKeys.clear(); mstLines.forEach(l => baseMstLineKeys.add(`${l.de}-${l.para}`));
 
-            // *** NOVA LÓGICA: CHECAR CONEXÃO DE FONTES ***
-            if (isSemFalha && substationBuses.length > 1) {
-                const roots = substationBuses.map(b => dsu.find(b));
-                const uniqueRoots = new Set(roots);
-                if (uniqueRoots.size < roots.length) {
-                    gaStatus.textContent = 'Erro MST: Fontes conectadas em modo normal!';
-                    gaStatus.style.color = 'var(--bad)';
-                    logGADetail('Erro: MST conectou subestações. Verifique linhas de amarração.', 'bad');
-                    btnOtimizar.disabled = false; btnFluxo.disabled = false; return;
-                }
-            }
-
-            // *** NOVA LÓGICA: CHECAR BARRAS REQUERIDAS ***
-            const requiredBusesBase = new Set(substationBuses);
-for(let b=1; b<=nb; b++) if(!substationBuses.includes(b) && cargas[b] && (cargas[b].P > 0 || cargas[b].Q > 0)) requiredBusesBase.add(b);
+            const requiredBusesBase = new Set([1]); for(let b=2; b<=nb; b++) if(cargas[b] && (cargas[b].P > 0 || cargas[b].Q > 0)) requiredBusesBase.add(b); const rootBase = dsu.find(1); let allConnectedBase = true; const unservedSetBase = new Set(); for(const reqBus of requiredBusesBase){ if(dsu.find(reqBus) !== rootBase){ allConnectedBase = false; if(reqBus !== 1) unservedSetBase.add(reqBus); } } if(!allConnectedBase){ gaStatus.textContent = `Erro: Não conectou ${requiredBusesBase.size} barras (MST Base).`; gaStatus.style.color = 'var(--bad)'; logGADetail(`Não conectadas (base): ${[...unservedSetBase].join(', ')}`, 'bad'); renderResultados([], []); const resBD = []; for(let b=1; b<=nb; b++){ const isCD = dsu.find(b) === rootBase; resBD.push({ barra: b, Vmag: (isCD ? (b===1?1:0) : 0), Vang: 0, Pmw: (cargas[b]?.P || 0), Qmvar: (cargas[b]?.Q || 0), isConnected: isCD }); } desenharRede(nb, mstLines, resBD); btnOtimizar.disabled = false; btnFluxo.disabled = false; return; }
             
-            const sourceRoots = new Set(substationBuses.map(b => dsu.find(b)));
-let allConnectedBase = true; const unservedSetBase = new Set();
-for(const reqBus of requiredBusesBase){ 
-                // Se a raiz da barra NÃO ESTÁ no Set de raízes das fontes, está isolada
-                if(!sourceRoots.has(dsu.find(reqBus))){ 
-                    allConnectedBase = false; 
-                    if(!substationBuses.includes(reqBus)) unservedSetBase.add(reqBus);
-} } 
-            
-            if(!allConnectedBase){ 
-                gaStatus.textContent = `Erro: ${unservedSetBase.size} barras de carga não conectadas (MST Base).`; 
-                gaStatus.style.color = 'var(--bad)';
-logGADetail(`Não conectadas (base): ${[...unservedSetBase].join(', ')}`, 'bad'); renderResultados([], []); const resBD = [];
-for(let b=1; b<=nb; b++){ const isCD = sourceRoots.has(dsu.find(b));
-resBD.push({ barra: b, Vmag: (isCD ? 1.0 : 0), Vang: 0, Pmw: (cargas[b]?.P || 0), Qmvar: (cargas[b]?.Q || 0), isConnected: isCD });
-} desenharRede(nb, mstLines, resBD); btnOtimizar.disabled = false; btnFluxo.disabled = false; return;
-}
-            
-            // *** NOVA LÓGICA: LOOP DE FLUXO "DIVIDIR PARA CONQUISTAR" ***
             try {
-                let allResBarras = new Array(nb + 1);
-                let allResRamos = [];
-                let totalUnserved = new Set();
-                const connectedSet = new Set();
-                
-                const dsu_fluxo = new DSU(nb);
-                mstLines.forEach(l => dsu_fluxo.union(l.de, l.para));
-
-                for (const sourceId of substationBuses) {
-                    const root = dsu_fluxo.find(sourceId);
-                    // Pega todas as linhas que pertencem à "ilha" desta fonte
-                    const minhasLinhas = mstLines.filter(l => dsu_fluxo.find(l.de) === root);
-                    
-                    if (minhasLinhas.length === 0 && substationBuses.length > 1) {
-                        // Esta fonte não está conectada a nada
-                         allResBarras[sourceId] = { barra: sourceId, Vmag: 1.0, Vang: 0, Pmw: 0, Qmvar: 0, isConnected: true };
-                         connectedSet.add(sourceId);
-                         continue;
-                    }
-                    
-                    // Chama o motor de fluxo modificado
-                    const { resBarras, resRamos, unservedBuses } = await runFluxoLocal(minhasLinhas, sourceId);
-                    
-                    // Combina os resultados
-                    resBarras.forEach(b => {
-                        if (b.isConnected) {
-                            allResBarras[b.barra] = b; // Sobrescreve
-                            connectedSet.add(b.barra);
-                        }
-                    });
-                    allResRamos.push(...resRamos);
-                    unservedBuses.forEach(b => totalUnserved.add(b));
-                }
-
-                // Preenche barras que não foram conectadas
-                const finalBarras = [];
-                for (let b = 1; b <= nb; b++) {
-                    if (allResBarras[b]) {
-                        finalBarras.push(allResBarras[b]);
-                    } else {
-                        // Se não foi conectada por nenhum fluxo, está isolada
-                        const isC = connectedSet.has(b); // Deve ser falso
-                        finalBarras.push({ barra: b, Vmag: 0, Vang: 0, Pmw: (cargas[b]?.P || 0), Qmvar: (cargas[b]?.Q || 0), isConnected: isC });
-                    }
-                }
-                
-renderResultados(finalBarras, allResRamos);
-desenharRede(getNb(), allResRamos, finalBarras);
+                const { resBarras, resRamos, unservedBuses } = await runFluxoLocal(mstLines); // Chama a cópia local
+                renderResultados(resBarras, resRamos);
+                desenharRede(getNb(), resRamos, resBarras);
                 gaStatus.textContent = 'Fluxo base (MST) calculado.'; gaStatus.style.color = 'var(--ok)';
-                
-                // Checagem final de barras não atendidas
-                const finalUnserved = new Set();
-                for(let b=1; b<=nb; b++) {
-                    if (requiredBusesBase.has(b) && !connectedSet.has(b)) {
-                        finalUnserved.add(b);
-                    }
-                }
-                const unservedArray = Array.from(finalUnserved);
-if(unservedArray.length > 0) logGADetail(`Barras não atendidas (base): ${unservedArray.join(', ')}`, 'warn');
-} catch (error) { gaStatus.textContent = 'Erro fluxo base (MST): ' + error.message; gaStatus.style.color = 'var(--bad)';
-logGADetail(`Erro fluxo base: ${error.message}`, 'bad'); alert('Erro fluxo base (MST): ' + error.message); try { const rBE=[];
-for(let b=1; b<=nb; b++) rBE.push({barra:b, Vmag:0, Vang:0, Pmw:(cargas[b]?.P||0), Qmvar:(cargas[b]?.Q||0), isConnected:false}); desenharRede(nb, mstLines, rBE);
-} catch(drawError){} }
+                const unservedArray = Array.from(unservedBuses);
+                 if(unservedArray.length > 0) logGADetail(`Barras não atendidas (base): ${unservedArray.join(', ')}`, 'warn');
+            } catch (error) { gaStatus.textContent = 'Erro fluxo base (MST): ' + error.message; gaStatus.style.color = 'var(--bad)'; logGADetail(`Erro fluxo base: ${error.message}`, 'bad'); alert('Erro fluxo base (MST): ' + error.message); try { const rBE=[]; for(let b=1; b<=nb; b++) rBE.push({barra:b, Vmag:0, Vang:0, Pmw:(cargas[b]?.P||0), Qmvar:(cargas[b]?.Q||0), isConnected:false}); desenharRede(nb, mstLines, rBE); } catch(drawError){} }
             btnOtimizar.disabled = false; btnFluxo.disabled = false;
-});
+        });
 
         // Inicialização
         carregarExemplo10();
-// Limpeza de workers ao fechar a página
+
+        // Limpeza de workers ao fechar a página
         window.addEventListener('beforeunload', () => {
             terminateWorkers();
         });
-</script>
+
+    </script>
 </body>
 </html>
