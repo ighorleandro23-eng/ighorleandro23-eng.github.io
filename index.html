@@ -16,7 +16,7 @@
             --utfpr-gray-light: #f5f5f5; --utfpr-gray-medium: #cccccc;
             --ok: #32a852; --warn: #fbbd08; --bad: #dc3545; --info: #17a2b8;
             --highlight-green: #28a745;
-            /* Cores das Zonas */
+            /* Cores das Zonas (Alimentadores) */
             --zone-1: #006699; /* Azul UTFPR */
             --zone-2: #e67e22; /* Laranja */
             --zone-3: #8e44ad; /* Roxo */
@@ -152,282 +152,7 @@
 
     <script>
     // ==========================================
-    // 1. WORKER (Lógica Multi-Alimentador)
-    // ==========================================
-    const workerScript = `
-    // Utils
-    function c(re=0,im=0){return{re,im}} function cAdd(a,b){return c(a.re+b.re,a.im+b.im)} function cSub(a,b){return c(a.re-b.re,a.im-b.im)} function cMul(a,b){return c(a.re*b.re-a.im*b.im,a.re*b.im+a.im*b.re)} function cConj(a){return c(a.re,-a.im)} function cAbs(a){return Math.hypot(a.re,a.im)} function cDiv(a,b){const d=b.re*b.re+b.im*b.im||1e-30;return c((a.re*b.re+a.im*b.im)/d,(a.im*b.re-a.re*b.im)/d)} function angDeg(a){return Math.atan2(a.im,a.re)*180/Math.PI}
-    class DSU { constructor(n){this.parent=Array(n+1).fill(0).map((_,i)=>i);this.numSets=n}find(i){if(this.parent[i]===i)return i;return this.parent[i]=this.find(this.parent[i])}union(i,j){const rI=this.find(i);const rJ=this.find(j);if(rI!==rJ){this.parent[rI]=rJ;this.numSets--;return!0}return!1}}
-
-    const GA_PENALTIES = { UNSERVED_MW: 50000, VOLTAGE_VIOL_PU: 10000, SMAX_VIOL_MVA: 5000, LOOP_ALIMENTADOR: 1e9, MAX_NA_VIOL: 1e7 };
-
-    // --- Nova Lógica de Topologia Multi-Fonte ---
-    function analisarTopologia(n, linhas, sources) {
-        // Retorna: { ok: bool, zones: {barraId: sourceId}, unserved: Set, msg: string }
-        const adj = Array(n+1).fill(0).map(()=>[]);
-        linhas.forEach(l => { if(l && l.de && l.para){ adj[l.de].push(l.para); adj[l.para].push(l.de); } });
-        
-        const zoneMap = new Map(); // Map<BusID, SourceID>
-        const q = [];
-        const parent = new Map();
-
-        // Inicializa a fila com TODAS as fontes (BFS Multi-Root)
-        sources.forEach(s => {
-            if(s <= n) {
-                q.push({u: s, src: s});
-                zoneMap.set(s, s);
-            }
-        });
-
-        let head = 0;
-        let loopDetected = false;
-
-        while(head < q.length) {
-            const {u, src} = q[head++];
-            
-            for(const v of adj[u]) {
-                if(v === parent.get(u)) continue; // Não volta pro pai
-
-                if(zoneMap.has(v)) {
-                    const existingSrc = zoneMap.get(v);
-                    if(existingSrc !== src) {
-                        return { ok: false, msg: \`Curto entre alimentadores \${src} e \${existingSrc}\`, zones: {}, unserved: new Set() };
-                    } else {
-                        // Loop dentro da mesma zona
-                        // return { ok: false, msg: 'Loop radial detectado', zones: {}, unserved: new Set() };
-                        // Em BFS puro, encontrar um nó visitado (que não seja pai) é loop.
-                        // Mas precisamos ser cuidadosos com a ordem.
-                        // Simplicidade: Se ja tem zona e não é pai, é loop.
-                        return { ok: false, msg: 'Loop na rede', zones: {}, unserved: new Set() };
-                    }
-                } else {
-                    zoneMap.set(v, src);
-                    parent.set(v, u);
-                    q.push({u: v, src: src});
-                }
-            }
-        }
-        
-        const unserved = new Set();
-        for(let b=1; b<=n; b++) {
-            if(!zoneMap.has(b)) unserved.add(b);
-        }
-
-        return { ok: true, msg: 'OK', zones: Object.fromEntries(zoneMap), unserved };
-    }
-
-    async function runFluxo(linhasData, nb, Sbase, Vbase_kV, cargas, sourceBuses) {
-        // 1. Analisa Topologia (Zonas)
-        const topo = analisarTopologia(nb, linhasData, sourceBuses);
-        
-        // Se falha crítica (loop entre fontes), retorna vazio/erro
-        if(!topo.ok) {
-            return { resBarras: [], resRamos: [], perdasMWtotal: 0, unservedBuses: new Set(), error: topo.msg };
-        }
-
-        const Zbase = (Vbase_kV * Vbase_kV) / Sbase;
-        const V = Array(nb + 1).fill(0).map(() => c(0, 0));
-        // Inicializa tensões das fontes
-        sourceBuses.forEach(s => { if(s<=nb) V[s] = c(1,0); });
-
-        const S_inj = Array(nb + 1).fill(0).map(() => c(0, 0));
-        for (let b = 1; b <= nb; b++) {
-            if (cargas[b] && topo.zones[b]) {
-                 S_inj[b] = c(parseFloat(cargas[b].P)/Sbase, parseFloat(cargas[b].Q)/Sbase);
-            }
-        }
-
-        // Preparar dados para Sweep por Zona
-        // Precisamos ordenar as barras por profundidade para cada zona
-        // Como já temos o map de zonas, podemos fazer sweeps independentes ou um grande sweep
-        // Vamos refazer um BFS estruturado para criar a ordem de varredura (Layered)
-        
-        const adj = Array(nb+1).fill(0).map(()=>[]);
-        linhasData.forEach(l => { adj[l.de].push(l.para); adj[l.para].push(l.de); });
-
-        const orderFwd = []; 
-        const parent = new Map();
-        const qBFS = [...sourceBuses.filter(s=>s<=nb)];
-        const visited = new Set(qBFS);
-        let h = 0;
-        
-        while(h < qBFS.length){
-            const u = qBFS[h++];
-            orderFwd.push(u);
-            for(const v of adj[u]){
-                if(!visited.has(v) && topo.zones[v]) { // Só visita se estiver na topologia válida
-                    visited.add(v);
-                    parent.set(v, u);
-                    qBFS.push(v);
-                }
-            }
-        }
-        const orderBwd = [...orderFwd].reverse();
-
-        // Mapear ramos para fácil acesso
-        const ramoIdx = {}; 
-        linhasData.forEach(r => { 
-            ramoIdx[\`\${r.de}-\${r.para}\`] = r; 
-            ramoIdx[\`\${r.para}-\${r.de}\`] = r; 
-        });
-
-        let conv = false;
-        const tol = 1e-6;
-        let maxDv = 0;
-
-        // Iteração Sweep
-        for (let it = 0; it < 50; it++) {
-            const Iload = Array(nb+1).fill(0).map(()=>c(0,0));
-            // Calc Iload
-            for(const b of orderBwd) {
-                if(sourceBuses.includes(b)) continue; // Fonte não tem Carga no modelo simples (slack)
-                if(cAbs(V[b]) > 1e-5) Iload[b] = cConj(cDiv(S_inj[b], V[b]));
-            }
-            
-            const Iramo = {}; // Key: "u-v" (u pai, v filho)
-            const Isoma = Array(nb+1).fill(0).map(()=>c(0,0)); // Corrente acumulada no nó vindo dos filhos
-
-            // Backward Sum
-            for(const b of orderBwd) {
-                if(sourceBuses.includes(b)) continue;
-                const p = parent.get(b);
-                if(p) {
-                    const i_flow = cAdd(Iload[b], Isoma[b]);
-                    Iramo[\`\${p}-\${b}\`] = i_flow;
-                    Isoma[p] = cAdd(Isoma[p], i_flow);
-                }
-            }
-
-            // Forward Update Voltage
-            const V_ant = V.map(v=>c(v.re,v.im));
-            for(const u of orderFwd) {
-                // Filhos de u
-                // Precisamos iterar sobre adj e ver quem é filho
-                for(const v of adj[u]) {
-                    if(parent.get(v) === u) {
-                        const r = ramoIdx[\`\${u}-\${v}\`];
-                        const Zr = r ? c((r.R||0)/Zbase, (r.X||0)/Zbase) : c(0,0);
-                        const drop = cMul(Zr, Iramo[\`\${u}-\${v}\`] || c(0,0));
-                        V[v] = cSub(V[u], drop);
-                    }
-                }
-            }
-
-            maxDv = 0;
-            for(let b=1; b<=nb; b++) if(topo.zones[b]) maxDv = Math.max(maxDv, cAbs(cSub(V[b], V_ant[b])));
-            if(maxDv < tol) { conv = true; break; }
-        }
-
-        // Resultados
-        let perdasMWtotal = 0;
-        const resBarras = [];
-        for(let b=1; b<=nb; b++) {
-            const z = topo.zones[b];
-            resBarras.push({
-                barra: b,
-                zona: z,
-                Vmag: z ? cAbs(V[b]) : 0,
-                Vang: z ? angDeg(V[b]) : 0,
-                isConnected: !!z
-            });
-        }
-
-        const resRamos = [];
-        linhasData.forEach(l => {
-            // Determinar fluxo P, Q, Perdas
-            // Precisa ver sentido. Vamos assumir de -> para se parent[para] == de
-            let p_mw=0, q_mvar=0, loss=0, smva=0;
-            const z = topo.zones[l.de]; // Se a linha está numa zona ativa
-            
-            // Simulação simplificada de perdas para o AG (para não re-calcular I exato final)
-            // Se a linha conecta pai-filho validos, calcula
-            if(z && topo.zones[l.para] === z) {
-                 // Recalculo rapido aproximado
-                 const u = l.de, v = l.para;
-                 const du = cAbs(V[u]), dv = cAbs(V[v]);
-                 if(du>0 && dv>0) {
-                     // Apenas indicativo para o AG
-                     // Cálculo exato exige a corrente final da iteração
-                     // Assumindo V e Z
-                     const Zr = (l.R||0)/Zbase, Zi = (l.X||0)/Zbase;
-                     const Zmag2 = Zr*Zr + Zi*Zi;
-                     if(Zmag2 > 1e-9) {
-                         // Iaprox = (Vu - Vv) / Z
-                         // Loss = |I|^2 * R
-                     }
-                 }
-            }
-            // ... Para manter o código curto, assumimos 0 perdas no AG visual
-            // mas o fitness do AG penaliza pelo quadrado da corrente se implementado full.
-            // Vamos deixar 0 aqui visualmente se não convergiu perfeito, mas o AG usa Vmag.
-            
-            resRamos.push({...l, zona: z, perdasMW: 0, Smva: 0});
-        });
-
-        return { resBarras, resRamos, perdasMWtotal, unservedBuses: Array.from(topo.unserved), error: null };
-    }
-
-    async function calculateFitness(individual, allLines, linhaFalhaKeys, nb, vMin, vMax, maxNALinhas, cargas, Sbase, Vbase_kV, sourceBuses) {
-        const falhaSet = new Set(linhaFalhaKeys);
-        
-        // Decodificar Cromossomo
-        let activeLines = [];
-        let custoChaves = 0;
-        let numNA = 0;
-        
-        individual.forEach((gene, i) => {
-            if (gene === 1 && allLines[i]) {
-                const l = allLines[i];
-                const k1 = \`\${l.de}-\${l.para}\`;
-                const k2 = \`\${l.para}-\${l.de}\`;
-                if (!falhaSet.has(k1) && !falhaSet.has(k2)) {
-                    activeLines.push(l);
-                    custoChaves += (l.custo || 0);
-                    if(l.isNA) numNA++;
-                }
-            }
-        });
-
-        let fitness = custoChaves;
-        if(numNA > maxNALinhas) fitness += (numNA - maxNALinhas) * GA_PENALTIES.MAX_NA_VIOL;
-
-        // Executar Fluxo Multi-Fonte
-        const res = await runFluxo(activeLines, nb, Sbase, Vbase_kV, cargas, sourceBuses);
-
-        if(res.error) {
-            // Penalidade massiva por loop entre alimentadores ou loop interno
-            fitness += GA_PENALTIES.LOOP_ALIMENTADOR;
-            return { fitness, data: { error: res.error } };
-        }
-
-        // Penalidades Operacionais
-        let unservedP = 0;
-        res.unservedBuses.forEach(b => { if(cargas[b]) unservedP += (cargas[b].P||0); });
-        fitness += unservedP * GA_PENALTIES.UNSERVED_MW;
-
-        res.resBarras.forEach(b => {
-            if(b.isConnected) {
-                if(b.Vmag < vMin) fitness += (vMin - b.Vmag) * GA_PENALTIES.VOLTAGE_VIOL_PU;
-                else if(b.Vmag > vMax) fitness += (b.Vmag - vMax) * GA_PENALTIES.VOLTAGE_VIOL_PU;
-            }
-        });
-
-        return { fitness, data: { ...res, currentLinhas: activeLines, custoChaves, numNA_Usadas: numNA } };
-    }
-
-    self.onmessage = async (event) => {
-        const { individual, index, staticData } = event.data;
-        try {
-            const result = await calculateFitness(individual, staticData.allLines, staticData.linhaFalhaKeys, staticData.nb, staticData.vMin, staticData.vMax, staticData.maxNALinhas, staticData.cargas, staticData.Sbase, staticData.Vbase_kV, staticData.sourceBuses);
-            self.postMessage({ index, result });
-        } catch (error) {
-            self.postMessage({ index, result: { fitness: Infinity }, error: error.message });
-        }
-    };
-    `;
-
-    // ==========================================
-    // 2. UI & CONTROLLER
+    // UI & CONTROLLER
     // ==========================================
     
     const elNb=document.getElementById('numBarras'), elSbase=document.getElementById('sbase'), elVbase=document.getElementById('vbase');
@@ -444,7 +169,6 @@
     let workerPool = [];
     let currentSources = [1]; // Default: só a barra 1
 
-    function c(re=0,im=0){return{re,im}} 
     function getNb(){const n=parseInt(elNb.value,10);return isFinite(n)&&n>=2?n:2}
     function logGADetail(m,t=''){const s=document.createElement('div');s.textContent=`[${new Date().toLocaleTimeString()}] ${m}`;if(t)s.className=`log-${t}`;const log=document.getElementById('ga-log-detail');log.appendChild(s);log.scrollTop=log.scrollHeight}
 
@@ -478,8 +202,13 @@
 
     function addLinhaRow(p){
         const n=getNb(), r=document.createElement('tr'), i=tblMalha.children.length+1;
-        let optsDe='', optsPara=''; for(let b=1;b<=n;b++){ optsDe+=`<option value="${b}" ${b===(p?.de??1)?'selected':''}>${b}</option>`; }
-        for(let b=1;b<=n;b++){ optsPara+=`<option value="${b}" ${b===(p?.para??Math.min(2,n))?'selected':''}>${b}</option>`; }
+        // CORREÇÃO CRÍTICA AQUI: Garante que p.de e p.para existem antes de comparar
+        const deVal = p?.de ?? 1;
+        const paraVal = p?.para ?? Math.min(2,n);
+        
+        let optsDe='', optsPara=''; 
+        for(let b=1;b<=n;b++){ optsDe+=`<option value="${b}" ${b===deVal?'selected':''}>${b}</option>`; }
+        for(let b=1;b<=n;b++){ optsPara+=`<option value="${b}" ${b===paraVal?'selected':''}>${b}</option>`; }
 
         r.innerHTML = `<td>${i}</td>
             <td><select class="mono selDe">${optsDe}</select></td>
@@ -533,58 +262,61 @@
         };
 
         // ZONA 1 (Esq) - Fonte 1
-        // 1->2->3...
         setC(1, 0,0, 20, 50); // Fonte
         for(let i=2; i<=10; i++) setC(i, 0.5, 0.1, 20 + (i%2)*20, 50 + (i-1)*15); 
-        // Linhas Z1
+        // Linhas Z1 (CORRIGIDO: chaves de, para)
         const lz1 = [
-            {d:1,p:2}, {d:2,p:3}, {d:2,p:4}, {d:4,p:5}, {d:5,p:6}, 
-            {d:3,p:7}, {d:7,p:8}, {d:8,p:9}, {d:9,p:10}
+            {de:1,para:2}, {de:2,para:3}, {de:2,para:4}, {de:4,para:5}, {de:5,para:6}, 
+            {de:3,para:7}, {de:7,para:8}, {de:8,para:9}, {de:9,para:10}
         ];
         lz1.forEach(l => addLinhaRow({...l, R:0.05, X:0.1, Smax:6}));
 
         // ZONA 2 (Meio) - Fonte 11
         setC(11, 0,0, 150, 50); // Fonte
         for(let i=12; i<=20; i++) setC(i, 0.6, 0.2, 150 + (i%2)*20, 50 + (i-11)*15);
-        // Linhas Z2
+        // Linhas Z2 (CORRIGIDO: chaves de, para)
         const lz2 = [
-            {d:11,p:12}, {d:12,p:13}, {d:12,p:14}, {d:14,p:15}, {d:15,p:16},
-            {d:13,p:17}, {d:17,p:18}, {d:18,p:19}, {d:19,p:20}
+            {de:11,para:12}, {de:12,para:13}, {de:12,para:14}, {de:14,para:15}, {de:15,para:16},
+            {de:13,para:17}, {de:17,para:18}, {de:18,para:19}, {de:19,para:20}
         ];
         lz2.forEach(l => addLinhaRow({...l, R:0.05, X:0.1, Smax:6}));
 
         // ZONA 3 (Dir) - Fonte 21
         setC(21, 0,0, 280, 50); // Fonte
         for(let i=22; i<=30; i++) setC(i, 0.4, 0.1, 280 + (i%2)*20, 50 + (i-21)*15);
-        // Linhas Z3
+        // Linhas Z3 (CORRIGIDO: chaves de, para)
         const lz3 = [
-            {d:21,p:22}, {d:22,p:23}, {d:22,p:24}, {d:24,p:25}, {d:25,p:26},
-            {d:23,p:27}, {d:27,p:28}, {d:28,p:29}, {d:29,p:30}
+            {de:21,para:22}, {de:22,para:23}, {de:22,para:24}, {de:24,para:25}, {de:25,para:26},
+            {de:23,para:27}, {de:27,para:28}, {de:28,para:29}, {de:29,para:30}
         ];
         lz3.forEach(l => addLinhaRow({...l, R:0.05, X:0.1, Smax:6}));
 
-        // TIE LINES (LINHAS NA entre Zonas) - Serão geradas pelo AG como "NA candidatas"
-        // Mas vamos adicionar algumas "Manuais" na tabela para testar o sistema híbrido
-        // Conecta fim da Z1 com inicio Z2, etc.
-        // 10 (Z1) - 12 (Z2)
-        // 20 (Z2) - 22 (Z3)
-        // 6 (Z1) - 16 (Z2)
-        // addLinhaRow({de:10, para:12, R:0.1, X:0.2, Smax:5}); // Será adicionado como linha física
-        // addLinhaRow({de:20, para:22, R:0.1, X:0.2, Smax:5});
-        
         updateLinhaFalhaSelect();
     };
 
     // --- Workers & GA Engine ---
     function initWorkers(){
         workerPool.forEach(w=>w.terminate()); workerPool=[];
-        const blob = new Blob([workerScript], { type: 'application/javascript' });
-        const workerUrl = URL.createObjectURL(blob);
+        // CARREGAMENTO EXTERNO
+        const workerFileName = 'ga_worker.js';
+        
         const numCores = navigator.hardwareConcurrency || 4;
         for(let i=0; i<Math.max(1, numCores-1); i++){
-            const w = new Worker(workerUrl);
-            w.onmessage = handleWorkerMsg; w.busy=false;
-            workerPool.push(w);
+            try {
+                const w = new Worker(workerFileName);
+                w.onmessage = handleWorkerMsg; 
+                w.busy = false;
+                w.id = i;
+                // Teste simples de erro no startup
+                w.onerror = (e) => {
+                    console.error("Worker Error", e);
+                    logGADetail("Erro ao carregar ga_worker.js. Use um servidor (http://).", "bad");
+                };
+                workerPool.push(w);
+            } catch(e) {
+                console.error(e);
+                alert("Erro ao criar Worker. Verifique se ga_worker.js está na pasta e se está usando um servidor local.");
+            }
         }
     }
 
@@ -599,6 +331,14 @@
 
     async function runGA(){
         initWorkers();
+        // Pequeno delay para garantir que workers carregaram
+        await new Promise(r => setTimeout(r, 100));
+        
+        if(workerPool.length === 0) {
+             alert("Falha ao carregar Workers. Verifique o console.");
+             return;
+        }
+
         btnOtimizar.disabled=true; gaStatus.textContent="Iniciando...";
         
         // 1. Gerar Linhas NA Candidatas (Entre Zonas e Internas)
@@ -632,9 +372,9 @@
                 }
             }
         }
-        // Pega as X melhores candidatas (mais curtas) para não explodir o cromossomo
+        // Pega as X melhores candidatas (mais curtas)
         candidates.sort((a,b)=> (a.R - b.R));
-        const activeCandidates = candidates.slice(0, 20); // Top 20 candidatas
+        const activeCandidates = candidates.slice(0, 20); // Top 20
         allLines.push(...activeCandidates);
 
         const staticData = {
@@ -684,6 +424,8 @@
                 if(!bestSol || popRes[0].res.fitness < bestSol.res.fitness) {
                     bestSol = popRes[0];
                     updateDashboard(bestSol.res);
+                    // Renderiza o melhor da geração atual (opcional, pode pesar)
+                    // renderSVG(bestSol.res.data.resBarras, bestSol.res.data.resRamos, bestSol.res.data.unservedBuses);
                 }
             }
 
@@ -716,9 +458,42 @@
         }
     }
     btnOtimizar.onclick = runGA;
+    
+    // Fluxo Base (Rodar apenas com as linhas ativas da tabela)
+    btnFluxo.onclick = async () => {
+        initWorkers();
+        await new Promise(r => setTimeout(r, 100));
+        gaStatus.textContent = "Calculando Fluxo Base...";
+        const baseLines = getLinhasFromTable();
+        const staticData = {
+            allLines: baseLines,
+            linhaFalhaKeys: [...selLinhaFalha.selectedOptions].map(o=>o.value).filter(v=>v!=='SEM_FALHA'),
+            nb: getNb(), 
+            vMin: parseFloat(elVmin.value), vMax: parseFloat(elVmax.value),
+            maxNALinhas: 0,
+            cargas, Sbase: parseFloat(elSbase.value), Vbase_kV: parseFloat(elVbase.value),
+            sourceBuses: currentSources
+        };
+        
+        // Indivíduo "Tudo Ligado" (Todas as linhas da tabela = 1)
+        const ind = baseLines.map(() => 1);
+        
+        workerPool[0].postMessage({ individual: ind, index: 0, staticData });
+        workerPool[0].onmessage = (e) => {
+            const res = e.data.result;
+            updateDashboard(res);
+            if(res.data) {
+                renderSVG(res.data.resBarras, res.data.resRamos, res.data.unservedBuses);
+                renderTables(res.data);
+                gaStatus.textContent = "Fluxo Base Concluído.";
+            } else {
+                gaStatus.textContent = "Erro no Fluxo Base.";
+            }
+        };
+    };
 
     function updateDashboard(res){
-        document.getElementById('best-fitness-display').textContent = res.fitness.toFixed(1);
+        if(res.fitness) document.getElementById('best-fitness-display').textContent = res.fitness.toFixed(1);
         if(res.data) {
             document.getElementById('active-switches-display').textContent = `${res.data.currentLinhas?.length || 0} (${res.data.numNA_Usadas} NA)`;
             // Unserved load sum
@@ -733,7 +508,7 @@
         tbB.innerHTML = '';
         data.resBarras.forEach(b => {
             const tr = document.createElement('tr');
-            const zColor = b.zona ? `var(--zone-${(b.zona%4)||1})` : '#ccc';
+            const zColor = b.zona ? `var(--zone-${(b.zona === 1 ? 1 : (b.zona === 11 ? 2 : 3))})` : '#ccc';
             tr.innerHTML = `<td><span class="pill" style="background:${zColor}; color:white; padding:2px 6px">${b.barra} (Z${b.zona||'?'})</span></td>
                 <td>${b.Vmag.toFixed(4)}</td><td>${b.Vang.toFixed(2)}</td>
                 <td>${cargas[b.barra]?.P||0}</td><td>${cargas[b.barra]?.Q||0}</td>`;
