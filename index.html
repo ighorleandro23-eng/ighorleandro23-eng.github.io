@@ -3,9 +3,8 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Otimização Multi-Alimentador (Zoom Perto)</title>
+    <title>Otimização Multi-Alimentador (Editável)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -15,7 +14,6 @@
             --utfpr-gray-light: #f5f5f5;
             --ok: #32a852; --warn: #fbbd08; --bad: #dc3545;
             --highlight-green: #28a745;
-            /* Cores das Zonas */
             --zone-1: #006699; --zone-2: #e67e22; --zone-3: #8e44ad;
         }
         * { box-sizing: border-box; }
@@ -23,8 +21,6 @@
         .mono { font-family: 'Roboto Mono', monospace; }
         h1, h2, h3 { margin: 0 0 8px; font-weight: 600; color: var(--utfpr-blue-dark); }
         h1 { font-size: 24px; color: var(--utfpr-white); text-align: center; }
-        h2 { font-size: 20px; color: var(--utfpr-blue-light); margin-bottom: 15px; }
-        h3 { font-size: 15px; color: var(--utfpr-blue-dark); font-weight: 500; margin-top: 20px; margin-bottom: 10px; }
         .header { text-align: center; padding: 16px; background: var(--utfpr-blue-dark); color: var(--utfpr-white); border-bottom: 4px solid var(--utfpr-blue-light); }
         .main-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 20px; padding: 20px; max-width: 1600px; margin: 0 auto; }
         .grid-span-all { grid-column: 1 / -1; }
@@ -32,18 +28,22 @@
         .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 12px; }
         label { font-size: 12px; color: var(--muted-text); display: block; margin-bottom: 4px; font-weight: 500; }
         input, select, button { font-family: inherit; font-size: 13px; }
-        input[type="number"], select { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #ccc; background: var(--utfpr-gray-light); }
+        input[type="number"], select { width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ccc; background: var(--utfpr-gray-light); }
         select[multiple] { height: auto; min-height: 80px; }
         .btn { padding: 10px 16px; border-radius: 6px; border: none; background: var(--utfpr-blue-dark); color: white; cursor: pointer; font-weight: 600; }
         .btn:hover { filter: brightness(1.1); }
         .btn.primary { background: var(--utfpr-blue-light); }
         .btn.secondary { background: #aaa; color: #333; }
-        .table-scroll { width: 100%; overflow: auto; border: 1px solid #ccc; border-radius: 8px; background: var(--utfpr-gray-light); max-height: 400px; }
-        table { width: 100%; border-collapse: collapse; min-width: 600px; }
-        th, td { padding: 10px; border-bottom: 1px solid #ccc; text-align: left; font-size: 13px; }
-        th { background: var(--utfpr-blue-dark); color: white; position: sticky; top: 0; }
         
-        /* SVG Wrap */
+        /* Scrollable Table */
+        .table-scroll { width: 100%; overflow: auto; border: 1px solid #ccc; border-radius: 8px; background: var(--utfpr-gray-light); max-height: 300px; }
+        table { width: 100%; border-collapse: collapse; min-width: 600px; }
+        th, td { padding: 6px 10px; border-bottom: 1px solid #ccc; text-align: left; font-size: 13px; vertical-align: middle; }
+        th { background: var(--utfpr-blue-dark); color: white; position: sticky; top: 0; z-index: 1; }
+        td input { width: 70px; padding: 4px; } /* Inputs menores na tabela */
+        td select { width: 60px; padding: 4px; }
+        
+        /* SVG */
         .svg-wrap { 
             width: 100%; height: 500px; 
             position: relative; background: #f8f9fa; 
@@ -60,38 +60,53 @@
         .stat-item { background: white; padding: 10px; border-radius: 6px; border-left: 3px solid var(--utfpr-blue-light); box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .stat-item .value { font-size: 18px; font-weight: 700; color: var(--utfpr-blue-dark); }
         #ga-progress-bar { width: 0%; height: 8px; background: var(--utfpr-blue-light); border-radius: 4px; margin-bottom: 10px; transition: width 0.2s; }
+        #ga-log-detail { background: #fcfcfc; border: 1px solid #ccc; border-radius: 6px; padding: 10px; font-size: 12px; height: 100px; overflow-y: auto; margin-top: 10px; }
     </style>
 </head>
 <body>
     <div class="header">
         <h1>Otimização Multi-Alimentador</h1>
-        <p>Controle Radial de Múltiplas Zonas</p>
+        <p>Sistema de Múltiplas Zonas (Editável + Zoom Ajustado)</p>
     </div>
 
     <div class="main-grid">
         <div>
             <div class="card">
-                <h2>Controles da Rede</h2>
+                <h2>Editor da Rede</h2>
                 <div class="row"> 
-                    <button class="btn primary" id="btnExemplo30">Carregar Exemplo 30 Barras (3 Zonas)</button> 
-                    <button class="btn secondary" id="btnGerar">Limpar</button>
+                    <button class="btn primary" id="btnExemplo30">Exemplo 30 Barras</button> 
+                    <button class="btn secondary" id="btnGerar">Limpar/Atualizar</button>
+                    <button class="btn secondary" id="btnAddBarra" style="background:var(--highlight-green); color:white">+ Barra</button>
                 </div>
                 <div class="row">
-                    <div><label>Barras</label><input id="numBarras" type="number" value="30" class="mono" readonly/></div>
+                    <div><label>Nº Barras</label><input id="numBarras" type="number" value="30" class="mono"/></div>
                     <div><label>Sbase</label><input id="sbase" type="number" value="10" class="mono"/></div>
                     <div><label>Vbase</label><input id="vbase" type="number" value="13.8" class="mono"/></div>
                 </div>
-                <h3>Malha (Linhas Originais)</h3>
-                <div class="table-scroll" style="max-height: 200px;"> <table id="tblMalha"> <thead><tr><th>#</th><th>De</th><th>Para</th><th>R</th><th>X</th><th>Smax</th></tr></thead> <tbody></tbody> </table> </div>
-                <h3>Cargas</h3>
-                <div class="table-scroll" style="max-height: 200px;"> <table id="tblCargas"> <thead></thead> <tbody></tbody> </table> </div>
+                
+                <h3>Malha (Linhas)</h3>
+                <button class="btn secondary" id="btnAddLinha" style="margin-bottom:5px; padding:5px 10px; font-size:12px">+ Nova Linha</button>
+                <div class="table-scroll"> 
+                    <table id="tblMalha"> 
+                        <thead><tr><th>#</th><th>De</th><th>Para</th><th>R</th><th>X</th><th>Smax</th><th>Del</th></tr></thead> 
+                        <tbody></tbody> 
+                    </table> 
+                </div>
+                
+                <h3>Cargas e Coordenadas</h3>
+                <div class="table-scroll"> 
+                    <table id="tblCargas"> 
+                        <thead><tr><th>Barra</th><th>P (MW)</th><th>Q (MVAr)</th><th>X</th><th>Y</th></tr></thead> 
+                        <tbody></tbody> 
+                    </table> 
+                </div>
             </div>
         </div>
 
         <div>
             <div class="card">
                 <h2>Motor de Otimização (AG)</h2>
-                <div class="row"> <div style="flex-grow:1"> <label>Linha em Falha (Opcional)</label> <select id="linhaFalha" class="mono" multiple size="3"></select> </div> </div>
+                <div class="row"> <div style="flex-grow:1"> <label>Linha em Falha (Ctrl+Click)</label> <select id="linhaFalha" class="mono" multiple size="3"></select> </div> </div>
                 
                 <div class="row">
                     <div><label>População</label><input id="gaPopSize" type="number" value="200"/></div>
@@ -99,12 +114,13 @@
                     <div><label>Mutação (%)</label><input id="gaMutationRate" type="number" value="20"/></div>
                 </div>
                 <div class="row">
+                    <div><label>Peso Custo Linha</label><input id="gaPesoChave" type="number" value="1.0"/></div>
                     <div><label>Custo Nova Linha</label><input id="gaCustoNA" type="number" value="20.0"/></div>
                     <div><label>Máx Novas Linhas</label><input id="gaMaxNA" type="number" value="4"/></div>
                 </div>
 
                 <div class="row" style="justify-content:flex-end; margin-top:15px;"> 
-                    <button class="btn secondary" id="btnFluxo">Rodar Fluxo Base</button> 
+                    <button class="btn secondary" id="btnFluxo">Rodar Fluxo Atual</button> 
                     <button class="btn primary" id="btnOtimizar">INICIAR OTIMIZAÇÃO</button> 
                 </div>
 
@@ -117,6 +133,7 @@
                         <div class="stat-item"> <label>Perdas</label> <div class="value mono" id="losses-display">---</div> </div> 
                         <div class="stat-item"> <label>Chaves Ativas</label> <div class="value mono" id="active-switches-display">---</div> </div> 
                     </div> 
+                    <div id="ga-log-detail" class="mono"></div>
                 </div>
             </div>
         </div>
@@ -140,69 +157,224 @@
     </div>
 
     <script>
-    // --- Estado e Config ---
-    const elNb=document.getElementById('numBarras'), elSbase=document.getElementById('sbase'), elVbase=document.getElementById('vbase');
-    const tblMalha=document.getElementById('tblMalha').querySelector('tbody'), tblCargasTbody=document.getElementById('tblCargas').querySelector('tbody');
-    const btnExemplo30=document.getElementById('btnExemplo30'), btnGerar=document.getElementById('btnGerar'), btnFluxo=document.getElementById('btnFluxo'), btnOtimizar=document.getElementById('btnOtimizar');
-    const selLinhaFalha=document.getElementById('linhaFalha'), gaStatus=document.getElementById('ga-status'), gaProgressBar=document.getElementById('ga-progress-bar');
+    // --- Referências DOM ---
+    const elNb=document.getElementById('numBarras');
+    const tblMalha=document.getElementById('tblMalha').querySelector('tbody');
+    const tblCargas=document.getElementById('tblCargas').querySelector('tbody');
+    const btnExemplo30=document.getElementById('btnExemplo30');
+    const btnGerar=document.getElementById('btnGerar');
+    const btnAddBarra=document.getElementById('btnAddBarra');
+    const btnAddLinha=document.getElementById('btnAddLinha');
+    const btnFluxo=document.getElementById('btnFluxo');
+    const btnOtimizar=document.getElementById('btnOtimizar');
+    const selLinhaFalha=document.getElementById('linhaFalha');
     const svgWrap=document.getElementById('svgWrap'), svg=document.getElementById('svg');
     
-    let cargas = {}, workerPool = [], currentSources = [1, 11, 21];
+    // --- Variáveis Globais ---
+    let cargas = {};
+    let workerPool = [];
+    let currentSources = [1, 11, 21];
+    let lineIdCounter = 1;
 
-    // --- Inicialização ---
-    btnExemplo30.onclick = () => {
-        // Configurar Sistema 30 Barras
-        elNb.value=30; cargas={}; tblMalha.innerHTML=''; tblCargasTbody.innerHTML='';
+    // --- Funções Utilitárias ---
+    function getNb(){ const n=parseInt(elNb.value,10); return isFinite(n)&&n>=2 ? n : 2; }
+    function log(m){ 
+        const d=document.getElementById('ga-log-detail'); 
+        d.innerHTML += `<div>${m}</div>`; 
+        d.scrollTop=d.scrollHeight; 
+    }
+
+    // --- Gestão de Tabela de Cargas (Editável) ---
+    function gerarTabelaCargas() {
+        const n = getNb();
+        const oldCargas = {...cargas};
+        cargas = {};
+        tblCargas.innerHTML = '';
+
+        for(let b=1; b<=n; b++){
+            const r = document.createElement('tr');
+            const isSrc = currentSources.includes(b);
+            
+            // Valores antigos ou padrão
+            const pVal = oldCargas[b]?.P ?? 0;
+            const qVal = oldCargas[b]?.Q ?? 0;
+            const xVal = oldCargas[b]?.X ?? (b*20);
+            const yVal = oldCargas[b]?.Y ?? 100;
+
+            r.innerHTML = `
+                <td style="${isSrc ? 'font-weight:bold; color:blue' : ''}">${b} ${isSrc?'(F)':''}</td>
+                <td><input type="number" step="0.01" class="iP" value="${pVal}"></td>
+                <td><input type="number" step="0.01" class="iQ" value="${qVal}"></td>
+                <td><input type="number" class="iX" value="${xVal}"></td>
+                <td><input type="number" class="iY" value="${yVal}"></td>
+            `;
+            tblCargas.appendChild(r);
+
+            // Listeners para atualizar objeto cargas em tempo real
+            const inputs = r.querySelectorAll('input');
+            const updateObj = () => {
+                cargas[b] = {
+                    P: parseFloat(inputs[0].value),
+                    Q: parseFloat(inputs[1].value),
+                    X: parseFloat(inputs[2].value),
+                    Y: parseFloat(inputs[3].value)
+                };
+            };
+            inputs.forEach(i => i.addEventListener('input', updateObj));
+            updateObj(); // Init
+        }
+    }
+
+    // --- Gestão de Tabela de Linhas (Editável) ---
+    function addLinhaRow(data = null) {
+        const tr = document.createElement('tr');
+        const n = getNb();
+        const id = data?.id || lineIdCounter++;
+        const de = data?.de || 1;
+        const para = data?.para || 2;
+        const R = data?.R ?? 0.05;
+        const X = data?.X ?? 0.1;
+        const S = data?.Smax ?? 6.0;
+
+        // Dropdowns para De/Para
+        let optsDe = '', optsPara = '';
+        for(let i=1; i<=n; i++){
+            optsDe += `<option value="${i}" ${i==de?'selected':''}>${i}</option>`;
+            optsPara += `<option value="${i}" ${i==para?'selected':''}>${i}</option>`;
+        }
+
+        tr.innerHTML = `
+            <td>${id}</td>
+            <td><select class="selDe">${optsDe}</select></td>
+            <td><select class="selPara">${optsPara}</select></td>
+            <td><input type="number" step="0.001" class="inpR" value="${R}"></td>
+            <td><input type="number" step="0.001" class="inpX" value="${X}"></td>
+            <td><input type="number" step="0.1" class="inpS" value="${S}"></td>
+            <td><button class="btn secondary" style="color:red; padding:2px 6px">X</button></td>
+        `;
+
+        // Botão Remover
+        tr.querySelector('button').onclick = () => { tr.remove(); updateSelects(); };
         
-        // Função helper visual
-        const addC = (b,p,q,x,y) => {
-            cargas[b]={P:p,Q:q,X:x,Y:y};
-            const r=document.createElement('tr');
-            r.innerHTML=`<td>${b}</td><td>${p}</td><td>${q}</td><td>${x}</td><td>${y}</td>`;
-            tblCargasTbody.appendChild(r);
-        };
-        const addL = (id,d,p,r,x,s) => {
-            const tr=document.createElement('tr');
-            tr.dataset.de=d; tr.dataset.para=p; tr.dataset.r=r; tr.dataset.x=x; tr.dataset.s=s; tr.dataset.id=id;
-            tr.innerHTML=`<td>${id}</td><td>${d}</td><td>${p}</td><td>${r}</td><td>${x}</td><td>${s}</td>`;
-            tblMalha.appendChild(tr);
-        };
+        // Update Selects ao mudar De/Para
+        tr.querySelectorAll('select').forEach(s => s.addEventListener('change', updateSelects));
 
-        // Zonas (Coords espalhadas para visualização clara)
-        addC(1, 0,0, 0, 200); for(let i=2;i<=10;i++) addC(i, 0.5,0.1, (i-1)*100, 200 + (i%2===0?30:-30)); // Zona 1 Horizontal
-        addC(11,0,0, 0, 400); for(let i=12;i<=20;i++) addC(i, 0.6,0.2, (i-11)*100, 400 + (i%2===0?30:-30)); // Zona 2
-        addC(21,0,0, 0, 600); for(let i=22;i<=30;i++) addC(i, 0.4,0.1, (i-21)*100, 600 + (i%2===0?30:-30)); // Zona 3
-
-        // Linhas Originais (IDs 1..27)
-        let id=1;
-        const link = (start, count) => {
-            for(let i=0; i<count-1; i++) { addL(id++, start+i, start+i+1, 0.05, 0.1, 6.0); }
-        };
-        link(1, 10); link(11, 10); link(21, 10);
-        
+        tblMalha.appendChild(tr);
         updateSelects();
-    };
+    }
 
-    function updateSelects(){
-        selLinhaFalha.innerHTML = '<option value="SEM_FALHA">Sem Falha</option>';
+    function getLines() {
+        const lines = [];
+        // CORREÇÃO: Lendo dos inputs, não do dataset, para pegar valores editados
         [...tblMalha.children].forEach(r => {
+            const de = parseInt(r.querySelector('.selDe').value);
+            const para = parseInt(r.querySelector('.selPara').value);
+            if(de !== para) {
+                lines.push({
+                    id: parseInt(r.children[0].textContent),
+                    de: de,
+                    para: para,
+                    R: parseFloat(r.querySelector('.inpR').value),
+                    X: parseFloat(r.querySelector('.inpX').value),
+                    Smax: parseFloat(r.querySelector('.inpS').value),
+                    isNA: false,
+                    custo: parseFloat(document.getElementById('gaPesoChave').value || 1.0)
+                });
+            }
+        });
+        return lines;
+    }
+
+    function updateSelects() {
+        const lines = getLines(); // Pega estado atual
+        selLinhaFalha.innerHTML = '<option value="SEM_FALHA">Sem Falha</option>';
+        lines.forEach(l => {
             const op = document.createElement('option');
-            op.value = `${r.dataset.de}-${r.dataset.para}`;
-            op.textContent = `Linha ${r.dataset.id} (${r.dataset.de}-${r.dataset.para})`;
+            op.value = `${l.de}-${l.para}`;
+            op.textContent = `Linha ${l.id} (${l.de}-${l.para})`;
             selLinhaFalha.appendChild(op);
         });
     }
 
-    function getLines(){
-        return [...tblMalha.children].map(r => ({
-            id: parseInt(r.dataset.id),
-            de: parseInt(r.dataset.de), para: parseInt(r.dataset.para),
-            R: parseFloat(r.dataset.r), X: parseFloat(r.dataset.x), Smax: parseFloat(r.dataset.s),
-            isNA: false, custo: parseFloat(document.getElementById('gaPesoChave').value)
-        }));
-    }
+    // --- Botões de Controle ---
+    btnGerar.onclick = () => {
+        if(confirm("Isso vai resetar a tabela. Continuar?")) {
+            gerarTabelaCargas();
+            tblMalha.innerHTML = '';
+            lineIdCounter = 1;
+            updateSelects();
+        }
+    };
 
-    // --- Engine ---
+    btnAddBarra.onclick = () => {
+        const n = getNb() + 1;
+        elNb.value = n;
+        // Adiciona nova linha na tabela de cargas mantendo as antigas
+        const r = document.createElement('tr');
+        r.innerHTML = `<td>${n}</td>
+            <td><input type="number" step="0.01" class="iP" value="0"></td>
+            <td><input type="number" step="0.01" class="iQ" value="0"></td>
+            <td><input type="number" class="iX" value="${n*20}"></td>
+            <td><input type="number" class="iY" value="100"></td>`;
+        tblCargas.appendChild(r);
+        
+        // Atualiza inputs listeners
+        const inputs = r.querySelectorAll('input');
+        const updateObj = () => {
+             cargas[n] = {P:parseFloat(inputs[0].value), Q:parseFloat(inputs[1].value), X:parseFloat(inputs[2].value), Y:parseFloat(inputs[3].value)};
+        };
+        inputs.forEach(i=>i.addEventListener('input', updateObj));
+        updateObj();
+        
+        // Atualiza dropdowns das linhas existentes para incluir nova barra
+        [...tblMalha.querySelectorAll('select')].forEach(s => {
+            const opt = document.createElement('option');
+            opt.value = n; opt.textContent = n;
+            s.appendChild(opt);
+        });
+    };
+
+    btnAddLinha.onclick = () => addLinhaRow();
+
+    // --- Lógica Exemplo 30 Barras (Populando tabelas editáveis) ---
+    btnExemplo30.onclick = () => {
+        elNb.value = 30;
+        cargas = {}; 
+        tblMalha.innerHTML = ''; 
+        tblCargas.innerHTML = '';
+        lineIdCounter = 1;
+
+        // Gera tabela de cargas primeiro
+        gerarTabelaCargas(); 
+        
+        // Sobrescreve valores dos inputs da tabela Cargas
+        const setC = (b,p,q,x,y) => {
+            const r = tblCargas.children[b-1];
+            if(r) {
+                r.querySelectorAll('input')[0].value = p;
+                r.querySelectorAll('input')[1].value = q;
+                r.querySelectorAll('input')[2].value = x;
+                r.querySelectorAll('input')[3].value = y;
+                // Dispara evento para atualizar objeto `cargas`
+                r.querySelectorAll('input')[0].dispatchEvent(new Event('input'));
+            }
+        };
+
+        // Zonas
+        setC(1, 0,0, 0, 200); for(let i=2;i<=10;i++) setC(i, 0.5,0.1, (i-1)*80, 200 + (i%2===0?20:-20));
+        setC(11,0,0, 0, 350); for(let i=12;i<=20;i++) setC(i, 0.6,0.2, (i-11)*80, 350 + (i%2===0?20:-20));
+        setC(21,0,0, 0, 500); for(let i=22;i<=30;i++) setC(i, 0.4,0.1, (i-21)*80, 500 + (i%2===0?20:-20));
+
+        // Linhas
+        const link = (start, count) => {
+            for(let i=0; i<count-1; i++) {
+                addLinhaRow({de: start+i, para: start+i+1, R: 0.05, X: 0.1, Smax: 6.0});
+            }
+        };
+        link(1, 10); link(11, 10); link(21, 10);
+    };
+
+    // --- Workers e GA ---
     function initWorkers(){
         workerPool.forEach(w=>w.terminate()); workerPool=[];
         const num = navigator.hardwareConcurrency||4;
@@ -225,42 +397,54 @@
     async function runGA(){
         initWorkers();
         await new Promise(r=>setTimeout(r,100));
-        if(!workerPool.length) return alert("Erro Worker. Verifique servidor local.");
+        if(!workerPool.length) return alert("Erro Worker! Use servidor local.");
 
-        btnOtimizar.disabled=true; gaStatus.textContent="Gerando Candidatas...";
+        btnOtimizar.disabled=true; 
+        document.getElementById('ga-status').textContent="Gerando...";
         
-        const baseLines = getLines();
+        const baseLines = getLines(); // Lê da tabela editável
         const maxNA = parseInt(document.getElementById('gaMaxNA').value);
         const custoNA = parseFloat(document.getElementById('gaCustoNA').value);
         
-        // Gerar Candidatas Inteligentes (Conexão entre zonas)
+        // Gera candidatas NA (Conexão entre zonas + aleatórias próximas)
         const candidates = [];
-        const pairs = [[10,12], [20,22], [5,15], [15,25]]; 
-        
+        const pairs = [[10,12], [20,22], [5,15], [15,25]]; // Sugestões
         pairs.forEach((p, i) => {
             candidates.push({id: 9000+i, de: p[0], para: p[1], R:0.1, X:0.2, Smax:5, isNA:true, custo:custoNA});
         });
         
-        // Junta tudo
+        // Vizinhos próximos
+        const nb = getNb();
+        const existing = new Set(baseLines.map(l=>`${l.de}-${l.para}`));
+        let autoCount = 0;
+        for(let i=1; i<=nb; i+=2){ // Pula para economizar
+             for(let j=i+1; j<=nb; j+=3){
+                 if(existing.has(`${i}-${j}`)) continue;
+                 const dist = Math.hypot(cargas[i].X-cargas[j].X, cargas[i].Y-cargas[j].Y);
+                 if(dist < 100) {
+                     candidates.push({id: 9500+(autoCount++), de:i, para:j, R:0.1, X:0.2, Smax:5, isNA:true, custo:custoNA});
+                 }
+             }
+        }
+
         const allLines = [...baseLines, ...candidates];
-        
         const staticData = {
             allLines,
             linhaFalhaKeys: [...selLinhaFalha.selectedOptions].map(o=>o.value).filter(v=>v!=='SEM_FALHA'),
-            nb:30, vMin:0.93, vMax:1.05, maxNALinhas:maxNA, cargas, Sbase:10, Vbase_kV:13.8, sourceBuses: currentSources
+            nb, vMin:0.93, vMax:1.05, maxNALinhas:maxNA, cargas, Sbase:10, Vbase_kV:13.8, sourceBuses: currentSources
         };
 
         const popSize = parseInt(document.getElementById('gaPopSize').value);
         const maxGen = parseInt(document.getElementById('gaMaxGen').value);
         
         let population = [];
-        for(let i=0; i<popSize; i++) population.push(allLines.map(l => l.isNA ? (Math.random()>0.8?1:0) : 1)); 
+        for(let i=0; i<popSize; i++) population.push(allLines.map(l => l.isNA ? (Math.random()>0.9?1:0) : 1)); 
 
         let bestSol = null;
 
         for(let g=0; g<maxGen; g++){
-            gaProgressBar.style.width = `${(g/maxGen)*100}%`;
-            gaStatus.textContent = `Otimizando Geração ${g+1}...`;
+            document.getElementById('ga-progress-bar').style.width = `${(g/maxGen)*100}%`;
+            document.getElementById('ga-status').textContent = `Geração ${g+1}`;
             
             gaResults = new Array(popSize);
             gaQueue = population.map((ind,i)=>({individual:ind, index:i, staticData}));
@@ -268,7 +452,7 @@
             workerPool.forEach(w=>{if(!w.busy && gaQueue.length){w.postMessage(gaQueue.shift()); w.busy=true;}});
             await new Promise(r=>gaResolve=r);
 
-            const valid = gaResults.map((res,i)=>({res, ind:population[i]})).filter(x=> x.res.fitness < 1e14); // Filtra erros mortais
+            const valid = gaResults.map((res,i)=>({res, ind:population[i]})).filter(x=> x.res.fitness < 1e14);
             valid.sort((a,b)=>a.res.fitness - b.res.fitness);
 
             if(valid.length > 0){
@@ -276,49 +460,47 @@
                     bestSol = valid[0];
                     updateDash(bestSol.res);
                 }
-                // Next Gen (Elitismo + Crossover Simples)
                 const newPop = [valid[0].ind]; 
                 while(newPop.length < popSize){
-                    const p1 = valid[Math.floor(Math.random()*Math.min(valid.length, 10))].ind;
-                    const p2 = valid[Math.floor(Math.random()*Math.min(valid.length, 10))].ind;
+                    const p1 = valid[Math.floor(Math.random()*Math.min(valid.length, 15))].ind;
+                    const p2 = valid[Math.floor(Math.random()*Math.min(valid.length, 15))].ind;
                     const cut = Math.floor(Math.random()*p1.length);
                     const c1 = [...p1.slice(0,cut), ...p2.slice(cut)];
-                    if(Math.random()<0.1) c1[Math.floor(Math.random()*c1.length)] ^= 1;
+                    if(Math.random()<0.05) c1[Math.floor(Math.random()*c1.length)] ^= 1;
                     newPop.push(c1);
                 }
                 population = newPop;
             } else {
-                // Se todos morreram, reseta pop
-                population = population.map(ind => ind.map(()=>Math.random()>0.5?1:0));
+                population = population.map(ind => ind.map(()=>Math.random()>0.5?1:0)); // Reset
             }
         }
         
-        btnOtimizar.disabled=false; gaStatus.textContent="Concluído.";
+        btnOtimizar.disabled=false; document.getElementById('ga-status').textContent="Fim.";
         if(bestSol) renderRes(bestSol.res);
-        else alert("Não foi encontrada solução viável (Radial).");
+        else alert("Sem solução radial viável.");
     }
     btnOtimizar.onclick = runGA;
 
     btnFluxo.onclick = async () => {
         initWorkers(); await new Promise(r=>setTimeout(r,100));
-        gaStatus.textContent="Calculando Fluxo Base...";
+        document.getElementById('ga-status').textContent="Fluxo Base...";
         const lines = getLines();
         const sd = {
-            allLines: lines, linhaFalhaKeys:[], nb:30, vMin:0.93, vMax:1.05, maxNALinhas:0, cargas, Sbase:10, Vbase_kV:13.8, sourceBuses:[1,11,21]
+            allLines: lines, linhaFalhaKeys:[], nb: getNb(), vMin:0.93, vMax:1.05, maxNALinhas:0, cargas, Sbase:10, Vbase_kV:13.8, sourceBuses:currentSources
         };
         const ind = lines.map(()=>1);
         workerPool[0].postMessage({individual:ind, index:0, staticData:sd});
         workerPool[0].onmessage = (e) => {
             updateDash(e.data.result);
             renderRes(e.data.result);
-            gaStatus.textContent="Fluxo Base OK.";
+            document.getElementById('ga-status').textContent="Fluxo OK.";
         };
     };
 
     function updateDash(res){
         document.getElementById('best-fitness-display').textContent = res.fitness > 1e9 ? "Inválido" : res.fitness.toFixed(1);
         if(res.data){
-            document.getElementById('unserved-load-display').textContent = res.data.unservedBuses.length > 0 ? "SIM" : "0 MW";
+            document.getElementById('unserved-load-display').textContent = res.data.unservedBuses.length > 0 ? res.data.unservedBuses.length + " Barras" : "0 MW";
             document.getElementById('losses-display').textContent = (res.data.perdasMWtotal||0).toFixed(3) + " MW";
             document.getElementById('active-switches-display').textContent = res.data.currentLinhas.length;
         }
@@ -327,24 +509,21 @@
     function renderRes(res){
         if(res.data.error) { alert(res.data.error); return; }
         
-        // Render Tabela
         const tb = document.getElementById('tblResRamos').querySelector('tbody');
         tb.innerHTML = '';
         res.data.resRamos.forEach(r => {
             const row = document.createElement('tr');
-            const tipo = r.id >= 9000 ? '<span style="color:green;font-weight:bold">Nova (NA)</span>' : 'Original';
+            const tipo = r.id >= 9000 ? '<span style="color:green;font-weight:bold">Nova</span>' : 'Original';
             row.innerHTML = `<td>${r.id}</td><td>${tipo}</td><td>${r.de}</td><td>${r.para}</td>
                              <td>${r.Pmw.toFixed(3)}</td><td>${r.Qmvar.toFixed(3)}</td>
                              <td>${r.Smva.toFixed(3)}</td><td>${r.Smax}</td><td>${r.perdasMW.toFixed(4)}</td>`;
             tb.appendChild(row);
         });
 
-        // Render SVG
         svg.innerHTML = '';
         const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         svg.appendChild(g);
 
-        // Linhas
         res.data.resRamos.forEach(l => {
             const ln = document.createElementNS('http://www.w3.org/2000/svg', 'line');
             const p1=cargas[l.de], p2=cargas[l.para];
@@ -356,7 +535,7 @@
             if(l.zona === 11) col = 'var(--zone-2)';
             if(l.zona === 21) col = 'var(--zone-3)';
             
-            if(l.id >= 9000) { // Nova Linha
+            if(l.id >= 9000) { 
                 ln.setAttribute('stroke-dasharray', '10,5');
                 ln.setAttribute('stroke-width', 4);
                 ln.setAttribute('stroke', 'var(--highlight-green)');
@@ -366,25 +545,22 @@
             }
             g.appendChild(ln);
             
-            // Seta de fluxo (simples círculo no meio)
             if(l.Pmw > 0.01) {
                  const mx = (p1.X+p2.X)/2, my = (p1.Y+p2.Y)/2;
                  const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
                  txt.setAttribute('x', mx); txt.setAttribute('y', my-5);
-                 txt.setAttribute('font-size', '16');
+                 txt.setAttribute('font-size', '14');
                  txt.setAttribute('fill', 'black');
                  txt.textContent = l.Pmw.toFixed(2);
                  g.appendChild(txt);
             }
         });
 
-        // Barras
         for(let b in cargas){
             const cc = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
             cc.setAttribute('cx', cargas[b].X); cc.setAttribute('cy', cargas[b].Y);
-            cc.setAttribute('r', currentSources.includes(parseInt(b))?15:8);
+            cc.setAttribute('r', currentSources.includes(parseInt(b))?12:6);
             
-            // Cor da borda da barra baseada na zona calculada
             const busRes = res.data.resBarras.find(x=>x.barra==b);
             let stroke = '#999';
             if(busRes && busRes.zona){
@@ -399,15 +575,15 @@
             g.appendChild(cc);
             
             const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-            txt.setAttribute('x', cargas[b].X); txt.setAttribute('y', cargas[b].Y+30);
+            txt.setAttribute('x', cargas[b].X); txt.setAttribute('y', cargas[b].Y+20);
             txt.setAttribute('text-anchor', 'middle');
             txt.textContent = b;
-            txt.setAttribute('font-size', 18);
+            txt.setAttribute('font-size', 14);
             g.appendChild(txt);
         }
     }
 
-    // Panning Ajustado
+    // Panning
     let isDown=false, startX, startY, vBox={x:-50,y:50,w:900,h:600};
     svgWrap.onmousedown = (e) => { isDown=true; startX=e.clientX; startY=e.clientY; };
     svgWrap.onmouseup = () => isDown=false;
@@ -422,6 +598,7 @@
         startX = e.clientX; startY = e.clientY;
     };
 
+    // Init
     btnExemplo30.click();
     </script>
 </body>
