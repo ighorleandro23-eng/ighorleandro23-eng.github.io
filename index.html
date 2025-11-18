@@ -16,11 +16,8 @@
             --utfpr-gray-light: #f5f5f5; --utfpr-gray-medium: #cccccc;
             --ok: #32a852; --warn: #fbbd08; --bad: #dc3545; --info: #17a2b8;
             --highlight-green: #28a745;
-            /* Cores das Zonas (Alimentadores) */
-            --zone-1: #006699; /* Azul UTFPR */
-            --zone-2: #e67e22; /* Laranja */
-            --zone-3: #8e44ad; /* Roxo */
-            --zone-4: #c0392b; /* Vermelho */
+            /* Cores das Zonas */
+            --zone-1: #006699; --zone-2: #e67e22; --zone-3: #8e44ad; --zone-4: #c0392b;
         }
         * { box-sizing: border-box; }
         body { margin: 0; padding: 0; font-family: 'Inter', sans-serif; color: var(--text-dark); background: var(--bg-main); }
@@ -51,9 +48,9 @@
         .status-warn { color: var(--warn); font-weight: 600; }
         .newly-added-line td { background-color: rgba(40, 167, 69, 0.1); font-weight: 500; }
         
-        /* SVG Panning CSS */
+        /* SVG Wrap */
         .svg-wrap { 
-            width: 100%; height: auto; padding-bottom: calc(520 / 1200 * 100%); 
+            width: 100%; height: auto; padding-bottom: calc(600 / 1200 * 100%); 
             position: relative; background: var(--utfpr-gray-light); 
             border: 1px solid var(--border-color); border-radius: 12px; 
             overflow: hidden; cursor: grab; 
@@ -73,10 +70,6 @@
         .stat-item .value { font-size: 22px; font-weight: 700; color: var(--utfpr-blue-dark); margin-top: 5px; }
         #ga-log-detail { background: #fcfcfc; border: 1px solid var(--border-color); border-radius: 10px; padding: 15px; font-size: 13px; height: 180px; overflow-y: auto; margin-top: 20px; color: var(--muted-text); line-height: 1.5; }
         .log-ok { color: var(--ok); } .log-warn { color: var(--warn); } .log-bad { color: var(--bad); } .log-best { color: var(--utfpr-blue-light); font-weight: 600; }
-        svg line { stroke-linecap: round; } svg circle { stroke-linecap: round; }
-        .arrow-head { fill: var(--utfpr-blue-light); stroke: none; } .arrow-head.overload { fill: var(--bad); }
-        .newly-added-arrow-head { fill: var(--highlight-green) !important; }
-        .newly-added-line-svg { stroke: var(--highlight-green) !important; }
     </style>
 </head>
 <body>
@@ -112,7 +105,7 @@
                 <h2>Zona de Otimização (AG)</h2>
                 <h3>1. Contingência</h3> <div class="row"> <div style="flex-grow:1"> <label>Linha(s) em Falha (Ctrl+Click)</label> <select id="linhaFalha" class="mono" multiple size="5"></select> </div> </div>
                 
-                <h3>2. Parâmetros do AG</h3> <div class="ga-params-grid"> <div> <label>População</label> <input id="gaPopSize" type="number" class="mono" value="150" step="10" min="10"/> </div> <div> <label>Gerações</label> <input id="gaMaxGen" type="number" class="mono" value="120" step="10" min="10"/> </div> <div> <label>Mutação (%)</label> <input id="gaMutationRate" type="number" class="mono" value="15" min="0" max="100" step="1"/> </div> <div> <label>Peso Custo Linha</label> <input id="gaPesoChave" type="number" class="mono" value="1.0" min="0" step="0.05" /> </div> </div>
+                <h3>2. Parâmetros do AG</h3> <div class="ga-params-grid"> <div> <label>População</label> <input id="gaPopSize" type="number" class="mono" value="200" step="10" min="10"/> </div> <div> <label>Gerações</label> <input id="gaMaxGen" type="number" class="mono" value="150" step="10" min="10"/> </div> <div> <label>Mutação (%)</label> <input id="gaMutationRate" type="number" class="mono" value="15" min="0" max="100" step="1"/> </div> <div> <label>Peso Custo Linha</label> <input id="gaPesoChave" type="number" class="mono" value="1.0" min="0" step="0.05" /> </div> </div>
                 
                 <h3>3. Expansão (Linhas NA)</h3> <div class="ga-params-grid"> <div> <label>Custo Linha NA</label> <input id="gaCustoNA" type="number" class="mono" value="20.0" min="0" step="0.1"/> </div> <div> <label>Máx. Linhas NA</label> <input id="gaMaxNA" type="number" class="mono" value="5" min="0" step="1"/> </div> <div> <label>R Padrão (ohm)</label> <input id="gaR_NA" type="number" class="mono" value="0.1" step="0.01" min="0"/> </div> <div> <label>X Padrão (ohm)</label> <input id="gaX_NA" type="number" class="mono" value="0.2" step="0.01" min="0"/> </div> <div> <label>Smax Padrão</label> <input id="gaSmax_NA" type="number" class="mono" value="8.0" step="0.1" min="0.1"/> </div> </div>
 
@@ -135,7 +128,7 @@
         <div class="card grid-span-all">
             <h2>Resultados Visuais (Múltiplas Zonas)</h2> 
             <div class="svg-wrap" id="svgWrap"> 
-                <svg id="svg" width="100%" height="100%" viewBox="0 0 1200 600" preserveAspectRatio="xMidYMid meet"></svg> 
+                <svg id="svg" width="100%" height="100%" viewBox="-600 -300 2400 1200" preserveAspectRatio="xMidYMid meet"></svg> 
             </div>
             <div class="legend"> 
                 <span class="pill" style="background:var(--zone-1); color:white"><small>Zona 1</small></span>
@@ -143,6 +136,7 @@
                 <span class="pill" style="background:var(--zone-3); color:white"><small>Zona 3</small></span>
                 <span class="pill" style="background:var(--highlight-green); color:white;"><small>Nova/Manobra</small></span>
                 <span class="pill" style="border:1px dashed var(--text-dark)"><small>NA (Aberta)</small></span>
+                <span class="pill" style="background:var(--bad); color:white"><small>Sobrecarga</small></span>
             </div>
             
             <h3 style="margin-top:20px">Tensões por Zona</h3> <div class="table-scroll"> <table id="tblResBarras"> <thead><tr><th>Barra (Zona)</th><th>|V| (pu)</th><th>Ângulo (°)</th><th>P (MW)</th><th>Q (MVAr)</th></tr></thead> <tbody></tbody> </table> </div>
@@ -164,10 +158,9 @@
     const svgWrap=document.getElementById('svgWrap'), svg=document.getElementById('svg');
     const sourceDisplay = document.getElementById('source-display');
     
-    // Estado Global
     let cargas={}; 
     let workerPool = [];
-    let currentSources = [1]; // Default: só a barra 1
+    let currentSources = [1]; 
 
     function getNb(){const n=parseInt(elNb.value,10);return isFinite(n)&&n>=2?n:2}
     function logGADetail(m,t=''){const s=document.createElement('div');s.textContent=`[${new Date().toLocaleTimeString()}] ${m}`;if(t)s.className=`log-${t}`;const log=document.getElementById('ga-log-detail');log.appendChild(s);log.scrollTop=log.scrollHeight}
@@ -176,12 +169,10 @@
     function gerarTabelaCargas(){
         const n=getNb(); const oC={...cargas}; cargas={};
         tblCargasTbody.innerHTML=''; 
-        // Header simples
         document.getElementById('tblCargas').querySelector('thead').innerHTML = '<tr><th>Barra</th><th>P (MW)</th><th>Q (MVAr)</th><th>X</th><th>Y</th></tr>';
         
         for(let b=1;b<=n;b++){
             const r=document.createElement('tr');
-            // Check se é fonte
             const isSrc = currentSources.includes(b);
             const styleSrc = isSrc ? 'font-weight:bold; color:var(--utfpr-blue-dark); background:#e0eaf5' : '';
             
@@ -202,7 +193,6 @@
 
     function addLinhaRow(p){
         const n=getNb(), r=document.createElement('tr'), i=tblMalha.children.length+1;
-        // CORREÇÃO CRÍTICA AQUI: Garante que p.de e p.para existem antes de comparar
         const deVal = p?.de ?? 1;
         const paraVal = p?.para ?? Math.min(2,n);
         
@@ -222,7 +212,7 @@
         tblMalha.appendChild(r); updateLinhaFalhaSelect();
     }
     
-    function atualizarSelectsLinhas(){ updateLinhaFalhaSelect(); } // Simplificado
+    function atualizarSelectsLinhas(){ updateLinhaFalhaSelect(); }
     function getLinhasFromTable(){
         const lD=[]; [...tblMalha.children].forEach((r,i)=>{
             const d=parseInt(r.querySelector('.selDe').value), p=parseInt(r.querySelector('.selPara').value);
@@ -246,12 +236,10 @@
     // --- EXEMPLO 30 BARRAS (3 ZONAS) ---
     btnExemplo30.onclick = () => {
         tblMalha.innerHTML=''; elNb.value=30; 
-        currentSources = [1, 11, 21]; // DEFININDO 3 FONTES
+        currentSources = [1, 11, 21]; 
         sourceDisplay.textContent = "1, 11, 21";
-        
-        gerarTabelaCargas(); // Reset cargas
+        gerarTabelaCargas(); 
 
-        // Helper coords
         const setC = (b,p,q,x,y) => {
             const r = tblCargasTbody.children[b-1];
             if(r) {
@@ -262,33 +250,21 @@
         };
 
         // ZONA 1 (Esq) - Fonte 1
-        setC(1, 0,0, 20, 50); // Fonte
-        for(let i=2; i<=10; i++) setC(i, 0.5, 0.1, 20 + (i%2)*20, 50 + (i-1)*15); 
-        // Linhas Z1 (CORRIGIDO: chaves de, para)
-        const lz1 = [
-            {de:1,para:2}, {de:2,para:3}, {de:2,para:4}, {de:4,para:5}, {de:5,para:6}, 
-            {de:3,para:7}, {de:7,para:8}, {de:8,para:9}, {de:9,para:10}
-        ];
+        setC(1, 0,0, 0, 150); // Fonte
+        for(let i=2; i<=10; i++) setC(i, 0.5, 0.1, 20 + (i%2)*30, 150 + (i-1)*20); 
+        const lz1 = [{de:1,para:2}, {de:2,para:3}, {de:2,para:4}, {de:4,para:5}, {de:5,para:6}, {de:3,para:7}, {de:7,para:8}, {de:8,para:9}, {de:9,para:10}];
         lz1.forEach(l => addLinhaRow({...l, R:0.05, X:0.1, Smax:6}));
 
         // ZONA 2 (Meio) - Fonte 11
-        setC(11, 0,0, 150, 50); // Fonte
-        for(let i=12; i<=20; i++) setC(i, 0.6, 0.2, 150 + (i%2)*20, 50 + (i-11)*15);
-        // Linhas Z2 (CORRIGIDO: chaves de, para)
-        const lz2 = [
-            {de:11,para:12}, {de:12,para:13}, {de:12,para:14}, {de:14,para:15}, {de:15,para:16},
-            {de:13,para:17}, {de:17,para:18}, {de:18,para:19}, {de:19,para:20}
-        ];
+        setC(11, 0,0, 300, 150); // Fonte
+        for(let i=12; i<=20; i++) setC(i, 0.6, 0.2, 300 + (i%2)*30, 150 + (i-11)*20);
+        const lz2 = [{de:11,para:12}, {de:12,para:13}, {de:12,para:14}, {de:14,para:15}, {de:15,para:16}, {de:13,para:17}, {de:17,para:18}, {de:18,para:19}, {de:19,para:20}];
         lz2.forEach(l => addLinhaRow({...l, R:0.05, X:0.1, Smax:6}));
 
         // ZONA 3 (Dir) - Fonte 21
-        setC(21, 0,0, 280, 50); // Fonte
-        for(let i=22; i<=30; i++) setC(i, 0.4, 0.1, 280 + (i%2)*20, 50 + (i-21)*15);
-        // Linhas Z3 (CORRIGIDO: chaves de, para)
-        const lz3 = [
-            {de:21,para:22}, {de:22,para:23}, {de:22,para:24}, {de:24,para:25}, {de:25,para:26},
-            {de:23,para:27}, {de:27,para:28}, {de:28,para:29}, {de:29,para:30}
-        ];
+        setC(21, 0,0, 600, 150); // Fonte
+        for(let i=22; i<=30; i++) setC(i, 0.4, 0.1, 600 + (i%2)*30, 150 + (i-21)*20);
+        const lz3 = [{de:21,para:22}, {de:22,para:23}, {de:22,para:24}, {de:24,para:25}, {de:25,para:26}, {de:23,para:27}, {de:27,para:28}, {de:28,para:29}, {de:29,para:30}];
         lz3.forEach(l => addLinhaRow({...l, R:0.05, X:0.1, Smax:6}));
 
         updateLinhaFalhaSelect();
@@ -297,26 +273,15 @@
     // --- Workers & GA Engine ---
     function initWorkers(){
         workerPool.forEach(w=>w.terminate()); workerPool=[];
-        // CARREGAMENTO EXTERNO
         const workerFileName = 'ga_worker.js';
-        
         const numCores = navigator.hardwareConcurrency || 4;
         for(let i=0; i<Math.max(1, numCores-1); i++){
             try {
                 const w = new Worker(workerFileName);
-                w.onmessage = handleWorkerMsg; 
-                w.busy = false;
-                w.id = i;
-                // Teste simples de erro no startup
-                w.onerror = (e) => {
-                    console.error("Worker Error", e);
-                    logGADetail("Erro ao carregar ga_worker.js. Use um servidor (http://).", "bad");
-                };
+                w.onmessage = handleWorkerMsg; w.busy = false; w.id = i;
+                w.onerror = (e) => { console.error("Worker Error", e); logGADetail("Erro ao carregar ga_worker.js. Use servidor local.", "bad"); };
                 workerPool.push(w);
-            } catch(e) {
-                console.error(e);
-                alert("Erro ao criar Worker. Verifique se ga_worker.js está na pasta e se está usando um servidor local.");
-            }
+            } catch(e) { console.error(e); }
         }
     }
 
@@ -331,27 +296,20 @@
 
     async function runGA(){
         initWorkers();
-        // Pequeno delay para garantir que workers carregaram
         await new Promise(r => setTimeout(r, 100));
-        
-        if(workerPool.length === 0) {
-             alert("Falha ao carregar Workers. Verifique o console.");
-             return;
-        }
+        if(workerPool.length === 0) { alert("Falha ao carregar Workers. Verifique servidor."); return; }
 
         btnOtimizar.disabled=true; gaStatus.textContent="Iniciando...";
         
-        // 1. Gerar Linhas NA Candidatas (Entre Zonas e Internas)
         let baseLines = getLinhasFromTable();
         const maxNA = parseInt(document.getElementById('gaMaxNA').value);
         const custoNA = parseFloat(document.getElementById('gaCustoNA').value);
         const allLines = [...baseLines];
-        
-        // Gerar NA virtuais baseadas em distância
         const nb = getNb();
+        
+        // Gera candidatas NA mais inteligentes (próximas)
         const existing = new Set();
         baseLines.forEach(l => { existing.add(`${l.de}-${l.para}`); existing.add(`${l.para}-${l.de}`); });
-        
         let candidates = [];
         for(let i=1; i<=nb; i++){
             for(let j=i+1; j<=nb; j++){
@@ -359,45 +317,31 @@
                 const p1=cargas[i], p2=cargas[j];
                 if(!p1 || !p2) continue;
                 const dist = Math.hypot(p1.X-p2.X, p1.Y-p2.Y);
-                // Só cria candidata se estiver perto (ex: < 60 unidades) para evitar explosão
-                if(dist < 60) {
-                     candidates.push({
-                         id: 9000 + candidates.length,
-                         de: i, para: j,
-                         R: 0.1 * (dist/10), X: 0.1 * (dist/10), // Simplificado
-                         Smax: 5,
-                         isNA: true,
-                         custo: custoNA
-                     });
+                if(dist < 150) { // Distância de corte ajustada para o novo layout
+                     candidates.push({ id: 9000 + candidates.length, de: i, para: j, R: 0.1*(dist/20), X: 0.1*(dist/20), Smax: 5, isNA: true, custo: custoNA });
                 }
             }
         }
-        // Pega as X melhores candidatas (mais curtas)
         candidates.sort((a,b)=> (a.R - b.R));
-        const activeCandidates = candidates.slice(0, 20); // Top 20
-        allLines.push(...activeCandidates);
+        allLines.push(...candidates.slice(0, 30)); // Top 30 candidatas
 
         const staticData = {
             allLines,
             linhaFalhaKeys: [...selLinhaFalha.selectedOptions].map(o=>o.value).filter(v=>v!=='SEM_FALHA'),
             nb, 
             vMin: parseFloat(elVmin.value), vMax: parseFloat(elVmax.value),
-            maxNALinhas: maxNA,
-            cargas, Sbase: parseFloat(elSbase.value), Vbase_kV: parseFloat(elVbase.value),
+            maxNALinhas: maxNA, cargas, Sbase: parseFloat(elSbase.value), Vbase_kV: parseFloat(elVbase.value),
             sourceBuses: currentSources
         };
 
         const popSize = parseInt(document.getElementById('gaPopSize').value);
         const maxGen = parseInt(document.getElementById('gaMaxGen').value);
         
-        // AG Simples Loop
         let population = [];
-        // Init Pop: Random bits
-        for(let i=0; i<popSize; i++){
-            population.push(allLines.map(() => Math.random() > 0.5 ? 1 : 0));
-        }
+        for(let i=0; i<popSize; i++) population.push(allLines.map(() => Math.random() > 0.7 ? 1 : 0)); // Init random
 
         let bestSol = null;
+        let bestFitnessHistory = 1e15;
 
         for(let g=0; g<maxGen; g++){
             gaProgressBar.style.width = `${(g/maxGen)*100}%`;
@@ -406,17 +350,10 @@
             gaResults = new Array(popSize);
             gaQueue = population.map((ind, i) => ({ individual: ind, index: i, staticData }));
             
-            // Dispara workers
-            workerPool.forEach(w => {
-                if(!w.busy && gaQueue.length) {
-                    w.postMessage(gaQueue.shift());
-                    w.busy = true;
-                }
-            });
+            workerPool.forEach(w => { if(!w.busy && gaQueue.length) { w.postMessage(gaQueue.shift()); w.busy = true; } });
             
-            await new Promise(r => gaResolve = r); // Wait gen
+            await new Promise(r => gaResolve = r);
 
-            // Eval & Sort
             const popRes = population.map((ind, i) => ({ ind, res: gaResults[i] })).filter(x => x.res && isFinite(x.res.fitness));
             popRes.sort((a,b) => a.res.fitness - b.res.fitness);
             
@@ -424,25 +361,17 @@
                 if(!bestSol || popRes[0].res.fitness < bestSol.res.fitness) {
                     bestSol = popRes[0];
                     updateDashboard(bestSol.res);
-                    // Renderiza o melhor da geração atual (opcional, pode pesar)
-                    // renderSVG(bestSol.res.data.resBarras, bestSol.res.data.resRamos, bestSol.res.data.unservedBuses);
                 }
             }
 
-            // Next Gen (Elitism + Random Tournament)
             const newPop = [];
-            if(bestSol) newPop.push([...bestSol.ind]); // Elitismo
+            if(bestSol) newPop.push([...bestSol.ind]); 
             while(newPop.length < popSize) {
-                const p1 = popRes[Math.floor(Math.random()*Math.min(popRes.length, 10))].ind;
-                const p2 = popRes[Math.floor(Math.random()*Math.min(popRes.length, 10))].ind;
-                // Crossover
+                const p1 = popRes[Math.floor(Math.random()*Math.min(popRes.length, 20))].ind; // Torneio top 20
+                const p2 = popRes[Math.floor(Math.random()*Math.min(popRes.length, 20))].ind;
                 const cut = Math.floor(Math.random() * p1.length);
                 const c1 = [...p1.slice(0, cut), ...p2.slice(cut)];
-                // Mutate
-                if(Math.random() < 0.2) {
-                    const m = Math.floor(Math.random() * c1.length);
-                    c1[m] = 1 - c1[m];
-                }
+                if(Math.random() < 0.15) { const m = Math.floor(Math.random() * c1.length); c1[m] = 1 - c1[m]; }
                 newPop.push(c1);
             }
             population = newPop;
@@ -459,7 +388,6 @@
     }
     btnOtimizar.onclick = runGA;
     
-    // Fluxo Base (Rodar apenas com as linhas ativas da tabela)
     btnFluxo.onclick = async () => {
         initWorkers();
         await new Promise(r => setTimeout(r, 100));
@@ -470,14 +398,10 @@
             linhaFalhaKeys: [...selLinhaFalha.selectedOptions].map(o=>o.value).filter(v=>v!=='SEM_FALHA'),
             nb: getNb(), 
             vMin: parseFloat(elVmin.value), vMax: parseFloat(elVmax.value),
-            maxNALinhas: 0,
-            cargas, Sbase: parseFloat(elSbase.value), Vbase_kV: parseFloat(elVbase.value),
+            maxNALinhas: 0, cargas, Sbase: parseFloat(elSbase.value), Vbase_kV: parseFloat(elVbase.value),
             sourceBuses: currentSources
         };
-        
-        // Indivíduo "Tudo Ligado" (Todas as linhas da tabela = 1)
         const ind = baseLines.map(() => 1);
-        
         workerPool[0].postMessage({ individual: ind, index: 0, staticData });
         workerPool[0].onmessage = (e) => {
             const res = e.data.result;
@@ -487,28 +411,27 @@
                 renderTables(res.data);
                 gaStatus.textContent = "Fluxo Base Concluído.";
             } else {
-                gaStatus.textContent = "Erro no Fluxo Base.";
+                gaStatus.textContent = "Erro: " + (res.data?.error || "Desconhecido");
             }
         };
     };
 
     function updateDashboard(res){
-        if(res.fitness) document.getElementById('best-fitness-display').textContent = res.fitness.toFixed(1);
+        if(res.fitness) document.getElementById('best-fitness-display').textContent = (res.fitness > 1e9 ? "Inviável" : res.fitness.toFixed(1));
         if(res.data) {
             document.getElementById('active-switches-display').textContent = `${res.data.currentLinhas?.length || 0} (${res.data.numNA_Usadas} NA)`;
-            // Unserved load sum
             let u = 0; (res.data.unservedBuses||[]).forEach(b=>{if(cargas[b]) u+=cargas[b].P;});
             document.getElementById('unserved-load-display').textContent = u.toFixed(2) + ' MW';
+            document.getElementById('losses-display').textContent = (res.data.perdasMWtotal||0).toFixed(4) + ' MW';
         }
     }
 
-    // --- Renderização (SVG & Tabelas) ---
     function renderTables(data){
         const tbB = document.getElementById('tblResBarras').querySelector('tbody');
         tbB.innerHTML = '';
         data.resBarras.forEach(b => {
             const tr = document.createElement('tr');
-            const zColor = b.zona ? `var(--zone-${(b.zona === 1 ? 1 : (b.zona === 11 ? 2 : 3))})` : '#ccc';
+            const zColor = b.zona ? `var(--zone-${(b.zona === 1 ? 1 : (b.zona === 11 ? 2 : (b.zona === 21 ? 3 : 4)))})` : '#ccc';
             tr.innerHTML = `<td><span class="pill" style="background:${zColor}; color:white; padding:2px 6px">${b.barra} (Z${b.zona||'?'})</span></td>
                 <td>${b.Vmag.toFixed(4)}</td><td>${b.Vang.toFixed(2)}</td>
                 <td>${cargas[b.barra]?.P||0}</td><td>${cargas[b.barra]?.Q||0}</td>`;
@@ -519,8 +442,12 @@
         tbR.innerHTML = '';
         data.resRamos.forEach(r => {
             const tr = document.createElement('tr');
+            const load = (r.Smva / r.Smax) * 100;
+            const style = load > 100 ? 'color:var(--bad); font-weight:bold' : (load > 80 ? 'color:var(--warn)' : '');
             tr.innerHTML = `<td>${r.id||'NA'}</td><td>${r.de}</td><td>${r.para}</td>
-                            <td>---</td><td>---</td><td>---</td><td>${r.Smax}</td><td>---</td>`;
+                            <td class="mono">${r.Pmw.toFixed(3)}</td><td class="mono">${r.Qmvar.toFixed(3)}</td>
+                            <td class="mono" style="${style}">${r.Smva.toFixed(3)}</td>
+                            <td>${r.Smax}</td><td class="mono">${r.perdasMW.toFixed(4)}</td>`;
             tbR.appendChild(tr);
         });
     }
@@ -530,11 +457,9 @@
         const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         svg.appendChild(g);
         
-        // Map pos
         const pos = {};
         for(let b in cargas) pos[b] = {x: cargas[b].X, y: cargas[b].Y};
         
-        // Draw Lines
         ramos.forEach(l => {
             const p1 = pos[l.de], p2 = pos[l.para];
             if(!p1 || !p2) return;
@@ -546,27 +471,26 @@
             let color = '#999';
             if(l.zona) {
                 if(l.zona == 1) color = 'var(--zone-1)';
-                else if(l.zona == 11) color = 'var(--zone-2)'; // 11 é a fonte da zona 2
+                else if(l.zona == 11) color = 'var(--zone-2)';
                 else if(l.zona == 21) color = 'var(--zone-3)';
                 else color = 'var(--text-dark)';
             }
-            if(l.isNA) { // Se for uma NA fechada pelo AG
+            if(l.isNA) { 
                  line.setAttribute('stroke-dasharray', '5,5');
                  color = 'var(--highlight-green)'; 
             }
+            if(l.Smva > l.Smax) color = 'var(--bad)';
 
             line.setAttribute('stroke', color);
-            line.setAttribute('stroke-width', 3);
+            line.setAttribute('stroke-width', l.Smva > l.Smax ? 4 : 3);
             g.appendChild(line);
         });
 
-        // Draw Buses
         Object.keys(cargas).forEach(b => {
             const p = pos[b];
             const circ = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
             circ.setAttribute('cx', p.x); circ.setAttribute('cy', p.y);
             
-            // Cor da borda baseada na zona
             const busData = barras.find(x=>x.barra == b);
             let stroke = '#666';
             if(busData && busData.zona) {
@@ -590,10 +514,11 @@
         });
     }
 
-    // Panning
+    // Panning Ajustado
     (function setupSvgPanning() {
         let isPanning = false, startX = 0, startY = 0;
-        let viewBox = { x: 0, y: 0, w: 1200, h: 600 };
+        // ViewBox inicial ajustado para "Zoom Out"
+        let viewBox = { x: -600, y: -300, w: 2400, h: 1200 };
 
         svgWrap.addEventListener('mousedown', (e) => {
             isPanning = true;
@@ -616,7 +541,6 @@
         svgWrap.addEventListener('mouseup', end); svgWrap.addEventListener('mouseleave', end);
     })();
 
-    // Init
     btnExemplo30.click();
     </script>
 </body>
