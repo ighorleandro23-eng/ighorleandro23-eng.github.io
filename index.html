@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Otimização Multi-Alimentador (Editável)</title>
+    <title>Otimização Multi-Alimentador (Completo)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
@@ -35,12 +35,11 @@
         .btn.primary { background: var(--utfpr-blue-light); }
         .btn.secondary { background: #aaa; color: #333; }
         
-        /* Scrollable Table */
         .table-scroll { width: 100%; overflow: auto; border: 1px solid #ccc; border-radius: 8px; background: var(--utfpr-gray-light); max-height: 300px; }
         table { width: 100%; border-collapse: collapse; min-width: 600px; }
         th, td { padding: 6px 10px; border-bottom: 1px solid #ccc; text-align: left; font-size: 13px; vertical-align: middle; }
         th { background: var(--utfpr-blue-dark); color: white; position: sticky; top: 0; z-index: 1; }
-        td input { width: 70px; padding: 4px; } /* Inputs menores na tabela */
+        td input { width: 70px; padding: 4px; } 
         td select { width: 60px; padding: 4px; }
         
         /* SVG */
@@ -60,13 +59,12 @@
         .stat-item { background: white; padding: 10px; border-radius: 6px; border-left: 3px solid var(--utfpr-blue-light); box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .stat-item .value { font-size: 18px; font-weight: 700; color: var(--utfpr-blue-dark); }
         #ga-progress-bar { width: 0%; height: 8px; background: var(--utfpr-blue-light); border-radius: 4px; margin-bottom: 10px; transition: width 0.2s; }
-        #ga-log-detail { background: #fcfcfc; border: 1px solid #ccc; border-radius: 6px; padding: 10px; font-size: 12px; height: 100px; overflow-y: auto; margin-top: 10px; }
     </style>
 </head>
 <body>
     <div class="header">
         <h1>Otimização Multi-Alimentador</h1>
-        <p>Sistema de Múltiplas Zonas (Editável + Zoom Ajustado)</p>
+        <p>Sistema Radial (Custo por Distância + Fluxo Detalhado)</p>
     </div>
 
     <div class="main-grid">
@@ -75,13 +73,13 @@
                 <h2>Editor da Rede</h2>
                 <div class="row"> 
                     <button class="btn primary" id="btnExemplo30">Exemplo 30 Barras</button> 
-                    <button class="btn secondary" id="btnGerar">Limpar/Atualizar</button>
-                    <button class="btn secondary" id="btnAddBarra" style="background:var(--highlight-green); color:white">+ Barra</button>
+                    <button class="btn secondary" id="btnGerar">Limpar</button>
+                    <button class="btn secondary" id="btnAddBarra">+ Barra</button>
                 </div>
                 <div class="row">
                     <div><label>Nº Barras</label><input id="numBarras" type="number" value="30" class="mono"/></div>
-                    <div><label>Sbase</label><input id="sbase" type="number" value="10" class="mono"/></div>
-                    <div><label>Vbase</label><input id="vbase" type="number" value="13.8" class="mono"/></div>
+                    <div><label>Sbase (MVA)</label><input id="sbase" type="number" value="10" class="mono"/></div>
+                    <div><label>Vbase (kV)</label><input id="vbase" type="number" value="13.8" class="mono"/></div>
                 </div>
                 
                 <h3>Malha (Linhas)</h3>
@@ -106,7 +104,7 @@
         <div>
             <div class="card">
                 <h2>Motor de Otimização (AG)</h2>
-                <div class="row"> <div style="flex-grow:1"> <label>Linha em Falha (Ctrl+Click)</label> <select id="linhaFalha" class="mono" multiple size="3"></select> </div> </div>
+                <div class="row"> <div style="flex-grow:1"> <label>Linha em Falha</label> <select id="linhaFalha" class="mono" multiple size="3"></select> </div> </div>
                 
                 <div class="row">
                     <div><label>População</label><input id="gaPopSize" type="number" value="200"/></div>
@@ -114,14 +112,15 @@
                     <div><label>Mutação (%)</label><input id="gaMutationRate" type="number" value="20"/></div>
                 </div>
                 <div class="row">
-                    <div><label>Peso Custo Linha</label><input id="gaPesoChave" type="number" value="1.0"/></div>
-                    <div><label>Custo Nova Linha</label><input id="gaCustoNA" type="number" value="20.0"/></div>
+                    <div><label>Custo Base NA</label><input id="gaCustoNA" type="number" value="20.0"/></div>
+                    <div><label>Custo por Dist.</label><input id="gaCustoDist" type="number" value="0.1"/></div>
                     <div><label>Máx Novas Linhas</label><input id="gaMaxNA" type="number" value="4"/></div>
                 </div>
+                <input id="gaPesoChave" type="hidden" value="1.0"/>
 
                 <div class="row" style="justify-content:flex-end; margin-top:15px;"> 
-                    <button class="btn secondary" id="btnFluxo">Rodar Fluxo Atual</button> 
-                    <button class="btn primary" id="btnOtimizar">INICIAR OTIMIZAÇÃO</button> 
+                    <button class="btn secondary" id="btnFluxo">Fluxo Atual</button> 
+                    <button class="btn primary" id="btnOtimizar">INICIAR</button> 
                 </div>
 
                 <div class="ga-dashboard"> 
@@ -133,7 +132,6 @@
                         <div class="stat-item"> <label>Perdas</label> <div class="value mono" id="losses-display">---</div> </div> 
                         <div class="stat-item"> <label>Chaves Ativas</label> <div class="value mono" id="active-switches-display">---</div> </div> 
                     </div> 
-                    <div id="ga-log-detail" class="mono"></div>
                 </div>
             </div>
         </div>
@@ -144,20 +142,25 @@
                 <svg id="svg" width="100%" height="100%" viewBox="-50 50 900 600" preserveAspectRatio="xMidYMid meet"></svg> 
             </div>
             <div class="legend"> 
-                <span class="pill" style="background:var(--zone-1); color:white">Zona 1 (Azul)</span>
-                <span class="pill" style="background:var(--zone-2); color:white">Zona 2 (Laranja)</span>
-                <span class="pill" style="background:var(--zone-3); color:white">Zona 3 (Roxo)</span>
-                <span class="pill" style="border:2px dashed var(--highlight-green)">Nova Linha (NA Fechada)</span>
-                <span class="pill" style="background:var(--bad); color:white">Sobrecarga/Erro</span>
+                <span class="pill" style="background:var(--zone-1); color:white">Zona 1</span>
+                <span class="pill" style="background:var(--zone-2); color:white">Zona 2</span>
+                <span class="pill" style="background:var(--zone-3); color:white">Zona 3</span>
+                <span class="pill" style="border:2px dashed var(--highlight-green)">Nova (NA)</span>
+                <span class="pill" style="background:var(--bad); color:white">Sobrecarga</span>
             </div>
 
-            <h3>Fluxo de Potência Detalhado</h3>
-            <div class="table-scroll"> <table id="tblResRamos"> <thead><tr><th>ID</th><th>Tipo</th><th>De</th><th>Para</th><th>P (MW)</th><th>Q (MVAr)</th><th>|S| (MVA)</th><th>Smax</th><th>Perdas (MW)</th></tr></thead> <tbody></tbody> </table> </div>
+            <h3>Fluxo de Potência e Correntes</h3>
+            <div class="table-scroll"> 
+                <table id="tblResRamos"> 
+                    <thead><tr><th>ID</th><th>Tipo</th><th>De</th><th>Para</th><th>Corrente (A)</th><th>P (MW)</th><th>Q (MVAr)</th><th>|S| (MVA)</th><th>Perdas (MW)</th></tr></thead> 
+                    <tbody></tbody> 
+                </table> 
+            </div>
         </div>
     </div>
 
     <script>
-    // --- Referências DOM ---
+    // DOM Elements
     const elNb=document.getElementById('numBarras');
     const tblMalha=document.getElementById('tblMalha').querySelector('tbody');
     const tblCargas=document.getElementById('tblCargas').querySelector('tbody');
@@ -170,21 +173,13 @@
     const selLinhaFalha=document.getElementById('linhaFalha');
     const svgWrap=document.getElementById('svgWrap'), svg=document.getElementById('svg');
     
-    // --- Variáveis Globais ---
     let cargas = {};
     let workerPool = [];
     let currentSources = [1, 11, 21];
     let lineIdCounter = 1;
 
-    // --- Funções Utilitárias ---
     function getNb(){ const n=parseInt(elNb.value,10); return isFinite(n)&&n>=2 ? n : 2; }
-    function log(m){ 
-        const d=document.getElementById('ga-log-detail'); 
-        d.innerHTML += `<div>${m}</div>`; 
-        d.scrollTop=d.scrollHeight; 
-    }
 
-    // --- Gestão de Tabela de Cargas (Editável) ---
     function gerarTabelaCargas() {
         const n = getNb();
         const oldCargas = {...cargas};
@@ -194,8 +189,6 @@
         for(let b=1; b<=n; b++){
             const r = document.createElement('tr');
             const isSrc = currentSources.includes(b);
-            
-            // Valores antigos ou padrão
             const pVal = oldCargas[b]?.P ?? 0;
             const qVal = oldCargas[b]?.Q ?? 0;
             const xVal = oldCargas[b]?.X ?? (b*20);
@@ -209,23 +202,18 @@
                 <td><input type="number" class="iY" value="${yVal}"></td>
             `;
             tblCargas.appendChild(r);
-
-            // Listeners para atualizar objeto cargas em tempo real
             const inputs = r.querySelectorAll('input');
             const updateObj = () => {
                 cargas[b] = {
-                    P: parseFloat(inputs[0].value),
-                    Q: parseFloat(inputs[1].value),
-                    X: parseFloat(inputs[2].value),
-                    Y: parseFloat(inputs[3].value)
+                    P: parseFloat(inputs[0].value), Q: parseFloat(inputs[1].value),
+                    X: parseFloat(inputs[2].value), Y: parseFloat(inputs[3].value)
                 };
             };
             inputs.forEach(i => i.addEventListener('input', updateObj));
-            updateObj(); // Init
+            updateObj(); 
         }
     }
 
-    // --- Gestão de Tabela de Linhas (Editável) ---
     function addLinhaRow(data = null) {
         const tr = document.createElement('tr');
         const n = getNb();
@@ -236,7 +224,6 @@
         const X = data?.X ?? 0.1;
         const S = data?.Smax ?? 6.0;
 
-        // Dropdowns para De/Para
         let optsDe = '', optsPara = '';
         for(let i=1; i<=n; i++){
             optsDe += `<option value="${i}" ${i==de?'selected':''}>${i}</option>`;
@@ -252,33 +239,26 @@
             <td><input type="number" step="0.1" class="inpS" value="${S}"></td>
             <td><button class="btn secondary" style="color:red; padding:2px 6px">X</button></td>
         `;
-
-        // Botão Remover
         tr.querySelector('button').onclick = () => { tr.remove(); updateSelects(); };
-        
-        // Update Selects ao mudar De/Para
         tr.querySelectorAll('select').forEach(s => s.addEventListener('change', updateSelects));
-
         tblMalha.appendChild(tr);
         updateSelects();
     }
 
     function getLines() {
         const lines = [];
-        // CORREÇÃO: Lendo dos inputs, não do dataset, para pegar valores editados
         [...tblMalha.children].forEach(r => {
             const de = parseInt(r.querySelector('.selDe').value);
             const para = parseInt(r.querySelector('.selPara').value);
             if(de !== para) {
                 lines.push({
                     id: parseInt(r.children[0].textContent),
-                    de: de,
-                    para: para,
+                    de: de, para: para,
                     R: parseFloat(r.querySelector('.inpR').value),
                     X: parseFloat(r.querySelector('.inpX').value),
                     Smax: parseFloat(r.querySelector('.inpS').value),
                     isNA: false,
-                    custo: parseFloat(document.getElementById('gaPesoChave').value || 1.0)
+                    custo: 1.0
                 });
             }
         });
@@ -286,30 +266,23 @@
     }
 
     function updateSelects() {
-        const lines = getLines(); // Pega estado atual
+        const lines = getLines(); 
         selLinhaFalha.innerHTML = '<option value="SEM_FALHA">Sem Falha</option>';
         lines.forEach(l => {
             const op = document.createElement('option');
             op.value = `${l.de}-${l.para}`;
-            op.textContent = `Linha ${l.id} (${l.de}-${l.para})`;
+            op.textContent = `L ${l.id} (${l.de}-${l.para})`;
             selLinhaFalha.appendChild(op);
         });
     }
 
-    // --- Botões de Controle ---
     btnGerar.onclick = () => {
-        if(confirm("Isso vai resetar a tabela. Continuar?")) {
-            gerarTabelaCargas();
-            tblMalha.innerHTML = '';
-            lineIdCounter = 1;
-            updateSelects();
-        }
+        if(confirm("Resetar?")) { gerarTabelaCargas(); tblMalha.innerHTML = ''; lineIdCounter = 1; updateSelects(); }
     };
 
     btnAddBarra.onclick = () => {
         const n = getNb() + 1;
         elNb.value = n;
-        // Adiciona nova linha na tabela de cargas mantendo as antigas
         const r = document.createElement('tr');
         r.innerHTML = `<td>${n}</td>
             <td><input type="number" step="0.01" class="iP" value="0"></td>
@@ -317,64 +290,39 @@
             <td><input type="number" class="iX" value="${n*20}"></td>
             <td><input type="number" class="iY" value="100"></td>`;
         tblCargas.appendChild(r);
-        
-        // Atualiza inputs listeners
         const inputs = r.querySelectorAll('input');
         const updateObj = () => {
              cargas[n] = {P:parseFloat(inputs[0].value), Q:parseFloat(inputs[1].value), X:parseFloat(inputs[2].value), Y:parseFloat(inputs[3].value)};
         };
         inputs.forEach(i=>i.addEventListener('input', updateObj));
         updateObj();
-        
-        // Atualiza dropdowns das linhas existentes para incluir nova barra
         [...tblMalha.querySelectorAll('select')].forEach(s => {
-            const opt = document.createElement('option');
-            opt.value = n; opt.textContent = n;
-            s.appendChild(opt);
+            const opt = document.createElement('option'); opt.value = n; opt.textContent = n; s.appendChild(opt);
         });
     };
 
     btnAddLinha.onclick = () => addLinhaRow();
 
-    // --- Lógica Exemplo 30 Barras (Populando tabelas editáveis) ---
     btnExemplo30.onclick = () => {
-        elNb.value = 30;
-        cargas = {}; 
-        tblMalha.innerHTML = ''; 
-        tblCargas.innerHTML = '';
-        lineIdCounter = 1;
-
-        // Gera tabela de cargas primeiro
+        elNb.value = 30; cargas = {}; tblMalha.innerHTML = ''; tblCargas.innerHTML = ''; lineIdCounter = 1;
         gerarTabelaCargas(); 
-        
-        // Sobrescreve valores dos inputs da tabela Cargas
         const setC = (b,p,q,x,y) => {
             const r = tblCargas.children[b-1];
             if(r) {
-                r.querySelectorAll('input')[0].value = p;
-                r.querySelectorAll('input')[1].value = q;
-                r.querySelectorAll('input')[2].value = x;
-                r.querySelectorAll('input')[3].value = y;
-                // Dispara evento para atualizar objeto `cargas`
+                r.querySelectorAll('input')[0].value = p; r.querySelectorAll('input')[1].value = q;
+                r.querySelectorAll('input')[2].value = x; r.querySelectorAll('input')[3].value = y;
                 r.querySelectorAll('input')[0].dispatchEvent(new Event('input'));
             }
         };
-
-        // Zonas
         setC(1, 0,0, 0, 200); for(let i=2;i<=10;i++) setC(i, 0.5,0.1, (i-1)*80, 200 + (i%2===0?20:-20));
         setC(11,0,0, 0, 350); for(let i=12;i<=20;i++) setC(i, 0.6,0.2, (i-11)*80, 350 + (i%2===0?20:-20));
         setC(21,0,0, 0, 500); for(let i=22;i<=30;i++) setC(i, 0.4,0.1, (i-21)*80, 500 + (i%2===0?20:-20));
-
-        // Linhas
         const link = (start, count) => {
-            for(let i=0; i<count-1; i++) {
-                addLinhaRow({de: start+i, para: start+i+1, R: 0.05, X: 0.1, Smax: 6.0});
-            }
+            for(let i=0; i<count-1; i++) addLinhaRow({de: start+i, para: start+i+1, R: 0.05, X: 0.1, Smax: 6.0});
         };
         link(1, 10); link(11, 10); link(21, 10);
     };
 
-    // --- Workers e GA ---
     function initWorkers(){
         workerPool.forEach(w=>w.terminate()); workerPool=[];
         const num = navigator.hardwareConcurrency||4;
@@ -395,60 +343,65 @@
     }
 
     async function runGA(){
-        initWorkers();
-        await new Promise(r=>setTimeout(r,100));
+        initWorkers(); await new Promise(r=>setTimeout(r,100));
         if(!workerPool.length) return alert("Erro Worker! Use servidor local.");
 
-        btnOtimizar.disabled=true; 
-        document.getElementById('ga-status').textContent="Gerando...";
-        
-        const baseLines = getLines(); // Lê da tabela editável
+        btnOtimizar.disabled=true; document.getElementById('ga-status').textContent="Gerando...";
+        const baseLines = getLines();
         const maxNA = parseInt(document.getElementById('gaMaxNA').value);
-        const custoNA = parseFloat(document.getElementById('gaCustoNA').value);
+        const custoNA_base = parseFloat(document.getElementById('gaCustoNA').value);
+        const custoDist = parseFloat(document.getElementById('gaCustoDist').value);
         
-        // Gera candidatas NA (Conexão entre zonas + aleatórias próximas)
         const candidates = [];
-        const pairs = [[10,12], [20,22], [5,15], [15,25]]; // Sugestões
-        pairs.forEach((p, i) => {
-            candidates.push({id: 9000+i, de: p[0], para: p[1], R:0.1, X:0.2, Smax:5, isNA:true, custo:custoNA});
-        });
-        
-        // Vizinhos próximos
         const nb = getNb();
         const existing = new Set(baseLines.map(l=>`${l.de}-${l.para}`));
         let autoCount = 0;
-        for(let i=1; i<=nb; i+=2){ // Pula para economizar
-             for(let j=i+1; j<=nb; j+=3){
+
+        // Geração de candidatas com CUSTO VARIÁVEL por distância
+        for(let i=1; i<=nb; i++){
+             for(let j=i+1; j<=nb; j++){
                  if(existing.has(`${i}-${j}`)) continue;
+                 if(!cargas[i] || !cargas[j]) continue;
                  const dist = Math.hypot(cargas[i].X-cargas[j].X, cargas[i].Y-cargas[j].Y);
-                 if(dist < 100) {
-                     candidates.push({id: 9500+(autoCount++), de:i, para:j, R:0.1, X:0.2, Smax:5, isNA:true, custo:custoNA});
+                 
+                 // Só conecta se perto (< 150)
+                 if(dist < 150) {
+                     // Custo = Base + (Dist * Fator)
+                     const custoTotal = custoNA_base + (dist * custoDist);
+                     candidates.push({
+                         id: 9000+(autoCount++), de:i, para:j, 
+                         R:0.1*(dist/50), X:0.2*(dist/50), Smax:5, 
+                         isNA:true, 
+                         custo: custoTotal 
+                     });
                  }
              }
         }
+        // Pega as 30 mais baratas (mais curtas)
+        candidates.sort((a,b)=> a.custo - b.custo);
+        const activeCandidates = candidates.slice(0, 30);
+        const allLines = [...baseLines, ...activeCandidates];
 
-        const allLines = [...baseLines, ...candidates];
         const staticData = {
             allLines,
             linhaFalhaKeys: [...selLinhaFalha.selectedOptions].map(o=>o.value).filter(v=>v!=='SEM_FALHA'),
-            nb, vMin:0.93, vMax:1.05, maxNALinhas:maxNA, cargas, Sbase:10, Vbase_kV:13.8, sourceBuses: currentSources
+            nb, vMin:0.93, vMax:1.05, maxNALinhas:maxNA, cargas, 
+            Sbase:parseFloat(document.getElementById('sbase').value), 
+            Vbase_kV:parseFloat(document.getElementById('vbase').value), 
+            sourceBuses: currentSources
         };
 
         const popSize = parseInt(document.getElementById('gaPopSize').value);
         const maxGen = parseInt(document.getElementById('gaMaxGen').value);
-        
         let population = [];
-        for(let i=0; i<popSize; i++) population.push(allLines.map(l => l.isNA ? (Math.random()>0.9?1:0) : 1)); 
+        for(let i=0; i<popSize; i++) population.push(allLines.map(l => l.isNA ? (Math.random()>0.95?1:0) : 1)); 
 
         let bestSol = null;
-
         for(let g=0; g<maxGen; g++){
             document.getElementById('ga-progress-bar').style.width = `${(g/maxGen)*100}%`;
             document.getElementById('ga-status').textContent = `Geração ${g+1}`;
-            
             gaResults = new Array(popSize);
             gaQueue = population.map((ind,i)=>({individual:ind, index:i, staticData}));
-            
             workerPool.forEach(w=>{if(!w.busy && gaQueue.length){w.postMessage(gaQueue.shift()); w.busy=true;}});
             await new Promise(r=>gaResolve=r);
 
@@ -471,10 +424,9 @@
                 }
                 population = newPop;
             } else {
-                population = population.map(ind => ind.map(()=>Math.random()>0.5?1:0)); // Reset
+                population = population.map(ind => ind.map(()=>Math.random()>0.5?1:0));
             }
         }
-        
         btnOtimizar.disabled=false; document.getElementById('ga-status').textContent="Fim.";
         if(bestSol) renderRes(bestSol.res);
         else alert("Sem solução radial viável.");
@@ -486,7 +438,9 @@
         document.getElementById('ga-status').textContent="Fluxo Base...";
         const lines = getLines();
         const sd = {
-            allLines: lines, linhaFalhaKeys:[], nb: getNb(), vMin:0.93, vMax:1.05, maxNALinhas:0, cargas, Sbase:10, Vbase_kV:13.8, sourceBuses:currentSources
+            allLines: lines, linhaFalhaKeys:[], nb: getNb(), vMin:0.93, vMax:1.05, maxNALinhas:0, cargas, 
+            Sbase:parseFloat(document.getElementById('sbase').value), 
+            Vbase_kV:parseFloat(document.getElementById('vbase').value), sourceBuses:currentSources
         };
         const ind = lines.map(()=>1);
         workerPool[0].postMessage({individual:ind, index:0, staticData:sd});
@@ -514,9 +468,11 @@
         res.data.resRamos.forEach(r => {
             const row = document.createElement('tr');
             const tipo = r.id >= 9000 ? '<span style="color:green;font-weight:bold">Nova</span>' : 'Original';
+            // Adicionada Coluna de Corrente
             row.innerHTML = `<td>${r.id}</td><td>${tipo}</td><td>${r.de}</td><td>${r.para}</td>
+                             <td style="font-weight:bold; color:#005580">${(r.I_A || 0).toFixed(2)}</td>
                              <td>${r.Pmw.toFixed(3)}</td><td>${r.Qmvar.toFixed(3)}</td>
-                             <td>${r.Smva.toFixed(3)}</td><td>${r.Smax}</td><td>${r.perdasMW.toFixed(4)}</td>`;
+                             <td>${r.Smva.toFixed(3)}</td><td>${r.perdasMW.toFixed(4)}</td>`;
             tb.appendChild(row);
         });
 
@@ -524,17 +480,16 @@
         const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         svg.appendChild(g);
 
+        // Draw Lines
         res.data.resRamos.forEach(l => {
             const ln = document.createElementNS('http://www.w3.org/2000/svg', 'line');
             const p1=cargas[l.de], p2=cargas[l.para];
             ln.setAttribute('x1', p1.X); ln.setAttribute('y1', p1.Y);
             ln.setAttribute('x2', p2.X); ln.setAttribute('y2', p2.Y);
-            
             let col = '#ccc';
             if(l.zona === 1) col = 'var(--zone-1)';
             if(l.zona === 11) col = 'var(--zone-2)';
             if(l.zona === 21) col = 'var(--zone-3)';
-            
             if(l.id >= 9000) { 
                 ln.setAttribute('stroke-dasharray', '10,5');
                 ln.setAttribute('stroke-width', 4);
@@ -544,46 +499,48 @@
                 ln.setAttribute('stroke', col);
             }
             g.appendChild(ln);
-            
-            if(l.Pmw > 0.01) {
-                 const mx = (p1.X+p2.X)/2, my = (p1.Y+p2.Y)/2;
-                 const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-                 txt.setAttribute('x', mx); txt.setAttribute('y', my-5);
-                 txt.setAttribute('font-size', '14');
-                 txt.setAttribute('fill', 'black');
-                 txt.textContent = l.Pmw.toFixed(2);
-                 g.appendChild(txt);
-            }
         });
 
+        // Draw Buses & Data Text
         for(let b in cargas){
+            const busRes = res.data.resBarras.find(x=>x.barra==b);
             const cc = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
             cc.setAttribute('cx', cargas[b].X); cc.setAttribute('cy', cargas[b].Y);
             cc.setAttribute('r', currentSources.includes(parseInt(b))?12:6);
-            
-            const busRes = res.data.resBarras.find(x=>x.barra==b);
             let stroke = '#999';
             if(busRes && busRes.zona){
                 if(busRes.zona===1) stroke='var(--zone-1)';
                 if(busRes.zona===11) stroke='var(--zone-2)';
                 if(busRes.zona===21) stroke='var(--zone-3)';
             }
-            
             cc.setAttribute('fill', 'white');
             cc.setAttribute('stroke', stroke);
             cc.setAttribute('stroke-width', 3);
             g.appendChild(cc);
             
-            const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-            txt.setAttribute('x', cargas[b].X); txt.setAttribute('y', cargas[b].Y+20);
-            txt.setAttribute('text-anchor', 'middle');
-            txt.textContent = b;
-            txt.setAttribute('font-size', 14);
-            g.appendChild(txt);
+            // ID Dentro da Barra
+            const txtId = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            txtId.setAttribute('x', cargas[b].X); txtId.setAttribute('y', cargas[b].Y+4);
+            txtId.setAttribute('text-anchor', 'middle');
+            txtId.textContent = b;
+            txtId.setAttribute('font-size', 10);
+            g.appendChild(txtId);
+
+            // Dados de Tensão ao lado (VISUALIZAÇÃO LIMPA)
+            if(busRes && busRes.isConnected){
+                const txtData = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                txtData.setAttribute('x', cargas[b].X + 10); 
+                txtData.setAttribute('y', cargas[b].Y - 10);
+                txtData.setAttribute('font-size', '11');
+                txtData.setAttribute('font-family', 'monospace');
+                txtData.setAttribute('fill', '#333');
+                // Exibe apenas |V| e Ângulo
+                txtData.textContent = `${busRes.Vmag.toFixed(3)}pu ∠${busRes.Vang.toFixed(1)}°`;
+                g.appendChild(txtData);
+            }
         }
     }
 
-    // Panning
     let isDown=false, startX, startY, vBox={x:-50,y:50,w:900,h:600};
     svgWrap.onmousedown = (e) => { isDown=true; startX=e.clientX; startY=e.clientY; };
     svgWrap.onmouseup = () => isDown=false;
@@ -598,7 +555,6 @@
         startX = e.clientX; startY = e.clientY;
     };
 
-    // Init
     btnExemplo30.click();
     </script>
 </body>
