@@ -10,19 +10,18 @@ function cAbs(a){return Math.hypot(a.re,a.im)}
 function cDiv(a,b){const d=b.re*b.re+b.im*b.im||1e-30;return c((a.re*b.re+a.im*b.im)/d,(a.im*b.re-a.re*b.im)/d)} 
 function angDeg(a){return Math.atan2(a.im,a.re)*180/Math.PI}
 
-// --- Penalidades do AG (Ajustadas) ---
+// --- Penalidades ---
 const GA_PENALTIES = {
-    UNSERVED_MW: 100000,      // Carga não atendida
-    VOLTAGE_VIOL_PU: 50000,   // Violação de tensão
-    SMAX_VIOL_MVA: 10000,     // Sobrecarga
-    LOOP_ALIMENTADOR: 1e15,   // PENALIDADE MORTAL PARA LOOPS (Redundância)
-    MAX_NA_VIOL: 1e8          // Excesso de linhas novas
+    UNSERVED_MW: 100000,
+    VOLTAGE_VIOL_PU: 50000,
+    SMAX_VIOL_MVA: 10000,
+    LOOP_ALIMENTADOR: 1e15,
+    MAX_NA_VIOL: 1e8
 };
 
-// --- Validação de Topologia (Radialidade Estrita) ---
+// --- Topologia ---
 function analisarTopologia(n, linhas, sources) {
     const adj = Array(n + 1).fill(0).map(() => []);
-    // Filtra apenas linhas ativas para criar o grafo
     linhas.forEach(l => {
         if (l && typeof l.de === 'number' && typeof l.para === 'number') {
             adj[l.de].push(l.para);
@@ -30,11 +29,10 @@ function analisarTopologia(n, linhas, sources) {
         }
     });
 
-    const zoneMap = new Map(); // Qual fonte alimenta qual barra
-    const parentMap = new Map(); // Para evitar voltar pro pai no BFS
+    const zoneMap = new Map(); 
+    const parentMap = new Map(); 
     const q = [];
 
-    // Inicializa BFS com todas as fontes simultaneamente
     sources.forEach(s => {
         if (s <= n) {
             q.push({ u: s, src: s });
@@ -44,20 +42,13 @@ function analisarTopologia(n, linhas, sources) {
     });
 
     let head = 0;
-    
     while (head < q.length) {
         const { u, src } = q[head++];
-
         for (const v of adj[u]) {
-            if (v === parentMap.get(u)) continue; // Ignora a linha de onde viemos
-
+            if (v === parentMap.get(u)) continue; 
             if (zoneMap.has(v)) {
-                const existingSrc = zoneMap.get(v);
-                // Se encontramos uma barra que JÁ tem zona definida (e não é o pai):
-                // ISSO É UM LOOP (Redundância). O sistema deixou de ser radial.
-                return { ok: false, msg: `Loop detectado entre barra ${u} e ${v}.`, zones: {}, unserved: new Set() };
+                return { ok: false, msg: `Loop/Redundância entre ${u} e ${v}`, zones: {}, unserved: new Set() };
             } else {
-                // Conquista a barra 'v' para a zona 'src'
                 zoneMap.set(v, src);
                 parentMap.set(v, u);
                 q.push({ u: v, src: src });
@@ -65,32 +56,23 @@ function analisarTopologia(n, linhas, sources) {
         }
     }
 
-    // Verifica barras isoladas (não atendidas)
     const unserved = new Set();
-    for (let b = 1; b <= n; b++) {
-        if (!zoneMap.has(b)) unserved.add(b);
-    }
-
+    for (let b = 1; b <= n; b++) if (!zoneMap.has(b)) unserved.add(b);
     return { ok: true, msg: 'OK', zones: Object.fromEntries(zoneMap), unserved };
 }
 
 // --- Fluxo de Potência ---
 async function runFluxo(linhasData, nb, Sbase, Vbase_kV, cargas, sourceBuses) {
-    // 1. Validação Topológica
     const topo = analisarTopologia(nb, linhasData, sourceBuses);
-
-    if (!topo.ok) {
-        // Retorna erro. O Fitness receberá penalidade infinita.
-        return { resBarras: [], resRamos: [], perdasMWtotal: 0, unservedBuses: new Set(), error: topo.msg };
-    }
+    if (!topo.ok) return { resBarras: [], resRamos: [], perdasMWtotal: 0, unservedBuses: new Set(), error: topo.msg };
 
     const Zbase = (Vbase_kV * Vbase_kV) / Sbase;
+    // Corrente Base em Amperes: Ibase = (Sbase_MVA * 10^6) / (sqrt(3) * Vbase_kV * 10^3)
+    const Ibase_A = (Sbase * 1000) / (Math.sqrt(3) * Vbase_kV);
+
     const V = Array(nb + 1).fill(0).map(() => c(0, 0));
-    
-    // Seta tensão das fontes
     sourceBuses.forEach(s => { if (s <= nb) V[s] = c(1, 0); });
 
-    // Potência injetada (Cargas)
     const S_inj = Array(nb + 1).fill(0).map(() => c(0, 0));
     for (let b = 1; b <= nb; b++) {
         if (cargas[b] && topo.zones[b]) {
@@ -98,7 +80,6 @@ async function runFluxo(linhasData, nb, Sbase, Vbase_kV, cargas, sourceBuses) {
         }
     }
 
-    // Montar árvore orientada para o cálculo
     const adj = Array(nb + 1).fill(0).map(() => []);
     linhasData.forEach(l => { adj[l.de].push(l.para); adj[l.para].push(l.de); });
 
@@ -123,37 +104,32 @@ async function runFluxo(linhasData, nb, Sbase, Vbase_kV, cargas, sourceBuses) {
     const ramoMap = {}; 
     linhasData.forEach(r => { ramoMap[`${r.de}-${r.para}`] = r; ramoMap[`${r.para}-${r.de}`] = r; });
 
-    // --- Sweep (Cálculo Iterativo) ---
+    // Sweep
     const iterMax = 50;
-    const IramoFinal = {}; // Armazena corrente Pai->Filho
+    const IramoFinal = {}; 
 
     for (let it = 0; it < iterMax; it++) {
         const Iload = Array(nb + 1).fill(0).map(() => c(0, 0));
-        
         for (const b of orderBwd) {
             if (sourceBuses.includes(b)) continue;
             if (cAbs(V[b]) > 1e-5) Iload[b] = cConj(cDiv(S_inj[b], V[b]));
         }
 
         const Isoma = Array(nb + 1).fill(0).map(() => c(0, 0));
-
-        // Backward
         for (const b of orderBwd) {
             if (sourceBuses.includes(b)) continue;
             const p = parent.get(b);
             if (p) {
                 const i_flow = cAdd(Iload[b], Isoma[b]);
-                IramoFinal[`${p}-${b}`] = i_flow; // Salva corrente
+                IramoFinal[`${p}-${b}`] = i_flow; 
                 Isoma[p] = cAdd(Isoma[p], i_flow);
             }
         }
 
         const V_ant = V.map(v => c(v.re, v.im));
-
-        // Forward
         for (const u of orderFwd) {
             for (const v of adj[u]) {
-                if (parent.get(v) === u) { // v é filho
+                if (parent.get(v) === u) { 
                     const r = ramoMap[`${u}-${v}`];
                     const Zr = r ? c((r.R || 0) / Zbase, (r.X || 0) / Zbase) : c(0, 0);
                     const drop = cMul(Zr, IramoFinal[`${u}-${v}`] || c(0, 0));
@@ -166,7 +142,7 @@ async function runFluxo(linhasData, nb, Sbase, Vbase_kV, cargas, sourceBuses) {
         if (maxDv < 1e-6) break;
     }
 
-    // --- Preparar Resultados ---
+    // Resultados
     const resBarras = [];
     for (let b = 1; b <= nb; b++) {
         const z = topo.zones[b];
@@ -183,14 +159,13 @@ async function runFluxo(linhasData, nb, Sbase, Vbase_kV, cargas, sourceBuses) {
     const resRamos = [];
 
     linhasData.forEach(l => {
-        // Determinar fluxo
         let I = c(0,0);
         let flowFromDe = true;
 
-        if (parent.get(l.para) === l.de) { // De é pai
+        if (parent.get(l.para) === l.de) { 
             I = IramoFinal[`${l.de}-${l.para}`] || c(0,0);
             flowFromDe = true;
-        } else if (parent.get(l.de) === l.para) { // Para é pai
+        } else if (parent.get(l.de) === l.para) { 
             I = IramoFinal[`${l.para}-${l.de}`] || c(0,0);
             flowFromDe = false;
         }
@@ -203,6 +178,7 @@ async function runFluxo(linhasData, nb, Sbase, Vbase_kV, cargas, sourceBuses) {
         const S_mva = cAbs(S_flow_pu) * Sbase;
         
         const modI = cAbs(I);
+        const I_Ampere = modI * Ibase_A; // Conversão para Amperes
         const R_pu = (l.R || 0) / Zbase;
         const Loss_mw = modI * modI * R_pu * Sbase;
 
@@ -214,14 +190,15 @@ async function runFluxo(linhasData, nb, Sbase, Vbase_kV, cargas, sourceBuses) {
             Pmw: isFinite(P_mw) ? Math.abs(P_mw) : 0,
             Qmvar: isFinite(Q_mvar) ? Math.abs(Q_mvar) : 0,
             Smva: isFinite(S_mva) ? S_mva : 0,
-            perdasMW: isFinite(Loss_mw) ? Loss_mw : 0
+            perdasMW: isFinite(Loss_mw) ? Loss_mw : 0,
+            I_A: isFinite(I_Ampere) ? I_Ampere : 0 // Nova propriedade
         });
     });
 
     return { resBarras, resRamos, perdasMWtotal, unservedBuses: Array.from(topo.unserved), error: null };
 }
 
-// --- Fitness e Controle do AG ---
+// --- Fitness ---
 async function calculateFitness(individual, allLines, linhaFalhaKeys, nb, vMin, vMax, maxNALinhas, cargas, Sbase, Vbase_kV, sourceBuses) {
     const falhaSet = new Set(linhaFalhaKeys);
     let activeLines = [];
@@ -236,6 +213,7 @@ async function calculateFitness(individual, allLines, linhaFalhaKeys, nb, vMin, 
             
             if (!falhaSet.has(k1) && !falhaSet.has(k2)) {
                 activeLines.push(l);
+                // Custo agora pode incluir distância (passado no objeto linha)
                 custoChaves += (l.custo || 0);
                 if(l.isNA) numNA++;
             }
@@ -243,26 +221,20 @@ async function calculateFitness(individual, allLines, linhaFalhaKeys, nb, vMin, 
     });
 
     let fitness = custoChaves;
+    if(numNA > maxNALinhas) fitness += (numNA - maxNALinhas) * GA_PENALTIES.MAX_NA_VIOL;
 
-    if(numNA > maxNALinhas) {
-        fitness += (numNA - maxNALinhas) * GA_PENALTIES.MAX_NA_VIOL;
-    }
-
-    // Executa fluxo
     const res = await runFluxo(activeLines, nb, Sbase, Vbase_kV, cargas, sourceBuses);
 
-    // Se houve erro topológico (LOOP), penalidade infinita
     if(res.error) {
         fitness += GA_PENALTIES.LOOP_ALIMENTADOR; 
         return { fitness, data: { error: res.error, resBarras: [], resRamos: [] } };
     }
 
-    // Penalidades físicas
     let unservedP = 0;
     res.unservedBuses.forEach(b => { if(cargas[b]) unservedP += (cargas[b].P || 0); });
     fitness += unservedP * GA_PENALTIES.UNSERVED_MW;
 
-    fitness += res.perdasMWtotal; // Minimizar perdas
+    fitness += res.perdasMWtotal; 
 
     res.resBarras.forEach(b => {
         if(b.isConnected) {
@@ -283,8 +255,8 @@ self.onmessage = async (event) => {
     const { allLines, linhaFalhaKeys, nb, vMin, vMax, maxNALinhas, cargas, Sbase, Vbase_kV, sourceBuses } = staticData;
     try {
         const result = await calculateFitness(individual, allLines, linhaFalhaKeys, nb, vMin, vMax, maxNALinhas, cargas, Sbase, Vbase_kV, sourceBuses);
-        self.postMessage({ index, result });
+        self.postMessage({ index: index, result });
     } catch (error) {
-        self.postMessage({ index, result: { fitness: Infinity }, error: error.message });
+        self.postMessage({ index: index, result: { fitness: Infinity }, error: error.message });
     }
 };
