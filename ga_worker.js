@@ -1,6 +1,6 @@
 // --- ga_worker.js ---
 
-// --- Utilidades Numéricas (Complex Numbers) ---
+// --- Utilidades Numéricas ---
 function c(re=0,im=0){return{re,im}} 
 function cAdd(a,b){return c(a.re+b.re,a.im+b.im)} 
 function cSub(a,b){return c(a.re-b.re,a.im-b.im)} 
@@ -10,18 +10,19 @@ function cAbs(a){return Math.hypot(a.re,a.im)}
 function cDiv(a,b){const d=b.re*b.re+b.im*b.im||1e-30;return c((a.re*b.re+a.im*b.im)/d,(a.im*b.re-a.re*b.im)/d)} 
 function angDeg(a){return Math.atan2(a.im,a.re)*180/Math.PI}
 
-// --- Penalidades do GA ---
+// --- Penalidades do AG (Ajustadas) ---
 const GA_PENALTIES = {
-    UNSERVED_MW: 100000,
-    VOLTAGE_VIOL_PU: 50000,
-    SMAX_VIOL_MVA: 10000,
-    LOOP_ALIMENTADOR: 1e12, // Penalidade "Mortal" para loops ou conexões redundantes
-    MAX_NA_VIOL: 1e8
+    UNSERVED_MW: 100000,      // Carga não atendida
+    VOLTAGE_VIOL_PU: 50000,   // Violação de tensão
+    SMAX_VIOL_MVA: 10000,     // Sobrecarga
+    LOOP_ALIMENTADOR: 1e15,   // PENALIDADE MORTAL PARA LOOPS (Redundância)
+    MAX_NA_VIOL: 1e8          // Excesso de linhas novas
 };
 
 // --- Validação de Topologia (Radialidade Estrita) ---
 function analisarTopologia(n, linhas, sources) {
     const adj = Array(n + 1).fill(0).map(() => []);
+    // Filtra apenas linhas ativas para criar o grafo
     linhas.forEach(l => {
         if (l && typeof l.de === 'number' && typeof l.para === 'number') {
             adj[l.de].push(l.para);
@@ -29,16 +30,16 @@ function analisarTopologia(n, linhas, sources) {
         }
     });
 
-    const zoneMap = new Map(); // Map<BarraID, SourceID>
-    const parentMap = new Map(); 
+    const zoneMap = new Map(); // Qual fonte alimenta qual barra
+    const parentMap = new Map(); // Para evitar voltar pro pai no BFS
     const q = [];
 
-    // Inicializa BFS Multi-Fonte
+    // Inicializa BFS com todas as fontes simultaneamente
     sources.forEach(s => {
         if (s <= n) {
             q.push({ u: s, src: s });
             zoneMap.set(s, s);
-            parentMap.set(s, -1); // Raiz
+            parentMap.set(s, -1); 
         }
     });
 
@@ -48,17 +49,15 @@ function analisarTopologia(n, linhas, sources) {
         const { u, src } = q[head++];
 
         for (const v of adj[u]) {
-            if (v === parentMap.get(u)) continue; // Ignora volta para o pai
+            if (v === parentMap.get(u)) continue; // Ignora a linha de onde viemos
 
             if (zoneMap.has(v)) {
                 const existingSrc = zoneMap.get(v);
-                // SE JÁ TEM ZONA:
-                // 1. Se for zona diferente: Curto entre alimentadores.
-                // 2. Se for mesma zona: Loop (anel) radial.
-                // Em ambos os casos, a topologia não é radial simples.
-                return { ok: false, msg: `Redundância/Loop detectado entre ${u} e ${v} (Zonas ${src}/${existingSrc})`, zones: {}, unserved: new Set() };
+                // Se encontramos uma barra que JÁ tem zona definida (e não é o pai):
+                // ISSO É UM LOOP (Redundância). O sistema deixou de ser radial.
+                return { ok: false, msg: `Loop detectado entre barra ${u} e ${v}.`, zones: {}, unserved: new Set() };
             } else {
-                // Conquista nó
+                // Conquista a barra 'v' para a zona 'src'
                 zoneMap.set(v, src);
                 parentMap.set(v, u);
                 q.push({ u: v, src: src });
@@ -66,6 +65,7 @@ function analisarTopologia(n, linhas, sources) {
         }
     }
 
+    // Verifica barras isoladas (não atendidas)
     const unserved = new Set();
     for (let b = 1; b <= n; b++) {
         if (!zoneMap.has(b)) unserved.add(b);
@@ -74,22 +74,23 @@ function analisarTopologia(n, linhas, sources) {
     return { ok: true, msg: 'OK', zones: Object.fromEntries(zoneMap), unserved };
 }
 
-// --- Fluxo de Potência (Backward/Forward Sweep) ---
+// --- Fluxo de Potência ---
 async function runFluxo(linhasData, nb, Sbase, Vbase_kV, cargas, sourceBuses) {
     // 1. Validação Topológica
     const topo = analisarTopologia(nb, linhasData, sourceBuses);
 
     if (!topo.ok) {
-        // Retorna erro para aplicar penalidade máxima no AG
+        // Retorna erro. O Fitness receberá penalidade infinita.
         return { resBarras: [], resRamos: [], perdasMWtotal: 0, unservedBuses: new Set(), error: topo.msg };
     }
 
     const Zbase = (Vbase_kV * Vbase_kV) / Sbase;
     const V = Array(nb + 1).fill(0).map(() => c(0, 0));
     
+    // Seta tensão das fontes
     sourceBuses.forEach(s => { if (s <= nb) V[s] = c(1, 0); });
 
-    // Injeção de Potência (S_load)
+    // Potência injetada (Cargas)
     const S_inj = Array(nb + 1).fill(0).map(() => c(0, 0));
     for (let b = 1; b <= nb; b++) {
         if (cargas[b] && topo.zones[b]) {
@@ -97,12 +98,12 @@ async function runFluxo(linhasData, nb, Sbase, Vbase_kV, cargas, sourceBuses) {
         }
     }
 
-    // Montar Árvore Orientada (BFS para definir pais)
+    // Montar árvore orientada para o cálculo
     const adj = Array(nb + 1).fill(0).map(() => []);
     linhasData.forEach(l => { adj[l.de].push(l.para); adj[l.para].push(l.de); });
 
     const orderFwd = [];
-    const parent = new Map(); // Map<Filho, Pai>
+    const parent = new Map();
     const qBFS = [...sourceBuses.filter(s => s <= nb)];
     const visited = new Set(qBFS);
     let h = 0;
@@ -119,70 +120,53 @@ async function runFluxo(linhasData, nb, Sbase, Vbase_kV, cargas, sourceBuses) {
         }
     }
     const orderBwd = [...orderFwd].reverse();
+    const ramoMap = {}; 
+    linhasData.forEach(r => { ramoMap[`${r.de}-${r.para}`] = r; ramoMap[`${r.para}-${r.de}`] = r; });
 
-    // Mapa de Ramos para acesso rápido
-    // Guardamos a referência para calcular fluxo depois
-    const ramoMap = {}; // Key: "u-v"
-    linhasData.forEach(r => {
-        ramoMap[`${r.de}-${r.para}`] = r;
-        ramoMap[`${r.para}-${r.de}`] = r;
-    });
-
-    // --- Iteração Sweep ---
+    // --- Sweep (Cálculo Iterativo) ---
     const iterMax = 50;
-    const tol = 1e-6;
-    
-    // Variáveis para armazenar estado final
-    const IramoFinal = {}; // Key "u-v" (corrente saindo de u para v)
+    const IramoFinal = {}; // Armazena corrente Pai->Filho
 
     for (let it = 0; it < iterMax; it++) {
         const Iload = Array(nb + 1).fill(0).map(() => c(0, 0));
         
-        // 1. Calc Iload
         for (const b of orderBwd) {
             if (sourceBuses.includes(b)) continue;
-            if (cAbs(V[b]) > 1e-5) {
-                // I = conj(S/V)
-                Iload[b] = cConj(cDiv(S_inj[b], V[b]));
-            }
+            if (cAbs(V[b]) > 1e-5) Iload[b] = cConj(cDiv(S_inj[b], V[b]));
         }
 
-        const Isoma = Array(nb + 1).fill(0).map(() => c(0, 0)); // Corrente acumulada
+        const Isoma = Array(nb + 1).fill(0).map(() => c(0, 0));
 
-        // 2. Backward Sweep
+        // Backward
         for (const b of orderBwd) {
             if (sourceBuses.includes(b)) continue;
             const p = parent.get(b);
             if (p) {
-                const i_flow = cAdd(Iload[b], Isoma[b]); // Corrente fluindo de P -> B
-                IramoFinal[`${p}-${b}`] = i_flow; // Guarda fluxo no sentido Pai->Filho
+                const i_flow = cAdd(Iload[b], Isoma[b]);
+                IramoFinal[`${p}-${b}`] = i_flow; // Salva corrente
                 Isoma[p] = cAdd(Isoma[p], i_flow);
             }
         }
 
         const V_ant = V.map(v => c(v.re, v.im));
 
-        // 3. Forward Sweep
+        // Forward
         for (const u of orderFwd) {
             for (const v of adj[u]) {
                 if (parent.get(v) === u) { // v é filho
                     const r = ramoMap[`${u}-${v}`];
                     const Zr = r ? c((r.R || 0) / Zbase, (r.X || 0) / Zbase) : c(0, 0);
-                    const cur = IramoFinal[`${u}-${v}`] || c(0, 0);
-                    const drop = cMul(Zr, cur);
+                    const drop = cMul(Zr, IramoFinal[`${u}-${v}`] || c(0, 0));
                     V[v] = cSub(V[u], drop);
                 }
             }
         }
-
         let maxDv = 0;
-        for (let b = 1; b <= nb; b++) {
-            if (topo.zones[b]) maxDv = Math.max(maxDv, cAbs(cSub(V[b], V_ant[b])));
-        }
-        if (maxDv < tol) break;
+        for (let b = 1; b <= nb; b++) if (topo.zones[b]) maxDv = Math.max(maxDv, cAbs(cSub(V[b], V_ant[b])));
+        if (maxDv < 1e-6) break;
     }
 
-    // --- Resultados Finais ---
+    // --- Preparar Resultados ---
     const resBarras = [];
     for (let b = 1; b <= nb; b++) {
         const z = topo.zones[b];
@@ -199,47 +183,35 @@ async function runFluxo(linhasData, nb, Sbase, Vbase_kV, cargas, sourceBuses) {
     const resRamos = [];
 
     linhasData.forEach(l => {
-        // Identificar quem é pai e quem é filho para pegar a corrente correta
-        // A corrente IramoFinal está armazenada como "Pai-Filho"
+        // Determinar fluxo
         let I = c(0,0);
-        let flowFromDe = true; // Flag fluxo sai de 'de'
+        let flowFromDe = true;
 
-        if (parent.get(l.para) === l.de) {
-            // De é pai de Para
+        if (parent.get(l.para) === l.de) { // De é pai
             I = IramoFinal[`${l.de}-${l.para}`] || c(0,0);
             flowFromDe = true;
-        } else if (parent.get(l.de) === l.para) {
-            // Para é pai de De
-            I = IramoFinal[`${l.para}-${l.de}`] || c(0,0); // Corrente flui Para -> De
-            // Para exibição, se queremos fluxo em 'de', invertemos? 
-            // Geralmente exibimos magnitude, então ok.
-            flowFromDe = false; 
-        } else {
-            // Linha desconectada ou redundante (não deve acontecer aqui se passou validação)
-            I = c(0,0);
+        } else if (parent.get(l.de) === l.para) { // Para é pai
+            I = IramoFinal[`${l.para}-${l.de}`] || c(0,0);
+            flowFromDe = false;
         }
 
-        // Calcular Potência S = V * conj(I)
-        // V deve ser do nó de onde a corrente sai
         const V_ref = flowFromDe ? V[l.de] : V[l.para];
-        const S_flow_pu = cMul(V_ref, cConj(I)); // PU
+        const S_flow_pu = cMul(V_ref, cConj(I));
         
         const P_mw = S_flow_pu.re * Sbase;
         const Q_mvar = S_flow_pu.im * Sbase;
         const S_mva = cAbs(S_flow_pu) * Sbase;
         
-        // Calcular Perdas I^2 * R
         const modI = cAbs(I);
         const R_pu = (l.R || 0) / Zbase;
-        const Loss_pu = modI * modI * R_pu;
-        const Loss_mw = Loss_pu * Sbase;
+        const Loss_mw = modI * modI * R_pu * Sbase;
 
         if(topo.zones[l.de] && topo.zones[l.para]) perdasMWtotal += Loss_mw;
 
         resRamos.push({
             ...l,
             zona: topo.zones[l.de], 
-            Pmw: isFinite(P_mw) ? Math.abs(P_mw) : 0, // Magnitude para display
+            Pmw: isFinite(P_mw) ? Math.abs(P_mw) : 0,
             Qmvar: isFinite(Q_mvar) ? Math.abs(Q_mvar) : 0,
             Smva: isFinite(S_mva) ? S_mva : 0,
             perdasMW: isFinite(Loss_mw) ? Loss_mw : 0
@@ -249,10 +221,9 @@ async function runFluxo(linhasData, nb, Sbase, Vbase_kV, cargas, sourceBuses) {
     return { resBarras, resRamos, perdasMWtotal, unservedBuses: Array.from(topo.unserved), error: null };
 }
 
-// --- Fitness ---
+// --- Fitness e Controle do AG ---
 async function calculateFitness(individual, allLines, linhaFalhaKeys, nb, vMin, vMax, maxNALinhas, cargas, Sbase, Vbase_kV, sourceBuses) {
     const falhaSet = new Set(linhaFalhaKeys);
-    
     let activeLines = [];
     let custoChaves = 0;
     let numNA = 0;
@@ -277,25 +248,22 @@ async function calculateFitness(individual, allLines, linhaFalhaKeys, nb, vMin, 
         fitness += (numNA - maxNALinhas) * GA_PENALTIES.MAX_NA_VIOL;
     }
 
+    // Executa fluxo
     const res = await runFluxo(activeLines, nb, Sbase, Vbase_kV, cargas, sourceBuses);
 
-    // Se erro topológico (Loop/Redundância), penalidade MAXIMA
+    // Se houve erro topológico (LOOP), penalidade infinita
     if(res.error) {
         fitness += GA_PENALTIES.LOOP_ALIMENTADOR; 
-        // Retorna sem dados detalhados, pois a topologia é inválida
-        return { fitness, data: { error: res.error } };
+        return { fitness, data: { error: res.error, resBarras: [], resRamos: [] } };
     }
 
+    // Penalidades físicas
     let unservedP = 0;
-    res.unservedBuses.forEach(b => { 
-        if(cargas[b]) unservedP += (cargas[b].P || 0); 
-    });
+    res.unservedBuses.forEach(b => { if(cargas[b]) unservedP += (cargas[b].P || 0); });
     fitness += unservedP * GA_PENALTIES.UNSERVED_MW;
 
-    // Penalidade Perdas
-    fitness += res.perdasMWtotal; 
+    fitness += res.perdasMWtotal; // Minimizar perdas
 
-    // Tensão
     res.resBarras.forEach(b => {
         if(b.isConnected) {
             if(b.Vmag < vMin) fitness += (vMin - b.Vmag) * GA_PENALTIES.VOLTAGE_VIOL_PU;
@@ -303,22 +271,11 @@ async function calculateFitness(individual, allLines, linhaFalhaKeys, nb, vMin, 
         }
     });
 
-    // Sobrecarga nos ramos
     res.resRamos.forEach(r => {
-        if(r.Smva > r.Smax) {
-            fitness += (r.Smva - r.Smax) * GA_PENALTIES.SMAX_VIOL_MVA;
-        }
+        if(r.Smva > r.Smax) fitness += (r.Smva - r.Smax) * GA_PENALTIES.SMAX_VIOL_MVA;
     });
 
-    return { 
-        fitness, 
-        data: { 
-            ...res, 
-            currentLinhas: activeLines, 
-            custoChaves, 
-            numNA_Usadas: numNA 
-        } 
-    };
+    return { fitness, data: { ...res, currentLinhas: activeLines, custoChaves, numNA_Usadas: numNA } };
 }
 
 self.onmessage = async (event) => {
@@ -326,8 +283,8 @@ self.onmessage = async (event) => {
     const { allLines, linhaFalhaKeys, nb, vMin, vMax, maxNALinhas, cargas, Sbase, Vbase_kV, sourceBuses } = staticData;
     try {
         const result = await calculateFitness(individual, allLines, linhaFalhaKeys, nb, vMin, vMax, maxNALinhas, cargas, Sbase, Vbase_kV, sourceBuses);
-        self.postMessage({ index: index, result: result });
+        self.postMessage({ index, result });
     } catch (error) {
-        self.postMessage({ index: index, result: { fitness: Infinity }, error: error.message });
+        self.postMessage({ index, result: { fitness: Infinity }, error: error.message });
     }
 };
