@@ -14,7 +14,7 @@
             --utfpr-gray-light: #edf2f7;
             --ok: #38a169; --warn: #d69e2e; --bad: #e53e3e;
             --highlight-green: #38a169;
-            --zone-1: #2b6cb0; --zone-2: #dd6b20; --zone-3: #805ad5; --zone-4: #e84393;
+            --zone-1: #2b6cb0; --zone-2: #dd6b20; --zone-3: #805ad5;
             --border-color: #e2e8f0;
         }
         * { box-sizing: border-box; }
@@ -52,6 +52,7 @@
         td input { width: 75px; padding: 4px; border: 1px solid #ddd; border-radius: 4px; } 
         td select { width: 65px; padding: 4px; }
         
+        /* Otimizado para Zoom e Arraste */
         .svg-wrap { width: 100%; height: 650px; position: relative; background: #fafbfc; border: 1px solid var(--border-color); border-radius: 12px; overflow: hidden; cursor: grab; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02); }
         .svg-wrap:active { cursor: grabbing; }
         .legend { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px }
@@ -112,13 +113,13 @@
 
                 <div class="row">
                     <div style="flex-grow: 1;">
-                        <label>Barras Fonte / Subestação (Ex: 1, 26, 51, 76)</label>
+                        <label>Barras Fonte / Subestação (Novos IDs após normalização)</label>
                         <input id="inpFontes" type="text" value="1, 11, 21" class="mono" placeholder="Ex: 1"/>
                     </div>
                 </div>
 
                 <div class="row">
-                    <div><label>Nº Barras</label><input id="numBarras" type="number" value="30" class="mono" readonly style="background:#f0f0f0;"/></div>
+                    <div><label>Nº Barras (Normalizado)</label><input id="numBarras" type="number" value="30" class="mono" readonly style="background:#f0f0f0;"/></div>
                     <div><label>Sbase (MVA)</label><input id="sbase" type="number" value="10" class="mono"/></div>
                     <div><label>Vbase (kV)</label><input id="vbase" type="number" value="13.8" class="mono"/></div>
                 </div>
@@ -188,12 +189,11 @@
                 <svg id="svg" width="100%" height="100%" viewBox="-50 -20 1500 800" preserveAspectRatio="xMidYMid meet"></svg> 
             </div>
             <div class="legend"> 
-                <span class="pill" style="border-left: 12px solid var(--zone-1);">Z1</span>
-                <span class="pill" style="border-left: 12px solid var(--zone-2);">Z2</span>
-                <span class="pill" style="border-left: 12px solid var(--zone-3);">Z3</span>
-                <span class="pill" style="border-left: 12px solid var(--zone-4);">Z4</span>
+                <span class="pill" style="border-left: 12px solid var(--zone-1);">Zona Alimentador 1</span>
+                <span class="pill" style="border-left: 12px solid var(--zone-2);">Zona Alimentador 2</span>
+                <span class="pill" style="border-left: 12px solid var(--zone-3);">Zona Alimentador 3</span>
                 <span class="pill" style="border: 2px dashed #e53e3e; color: #e53e3e;">Chave Aberta (NA)</span>
-                <span class="pill" style="background:var(--bad); color:white; border:none;">Alerta: Tensão/Corrente</span>
+                <span class="pill" style="background:var(--bad); color:white; border:none;">Alerta: Sobrecarga/Tensão</span>
             </div>
 
             <h3 style="margin-top: 25px;">Relatório de Ramos e Fluxo de Potência</h3>
@@ -352,10 +352,10 @@
         });
     }
 
-    // --- EXEMPLO 30 BARRAS ---
+    // --- EXEMPLO 30 BARRAS (Fiel à versão Original) ---
     btnExemplo30.onclick = () => {
         document.getElementById('inpFontes').value = "1, 11, 21";
-        document.getElementById('chkAutoTie').checked = false; 
+        document.getElementById('chkAutoTie').checked = false; // Desliga criação automática de chaves
         
         cargas = {}; tblMalha.innerHTML = ''; tblCargas.innerHTML = ''; lineIdCounter = 1;
         
@@ -367,19 +367,40 @@
         gerarTabelaCargas();
 
         const link = (start, count) => {
-            for(let i=0; i<count-1; i++) addLinhaRow({de: start+i, para: start+i+1, R: 0.05, X: 0.1, isSwitch: false}); 
+            for(let i=0; i<count-1; i++) addLinhaRow({de: start+i, para: start+i+1, R: 0.05, X: 0.1, isSwitch: false}); // Troncos são cabos
         };
         link(1, 10); link(11, 10); link(21, 10);
 
+        // Apenas as 3 interligações são marcadas como CHAVE
         addLinhaRow({de: 10, para: 20, R: 0.05, X: 0.1, isSwitch: true});
         addLinhaRow({de: 8, para: 15, R: 0.05, X: 0.1, isSwitch: true});
         addLinhaRow({de: 20, para: 30, R: 0.05, X: 0.1, isSwitch: true});
 
-        showToast("Exemplo de 30 Barras carregado.", "success");
+        showToast("Exemplo de 30 Barras Fiel (Com 3 Chaves) carregado.", "success");
         btnFluxo.click();
     };
 
-    // --- IMPORTADOR ---
+    // --- Botões Básicos ---
+    btnGerar.onclick = () => {
+        showConfirm("Limpar Rede", "Isso apagará todas as barras e linhas cadastradas. Deseja continuar?", () => {
+            cargas = {}; tblMalha.innerHTML = ''; tblCargas.innerHTML = ''; elNb.value = 0; lineIdCounter = 1; updateSelects(); 
+            showToast("Rede resetada.", "success");
+        });
+    };
+
+    btnAddBarra.onclick = () => {
+        const nos = Object.keys(cargas).map(Number);
+        const n = nos.length > 0 ? Math.max(...nos) + 1 : 1;
+        cargas[n] = {P:0, Q:0, X:400, Y:300};
+        gerarTabelaCargas();
+        [...tblMalha.querySelectorAll('select.selDe, select.selPara')].forEach(s => {
+            const opt = document.createElement('option'); opt.value = n; opt.textContent = n; s.appendChild(opt);
+        });
+    };
+
+    btnAddLinha.onclick = () => addLinhaRow();
+
+    // --- IMPORTADOR INTELIGENTE ---
     document.getElementById('btnExportar').onclick = () => {
         if(getLines().length === 0) { showToast("Não há rede para exportar.", "error"); return; }
         let csv = "TIPO;ID;DE;PARA;R_PU;X_PU;TIPO_EQ\n";
@@ -454,8 +475,7 @@
 
         elNb.value = nosBrutos.size;
         let minId = Math.min(...nosBrutos);
-        // Atualiza a fonte baseada no input atual ou pega a menor
-        if(!document.getElementById('inpFontes').value) document.getElementById('inpFontes').value = mapaIds[minId] ? mapaIds[minId].toString() : "1";
+        document.getElementById('inpFontes').value = mapaIds[minId] ? mapaIds[minId].toString() : "1";
         
         let coordsZeradas = true;
         [...nosBrutos].sort((a,b)=>a-b).forEach(oldId => {
@@ -480,12 +500,12 @@
             showToast("Calculando Layout Hierárquico do Alimentador...", "info");
             aplicarLayoutArvore(); 
         } else {
-            showToast(`Importação concluída: ${nosBrutos.size} barras válidas.`, "success");
+            showToast(`Importação e Normalização concluídas: ${nosBrutos.size} barras válidas.`, "success");
             btnFluxo.click();
         }
     }
 
-    // --- NOVO MOTOR GRÁFICO (Árvore Matemática sem Física) ---
+    // --- NOVO MOTOR GRÁFICO (Árvore Matemática Exata sem Sobreposição) ---
     function aplicarLayoutArvore() {
         const nodes = Object.keys(cargas).map(Number);
         const edges = getLines();
@@ -500,8 +520,8 @@
         
         const roots = [];
         fontesAtuais.forEach(f => { if(cargas[f]) { roots.push(f); visited.add(f); depths[f] = 0; } });
-        if(roots.length === 0 && nodes.length > 0) { roots.push(nodes[0]); visited.add(nodes[0]); depths[nodes[0]] = 0; }
 
+        // Busca em Largura (Top-down)
         let q = [...roots];
         while(q.length > 0) {
             const u = q.shift();
@@ -515,6 +535,7 @@
             });
         }
 
+        // Pega ilhas desconectadas
         nodes.forEach(n => {
             if(!visited.has(n)) {
                 roots.push(n); visited.add(n); depths[n] = 0;
@@ -530,6 +551,7 @@
             }
         });
 
+        // Calcula Largura de Subárvore (Bottom-up)
         const widthMap = {};
         function calcWidth(u) {
             if (children[u].length === 0) { widthMap[u] = 1; } 
@@ -538,14 +560,15 @@
         }
         roots.forEach(r => calcWidth(r));
 
-        const HORIZONTAL_SPACING = 80; 
+        // Atribuição Matemática Espacial (Pre-order)
+        const HORIZONTAL_SPACING = 50; 
         const VERTICAL_SPACING = 80;
 
-        let currentX = 100;
+        let currentX = 50;
         roots.forEach(root => {
             const rootWidth = widthMap[root] * HORIZONTAL_SPACING;
             assignCoords(root, currentX, currentX + rootWidth, 0);
-            currentX += rootWidth + HORIZONTAL_SPACING * 2; 
+            currentX += rootWidth + HORIZONTAL_SPACING; 
         });
 
         function assignCoords(u, left, right, depth) {
@@ -559,11 +582,12 @@
             });
         }
 
+        // Ajusta ViewBox
         const minX = Math.min(...nodes.map(n => cargas[n].X)) || 0;
         const maxX = Math.max(...nodes.map(n => cargas[n].X)) || 800;
         const maxY = Math.max(...nodes.map(n => cargas[n].Y)) || 600;
 
-        vBox = { x: minX - 100, y: -20, w: (maxX - minX) + 200, h: Math.max(600, maxY + 100) };
+        vBox = { x: minX - 50, y: -20, w: (maxX - minX) + 100, h: Math.max(600, maxY + 100) };
         svg.setAttribute('viewBox', `${vBox.x} ${vBox.y} ${vBox.w} ${vBox.h}`);
         
         const trs = tblCargas.children;
@@ -571,11 +595,11 @@
             const b = parseInt(trs[i].cells[0].innerText.split(' ')[0]);
             if(cargas[b]){ trs[i].querySelectorAll('input')[2].value = cargas[b].X.toFixed(0); trs[i].querySelectorAll('input')[3].value = cargas[b].Y.toFixed(0); }
         }
-        showToast("Layout hierárquico (Árvore Real) construído!", "success");
+        showToast("Layout hierárquico (Árvore Real) construído com sucesso!", "success");
         btnFluxo.click();
     }
 
-    // --- ALGORITMO GENÉTICO (Com Inteligência de Árvore Geradora Mínima) ---
+    // --- Worker Pool e Algoritmo Genético ---
     function initWorkers(){
         workerPool.forEach(w=>w.terminate()); workerPool=[];
         const num = navigator.hardwareConcurrency||4;
@@ -595,58 +619,15 @@
         if(gaResults.filter(x=>x).length===gaResults.length && gaResolve) gaResolve(gaResults);
     }
     
-    // Função para gerar Redes Radiais Válidas usando Union-Find (Garante 0 multas por Loop/Desconexão)
-    function getSpanningTree(allLines) {
-        const ind = new Array(allLines.length).fill(0);
-        const parent = {};
-        const find = (i) => {
-            if (parent[i] === undefined) return i;
-            if (parent[i] === i) return i;
-            return parent[i] = find(parent[i]);
-        };
-        const union = (i, j) => {
-            const rootI = find(i);
-            const rootJ = find(j);
-            if (rootI !== rootJ) {
-                parent[rootI] = rootJ;
-                return true;
-            }
-            return false;
-        };
-
-        const superSource = 0;
-        getSources().forEach(s => parent[s] = superSource);
-        parent[superSource] = superSource;
-
-        allLines.forEach((l, idx) => {
-            if (!l.isSwitch) {
-                ind[idx] = 1;
-                union(l.de, l.para);
-            }
-        });
-
-        const switchIndices = allLines.map((l, i) => l.isSwitch ? i : -1).filter(i => i !== -1);
-        
-        for (let i = switchIndices.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [switchIndices[i], switchIndices[j]] = [switchIndices[j], switchIndices[i]];
-        }
-
-        switchIndices.forEach(idx => {
-            const l = allLines[idx];
-            if (union(l.de, l.para)) { ind[idx] = 1; } else { ind[idx] = 0; }
-        });
-        return ind;
-    }
-
     async function runGA(){
         initWorkers(); await new Promise(r=>setTimeout(r,100));
-        btnOtimizar.disabled=true; document.getElementById('ga-status').textContent="Otimizando status das Chaves...";
+        btnOtimizar.disabled=true; document.getElementById('ga-status').textContent="Lendo dados para AG...";
         
         const baseLines = getLines();
         const nosAtivos = Object.keys(cargas).map(Number);
         let allLines = [...baseLines];
 
+        // Lógica de Geração Opcional de Chaves
         if(document.getElementById('chkAutoTie').checked) {
             const candidates = [];
             const existing = new Set(baseLines.map(l=>`${l.de}-${l.para}`));
@@ -666,7 +647,7 @@
 
         const indicesChaves = allLines.map((l, idx) => l.isSwitch ? idx : -1).filter(idx => idx !== -1);
 
-        if(indicesChaves.length === 0) { btnOtimizar.disabled = false; return showToast("A rede não possui nenhuma Chave para otimizar.", "error"); }
+        if(indicesChaves.length === 0) { btnOtimizar.disabled = false; return showToast("A rede não possui nenhuma Chave Manobrável para otimizar.", "error"); }
 
         const staticData = {
             allLines, linhaFalhaKeys: [...selLinhaFalha.selectedOptions].map(o=>o.value).filter(v=>v!=='SEM_FALHA'),
@@ -678,31 +659,31 @@
         const maxGen = parseInt(document.getElementById('gaMaxGen').value);
         const mutationRate = parseFloat(document.getElementById('gaMutationRate').value) / 100;
         
-        // População Inicial 100% Radial e Inteligente
-        let population = [];
-        for(let i=0; i<popSize; i++) {
-            population.push(getSpanningTree(allLines));
+        let population = [allLines.map(l => l.isNewTie ? 0 : 1)]; 
+        for(let i=1; i<popSize; i++) {
+            population.push(allLines.map(l => {
+                if(!l.isSwitch) return 1; 
+                if(l.isNewTie) return Math.random() > 0.9 ? 1 : 0; 
+                return Math.random() > 0.1 ? 1 : 0; 
+            }));
         }
 
         let bestSol = null;
         for(let g=0; g<maxGen; g++){
             document.getElementById('ga-progress-bar').style.width = `${(g/maxGen)*100}%`;
-            document.getElementById('ga-status').textContent = `AG (Foco em Perdas): Geração ${g+1} de ${maxGen}`;
+            document.getElementById('ga-status').textContent = `AG: Geração ${g+1} de ${maxGen}`;
             gaResults = new Array(popSize);
             gaQueue = population.map((ind,i)=>({individual:ind, index:i, staticData}));
             workerPool.forEach(w=>{if(!w.busy && gaQueue.length){w.postMessage(gaQueue.shift()); w.busy=true;}});
             await new Promise(r=>gaResolve=r);
 
-            // Rejeita configurações penalizadas
             const valid = gaResults.map((res,i)=>({res, ind:population[i]})).filter(x=> x.res.fitness < 1e14);
             valid.sort((a,b)=>a.res.fitness - b.res.fitness);
 
             if(valid.length > 0){
                 if(!bestSol || valid[0].res.fitness < bestSol.res.fitness){ bestSol = valid[0]; updateDash(bestSol.res); }
-                const newPop = [valid[0].ind]; // Elitismo
-                
-                // Crossover
-                while(newPop.length < Math.floor(popSize * 0.8)){ 
+                const newPop = [valid[0].ind]; 
+                while(newPop.length < popSize){
                     const p1 = valid[Math.floor(Math.random()*Math.min(valid.length, 10))].ind;
                     const p2 = valid[Math.floor(Math.random()*Math.min(valid.length, 10))].ind;
                     const cut = Math.floor(Math.random() * p1.length);
@@ -710,20 +691,14 @@
                     if(Math.random() < mutationRate) { c1[indicesChaves[Math.floor(Math.random() * indicesChaves.length)]] ^= 1; }
                     newPop.push(c1);
                 }
-                // Preenche o resto com novas Árvores Geradoras para manter diversidade sem criar loops
-                while(newPop.length < popSize) {
-                    newPop.push(getSpanningTree(allLines));
-                }
                 population = newPop;
             } else {
-                // Se tudo falhar, reinicia a população inteligentemente
-                population = [];
-                for(let i=0; i<popSize; i++) population.push(getSpanningTree(allLines));
+                population = population.map(ind => allLines.map(l => l.isSwitch ? (Math.random() > 0.5 ? 1 : 0) : 1));
             }
         }
         btnOtimizar.disabled=false; document.getElementById('ga-status').textContent="Otimização Finalizada.";
         if(bestSol) { renderRes(bestSol.res, allLines, bestSol.ind); showToast("Otimização concluída.", "success"); } 
-        else { showToast("Erro crítico de convergência.", "error"); }
+        else { showToast("Erro no AG.", "error"); }
     }
     btnOtimizar.onclick = runGA;
 
@@ -739,12 +714,12 @@
             vMin:0.93, vMax:1.05, maxNALinhas:0, cargas, 
             Sbase:parseFloat(document.getElementById('sbase').value), Vbase_kV:parseFloat(document.getElementById('vbase').value), sourceBuses: getSources()
         };
-        const ind = allLines.map(()=>1); // Tudo Fechado
+        const ind = allLines.map(()=>1); 
         workerPool[0].postMessage({individual:ind, index:0, staticData:sd});
         workerPool[0].onmessage = (e) => {
             updateDash(e.data.result);
             renderRes(e.data.result, allLines, ind);
-            if(e.data.result.data.error) showToast("Rede em Anel. Otimize para resolver.", "warning");
+            if(e.data.result.data.error) showToast("Loops encontrados. Rode a otimização.", "warning");
             else document.getElementById('ga-status').textContent="Fluxo Convergido com Sucesso.";
         };
     };
@@ -753,7 +728,7 @@
         document.getElementById('best-fitness-display').textContent = res.fitness > 1e9 ? "Inválida" : res.fitness.toFixed(1);
         if(res.data){
             if(res.data.error) {
-                document.getElementById('unserved-load-display').textContent = "Erro Topológico";
+                document.getElementById('unserved-load-display').textContent = "Loop Topológico";
                 document.getElementById('losses-display').textContent = "---";
                 document.getElementById('active-switches-display').textContent = "---";
             } else {
@@ -766,7 +741,7 @@
 
     // --- Renderização ---
     function renderRes(res, allLines, bestInd){
-        if(res.data.error) { showToast(`Aviso: ${res.data.error}`, "warning"); }
+        if(res.data.error) { showToast(`Erro Topológico: ${res.data.error}`, "warning"); }
         
         const tb = document.getElementById('tblResRamos').querySelector('tbody');
         tb.innerHTML = '';
@@ -802,7 +777,6 @@
                 if(fluxoRes && fluxoRes.zona === fontesAtuais[0]) col = 'var(--zone-1)';
                 if(fluxoRes && fontesAtuais.length > 1 && fluxoRes.zona === fontesAtuais[1]) col = 'var(--zone-2)';
                 if(fluxoRes && fontesAtuais.length > 2 && fluxoRes.zona === fontesAtuais[2]) col = 'var(--zone-3)';
-                if(fluxoRes && fontesAtuais.length > 3 && fluxoRes.zona === fontesAtuais[3]) col = 'var(--zone-4)';
                 
                 ln.setAttribute('stroke-width', l.isSwitch ? 4 : 3); ln.setAttribute('stroke', col);
                 if(l.isSwitch) ln.setAttribute('stroke-linecap', 'square');
@@ -820,7 +794,6 @@
                 if(busRes.zona === fontesAtuais[0]) stroke='var(--zone-1)';
                 if(fontesAtuais.length > 1 && busRes.zona === fontesAtuais[1]) stroke='var(--zone-2)';
                 if(fontesAtuais.length > 2 && busRes.zona === fontesAtuais[2]) stroke='var(--zone-3)';
-                if(fontesAtuais.length > 3 && busRes.zona === fontesAtuais[3]) stroke='var(--zone-4)';
             }
             cc.setAttribute('fill', 'white'); cc.setAttribute('stroke', stroke); cc.setAttribute('stroke-width', 3);
             g.appendChild(cc);
@@ -868,9 +841,9 @@
         const svgX = vBox.x + (mouseX / svgWrap.clientWidth) * vBox.w;
         const svgY = vBox.y + (mouseY / svgWrap.clientHeight) * vBox.h;
 
-        if (e.deltaY > 0) { // Afastar
+        if (e.deltaY > 0) { // Scroll Down (Afastar/Zoom Out)
             vBox.w *= zoomFactor; vBox.h *= zoomFactor;
-        } else { // Aproximar
+        } else { // Scroll Up (Aproximar/Zoom In)
             vBox.w /= zoomFactor; vBox.h /= zoomFactor;
         }
 
