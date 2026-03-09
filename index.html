@@ -40,7 +40,7 @@
         .btn.primary { background: var(--utfpr-blue-light); color: white; }
         .btn.secondary { background: #e2e8f0; color: var(--text-dark); }
         .btn.success { background: var(--ok); color: white; }
-        .btn.warning { background: var(--zone-2); color: white; }
+        .btn.warning { background: var(--warn); color: #333; }
         .btn.danger { background: var(--bad); color: white; }
         
         .table-scroll { width: 100%; overflow-x: auto; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-light); max-height: 300px; }
@@ -51,7 +51,6 @@
         td input { width: 75px; padding: 4px; border: 1px solid #ddd; border-radius: 4px; } 
         td select { width: 65px; padding: 4px; }
         
-        /* Otimizado para Zoom e Arraste */
         .svg-wrap { width: 100%; height: 650px; position: relative; background: #fafbfc; border: 1px solid var(--border-color); border-radius: 12px; overflow: hidden; cursor: grab; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02); }
         .svg-wrap:active { cursor: grabbing; }
         .legend { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px }
@@ -100,7 +99,7 @@
             <div class="card">
                 <h2>Editor da Rede</h2>
                 <div class="row"> 
-                    <button class="btn primary" id="btnExemplo30">Exemplo 30 Barras (Manual)</button> 
+                    <button class="btn primary" id="btnExemplo30">Exemplo 30 Barras</button> 
                     <button class="btn danger" id="btnGerar">Limpar Rede</button>
                     <button class="btn secondary" id="btnAddBarra">+ Nova Barra</button>
                 </div>
@@ -109,16 +108,21 @@
                     <button class="btn warning" id="btnImportarSelect">Importar (TXT/CSV)</button>
                     <input type="file" id="fileImport" accept=".txt,.csv" style="display: none;" />
                 </div>
+                
+                <div style="margin-bottom: 15px;">
+                    <label>Observações do Cenário</label>
+                    <textarea class="obs-box" placeholder="Ex: Simulação de Verão..."></textarea>
+                </div>
 
                 <div class="row">
                     <div style="flex-grow: 1;">
-                        <label>Barras Fonte / Subestação (Novos IDs após normalização)</label>
+                        <label>Barras Fonte / Subestação (Ex: 1, 26, 51)</label>
                         <input id="inpFontes" type="text" value="1, 11, 21" class="mono" placeholder="Ex: 1"/>
                     </div>
                 </div>
 
                 <div class="row">
-                    <div><label>Nº Barras (Normalizado)</label><input id="numBarras" type="number" value="30" class="mono" readonly style="background:#f0f0f0;"/></div>
+                    <div><label>Nº Barras</label><input id="numBarras" type="number" value="30" class="mono" readonly style="background:#f0f0f0;"/></div>
                     <div><label>Sbase (MVA)</label><input id="sbase" type="number" value="10" class="mono"/></div>
                     <div><label>Vbase (kV)</label><input id="vbase" type="number" value="13.8" class="mono"/></div>
                 </div>
@@ -160,7 +164,7 @@
 
                 <div class="row" style="justify-content:flex-end; margin-top:15px; align-items: center;"> 
                     <label style="margin-right: 15px; display: flex; align-items: center; gap: 5px; cursor: pointer; color: var(--muted-text); font-weight: 500;">
-                        <input type="checkbox" id="chkAutoTie" /> Criar Chaves Virtuais Automáticas (Opcional)
+                        <input type="checkbox" id="chkAutoTie" /> Criar Chaves Virtuais Auto
                     </label>
                     <button class="btn secondary" id="btnFluxo">Executar Fluxo Base</button> 
                     <button class="btn primary" id="btnOtimizar" style="font-size: 14px; padding: 10px 24px;">OTIMIZAR CHAVES</button> 
@@ -201,7 +205,7 @@
     </div>
 
     <script>
-    // --- Configuração Global de Cores ---
+    // Paleta Dinâmica com 10 cores (Acompanha o nº de subestações)
     const zonePalette = ['#2b6cb0', '#dd6b20', '#805ad5', '#e84393', '#00b894', '#00cec9', '#fdcb6e', '#e17055', '#d63031', '#6c5ce7'];
 
     // --- UI Helpers ---
@@ -349,10 +353,10 @@
         });
     }
 
-    // --- EXEMPLO 30 BARRAS (Fiel à versão Original) ---
+    // --- EXEMPLO 30 BARRAS ---
     btnExemplo30.onclick = () => {
         document.getElementById('inpFontes').value = "1, 11, 21";
-        document.getElementById('chkAutoTie').checked = false; // Desliga criação automática de chaves
+        document.getElementById('chkAutoTie').checked = false;
         
         cargas = {}; tblMalha.innerHTML = ''; tblCargas.innerHTML = ''; lineIdCounter = 1;
         
@@ -364,16 +368,15 @@
         gerarTabelaCargas();
 
         const link = (start, count) => {
-            for(let i=0; i<count-1; i++) addLinhaRow({de: start+i, para: start+i+1, R: 0.05, X: 0.1, isSwitch: false}); // Troncos são cabos
+            for(let i=0; i<count-1; i++) addLinhaRow({de: start+i, para: start+i+1, R: 0.05, X: 0.1, isSwitch: false}); 
         };
         link(1, 10); link(11, 10); link(21, 10);
 
-        // Apenas as 3 interligações são marcadas como CHAVE
         addLinhaRow({de: 10, para: 20, R: 0.05, X: 0.1, isSwitch: true});
         addLinhaRow({de: 8, para: 15, R: 0.05, X: 0.1, isSwitch: true});
         addLinhaRow({de: 20, para: 30, R: 0.05, X: 0.1, isSwitch: true});
 
-        showToast("Exemplo de 30 Barras Fiel (Com 3 Chaves) carregado.", "success");
+        showToast("Exemplo de 30 Barras carregado.", "success");
         btnFluxo.click();
     };
 
@@ -397,7 +400,7 @@
 
     btnAddLinha.onclick = () => addLinhaRow();
 
-    // --- IMPORTADOR INTELIGENTE ---
+    // --- IMPORTADOR TXT / CSV (COMPLETO) ---
     document.getElementById('btnExportar').onclick = () => {
         if(getLines().length === 0) { showToast("Não há rede para exportar.", "error"); return; }
         let csv = "TIPO;ID;DE;PARA;R_PU;X_PU;TIPO_EQ\n";
@@ -497,12 +500,12 @@
             showToast("Calculando Layout Hierárquico do Alimentador...", "info");
             aplicarLayoutArvore(); 
         } else {
-            showToast(`Importação e Normalização concluídas: ${nosBrutos.size} barras válidas.`, "success");
+            showToast(`Importação concluída: ${nosBrutos.size} barras válidas.`, "success");
             btnFluxo.click();
         }
     }
 
-    // --- NOVO MOTOR GRÁFICO (Árvore Matemática Exata sem Sobreposição) ---
+    // --- NOVO MOTOR GRÁFICO (Árvore) ---
     function aplicarLayoutArvore() {
         const nodes = Object.keys(cargas).map(Number);
         const edges = getLines();
@@ -518,7 +521,6 @@
         const roots = [];
         fontesAtuais.forEach(f => { if(cargas[f]) { roots.push(f); visited.add(f); depths[f] = 0; } });
 
-        // Busca em Largura (Top-down)
         let q = [...roots];
         while(q.length > 0) {
             const u = q.shift();
@@ -532,7 +534,6 @@
             });
         }
 
-        // Pega ilhas desconectadas
         nodes.forEach(n => {
             if(!visited.has(n)) {
                 roots.push(n); visited.add(n); depths[n] = 0;
@@ -548,7 +549,6 @@
             }
         });
 
-        // Calcula Largura de Subárvore (Bottom-up)
         const widthMap = {};
         function calcWidth(u) {
             if (children[u].length === 0) { widthMap[u] = 1; } 
@@ -557,7 +557,6 @@
         }
         roots.forEach(r => calcWidth(r));
 
-        // Atribuição Matemática Espacial (Pre-order)
         const HORIZONTAL_SPACING = 50; 
         const VERTICAL_SPACING = 80;
 
@@ -579,7 +578,6 @@
             });
         }
 
-        // Ajusta ViewBox
         const minX = Math.min(...nodes.map(n => cargas[n].X)) || 0;
         const maxX = Math.max(...nodes.map(n => cargas[n].X)) || 800;
         const maxY = Math.max(...nodes.map(n => cargas[n].Y)) || 600;
@@ -592,7 +590,7 @@
             const b = parseInt(trs[i].cells[0].innerText.split(' ')[0]);
             if(cargas[b]){ trs[i].querySelectorAll('input')[2].value = cargas[b].X.toFixed(0); trs[i].querySelectorAll('input')[3].value = cargas[b].Y.toFixed(0); }
         }
-        showToast("Layout hierárquico (Árvore Real) construído com sucesso!", "success");
+        showToast("Layout hierárquico (Árvore Real) construído!", "success");
         btnFluxo.click();
     }
 
@@ -624,7 +622,6 @@
         const nosAtivos = Object.keys(cargas).map(Number);
         let allLines = [...baseLines];
 
-        // Lógica de Geração Opcional de Chaves
         if(document.getElementById('chkAutoTie').checked) {
             const candidates = [];
             const existing = new Set(baseLines.map(l=>`${l.de}-${l.para}`));
@@ -644,7 +641,7 @@
 
         const indicesChaves = allLines.map((l, idx) => l.isSwitch ? idx : -1).filter(idx => idx !== -1);
 
-        if(indicesChaves.length === 0) { btnOtimizar.disabled = false; return showToast("A rede não possui nenhuma Chave Manobrável para otimizar.", "error"); }
+        if(indicesChaves.length === 0) { btnOtimizar.disabled = false; return showToast("A rede não possui nenhuma Chave para otimizar.", "error"); }
 
         const staticData = {
             allLines, linhaFalhaKeys: [...selLinhaFalha.selectedOptions].map(o=>o.value).filter(v=>v!=='SEM_FALHA'),
@@ -736,7 +733,7 @@
         }
     }
 
-    // --- Renderização Dinâmica e Legenda ---
+    // --- Renderização e Legenda Dinâmica ---
     function renderRes(res, allLines, bestInd){
         if(res.data.error) { showToast(`Erro Topológico: ${res.data.error}`, "warning"); }
         
@@ -758,20 +755,19 @@
         svg.appendChild(g);
         
         const fontesAtuais = getSources();
-        
-        // Atualiza a legenda com o número exato de subestações detectadas
+
+        // Legenda 100% Dinâmica baseada no Array de Fontes
         const legendDiv = document.getElementById('mapLegend');
         legendDiv.innerHTML = '';
         fontesAtuais.forEach((f, idx) => {
             const cor = zonePalette[idx % zonePalette.length];
-            legendDiv.innerHTML += `<span class="pill" style="border-left: 12px solid ${cor};">Zona Fonte ${f}</span>`;
+            legendDiv.innerHTML += `<span class="pill" style="border-left: 12px solid ${cor};">Zona ${f}</span>`;
         });
         legendDiv.innerHTML += `
             <span class="pill" style="border: 2px dashed #e53e3e; color: #e53e3e;">Chave Aberta (NA)</span>
-            <span class="pill" style="background:var(--bad); color:white; border:none;">Alerta: Sobrecarga/Tensão</span>
+            <span class="pill" style="background:var(--bad); color:white; border:none;">Alerta: Tensão/Corrente</span>
         `;
 
-        // Desenho das Linhas com Cores Dinâmicas
         allLines.forEach((l, i) => {
             const isClosed = bestInd[i] === 1;
             const p1=cargas[l.de], p2=cargas[l.para];
@@ -796,7 +792,6 @@
             }
         });
 
-        // Desenho dos Nós com Cores Dinâmicas
         for(let b in cargas){
             const busRes = res.data.resBarras ? res.data.resBarras.find(x=>x.barra==b) : null;
             const cc = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
@@ -827,7 +822,6 @@
         }
     }
 
-    // --- Controle SVG Pan e Zoom por Mouse Wheel ---
     let isDown=false, startX, startY, vBox={x:-50, y:-20, w:1500, h:800};
     
     svgWrap.onmousedown = (e) => { isDown=true; startX=e.clientX; startY=e.clientY; };
@@ -843,7 +837,6 @@
         startX = e.clientX; startY = e.clientY;
     };
 
-    // Zoom com a rodinha do mouse (Focado no ponteiro)
     svgWrap.addEventListener('wheel', (e) => {
         e.preventDefault();
         const zoomFactor = 1.15;
@@ -853,11 +846,8 @@
         const svgX = vBox.x + (mouseX / svgWrap.clientWidth) * vBox.w;
         const svgY = vBox.y + (mouseY / svgWrap.clientHeight) * vBox.h;
 
-        if (e.deltaY > 0) { // Scroll Down (Afastar/Zoom Out)
-            vBox.w *= zoomFactor; vBox.h *= zoomFactor;
-        } else { // Scroll Up (Aproximar/Zoom In)
-            vBox.w /= zoomFactor; vBox.h /= zoomFactor;
-        }
+        if (e.deltaY > 0) { vBox.w *= zoomFactor; vBox.h *= zoomFactor; } 
+        else { vBox.w /= zoomFactor; vBox.h /= zoomFactor; }
 
         vBox.x = svgX - (mouseX / svgWrap.clientWidth) * vBox.w;
         vBox.y = svgY - (mouseY / svgWrap.clientHeight) * vBox.h;
