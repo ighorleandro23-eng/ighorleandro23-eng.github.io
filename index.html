@@ -130,7 +130,7 @@
                 </div>
 
                 <div class="row">
-                    <div><label>Nº Barras (Real)</label><input id="numBarras" type="number" value="30" class="mono" readonly style="background:#f0f0f0;"/></div>
+                    <div><label>Nº Barras (Normalizado)</label><input id="numBarras" type="number" value="30" class="mono" readonly style="background:#f0f0f0;"/></div>
                     <div><label>Sbase (MVA)</label><input id="sbase" type="number" value="10" class="mono"/></div>
                     <div><label>Vbase (kV)</label><input id="vbase" type="number" value="13.8" class="mono"/></div>
                 </div>
@@ -412,7 +412,6 @@
         };
         link(1, 10); link(11, 10); link(21, 10);
 
-        // Adiciona chaves de interligação (Tie Switches) no exemplo
         addLinhaRow({de: 10, para: 20, R: 0.05, X: 0.1, isSwitch: true});
         addLinhaRow({de: 8, para: 15, R: 0.05, X: 0.1, isSwitch: true});
         addLinhaRow({de: 20, para: 30, R: 0.05, X: 0.1, isSwitch: true});
@@ -421,7 +420,6 @@
         btnFluxo.click();
     };
 
-    // --- Exportar / Importar ---
     document.getElementById('btnExportar').onclick = () => {
         if(getLines().length === 0) { showToast("Não há rede para exportar.", "error"); return; }
         let csv = "TIPO;ID;DE;PARA;R_PU;X_PU;TIPO_EQ\n";
@@ -439,6 +437,7 @@
         showToast("Arquivo exportado com sucesso!", "success");
     };
 
+    // --- NORMALIZADOR DE IMPORTAÇÃO (A SOLUÇÃO DO PROBLEMA) ---
     document.getElementById('btnImportarSelect').onclick = () => document.getElementById('fileImport').click();
     document.getElementById('fileImport').addEventListener('change', function(e) {
         const file = e.target.files[0];
@@ -452,9 +451,12 @@
     function processarArquivoImportado(texto) {
         tblMalha.innerHTML = ''; tblCargas.innerHTML = ''; cargas = {}; lineIdCounter = 1; 
         const linhas = texto.split('\n'); let secao = '';
-        const nosAtivos = new Set();
-        const linhasLidas = [];
+        
+        const nosBrutos = new Set();
+        const linhasBrutas = [];
+        const cargasBrutas = {};
 
+        // 1. Coleta de dados brutos do arquivo
         linhas.forEach(linha => {
             const cols = linha.trim().split(';');
             if (cols.length < 2) return;
@@ -473,8 +475,8 @@
                 }
                 
                 if (de && para && !isNaN(R)) { 
-                    linhasLidas.push({ id: lineIdCounter++, de: de, para: para, R: R, X: X, isSwitch: isSwitch });
-                    nosAtivos.add(de); nosAtivos.add(para);
+                    linhasBrutas.push({ id: lineIdCounter++, de: de, para: para, R: R, X: X, isSwitch: isSwitch });
+                    nosBrutos.add(de); nosBrutos.add(para);
                 }
             } else if (secao === 'BARRA') {
                 const bId = parseInt(cols[0]);
@@ -483,30 +485,55 @@
                     const qVal = cols.length === 6 ? parseFloat(cols[3]) : (parseFloat(cols[6]) || 0);
                     const cx = cols.length === 6 ? parseFloat(cols[4]) : 0;
                     const cy = cols.length === 6 ? parseFloat(cols[5]) : 0;
-                    cargas[bId] = { P: pVal, Q: qVal, X: cx, Y: cy };
-                    nosAtivos.add(bId);
+                    cargasBrutas[bId] = { P: pVal, Q: qVal, X: cx, Y: cy };
+                    nosBrutos.add(bId);
                 }
             }
         });
+
+        // 2. Normalização (Mapeamento de IDs caóticos para 1...N)
+        const mapaIds = {};
+        let novoId = 1;
+        [...nosBrutos].sort((a,b)=>a-b).forEach(oldId => {
+            mapaIds[oldId] = novoId++;
+        });
+
+        // 3. Aplica o mapeamento na rede final
+        elNb.value = nosBrutos.size;
         
-        let minId = Math.min(...nosAtivos);
-        if(!document.getElementById('inpFontes').value) document.getElementById('inpFontes').value = minId !== Infinity ? minId.toString() : "1";
+        // Mapeia a fonte (Menor ID vira o novo ID)
+        let minId = Math.min(...nosBrutos);
+        if(!document.getElementById('inpFontes').value || true) { // Força atualizar para a nova fonte 1
+            document.getElementById('inpFontes').value = mapaIds[minId] ? mapaIds[minId].toString() : "1";
+        }
         
+        const fontesAtuais = getSources();
         let coordsZeradas = true;
         
-        [...nosAtivos].sort((a,b)=>a-b).forEach(b => {
-            if(!cargas[b]) cargas[b] = {P: 0, Q: 0, X: 0, Y: 0};
-            if(cargas[b].X !== 0 || cargas[b].Y !== 0) coordsZeradas = false;
+        [...nosBrutos].sort((a,b)=>a-b).forEach(oldId => {
+            const nId = mapaIds[oldId];
+            if(cargasBrutas[oldId]) {
+                cargas[nId] = cargasBrutas[oldId];
+                if(cargas[nId].X !== 0 || cargas[nId].Y !== 0) coordsZeradas = false;
+            } else {
+                cargas[nId] = {P: 0, Q: 0, X: 0, Y: 0};
+            }
         });
 
         gerarTabelaCargas();
-        linhasLidas.forEach(l => addLinhaRow(l));
+
+        // Mapeia as linhas para os novos IDs
+        linhasBrutas.forEach(l => {
+            l.de = mapaIds[l.de];
+            l.para = mapaIds[l.para];
+            addLinhaRow(l);
+        });
         
-        if(coordsZeradas && nosAtivos.size > 0) {
+        if(coordsZeradas && nosBrutos.size > 0) {
             showToast("Calculando física do layout espacial...", "info");
             aplicarFisicaGrafos();
         } else {
-            showToast(`Importação concluída: ${nosAtivos.size} barras carregadas.`, "success");
+            showToast(`Importação e Normalização concluída: ${nosBrutos.size} barras carregadas.`, "success");
             btnFluxo.click();
         }
     }
@@ -519,7 +546,6 @@
         
         nodes.forEach(n => { cargas[n].X = 400 + (Math.random() - 0.5) * 400; cargas[n].Y = 300 + (Math.random() - 0.5) * 400; });
 
-        // Mola afrouxada para redes compridas como o 135-barras
         const k = Math.sqrt((800 * 500) / nodes.length) * 0.4; 
         const iterations = 200;
         let temp = 50;
@@ -555,7 +581,6 @@
                 cargas[n].X += (disp[n].x / dist) * Math.min(dist, temp);
                 cargas[n].Y += (disp[n].y / dist) * Math.min(dist, temp);
                 
-                // SVG ampliado para redes maiores não esmagarem nas bordas
                 cargas[n].X = Math.max(10, Math.min(1190, cargas[n].X)); 
                 cargas[n].Y = Math.max(10, Math.min(790, cargas[n].Y));
             });
@@ -606,22 +631,18 @@
         const candidates = [];
         const existing = new Set(baseLines.map(l=>`${l.de}-${l.para}`));
         
-        // --- Inteligência de Otimização: Geração de Interligações Virtuais ---
-        // Se a rede for 100% radial (como a 135 barras), o AG precisa de opções para rotear a carga.
         for(let i=0; i<nosAtivos.length; i++){
              for(let j=i+1; j<nosAtivos.length; j++){
                  const n1 = nosAtivos[i], n2 = nosAtivos[j];
                  if(existing.has(`${n1}-${n2}`) || existing.has(`${n2}-${n1}`)) continue;
                  const dist = Math.hypot(cargas[n1].X-cargas[n2].X, cargas[n1].Y-cargas[n2].Y);
                  
-                 // Cria uma "Tie-Switch" candidata se os nós estiverem próximos graficamente
                  if(dist > 0 && dist < 120) { 
                      candidates.push({ id: 9000+candidates.length, de:n1, para:n2, R:0.05, X:0.1, Smax:15, isSwitch:true, isNewTie:true, dist: dist });
                  }
              }
         }
         candidates.sort((a,b)=> a.dist - b.dist);
-        // Pega apenas as 10 melhores conexões para não sobrecarregar o processamento
         const topCandidates = candidates.slice(0, 10); 
         const allLines = [...baseLines, ...topCandidates];
 
@@ -644,11 +665,9 @@
         
         let population = [];
         
-        // --- SEMENTEIRA (Elitismo) ---
-        // Indivíduo Zero: A rede original exata (garante que o AG sempre tenha a solução base de 0 MW desligado)
+        // SEMENTEIRA: Indivíduo Base (Rede original perfeitamente fechada, laços virtuais abertos)
         population.push(allLines.map(l => l.isNewTie ? 0 : 1));
 
-        // Resto da população enviesada
         for(let i=1; i<popSize; i++) {
             population.push(allLines.map(l => {
                 if(!l.isSwitch) return 1; 
@@ -696,7 +715,7 @@
         
         if(bestSol) {
             renderRes(bestSol.res, allLines, bestSol.ind);
-            showToast("Otimização concluída. Chaves ajustadas para radialidade e perdas mínimas.", "success");
+            showToast("Otimização concluída. Chaves ajustadas.", "success");
         } else {
             showToast("AG falhou em encontrar solução radial. Tente aumentar a população.", "error");
         }
@@ -707,7 +726,7 @@
     btnFluxo.onclick = async () => {
         initWorkers(); await new Promise(r=>setTimeout(r,100));
         document.getElementById('ga-status').textContent="Calculando Fluxo de Potência Base...";
-        const allLines = getLines(); // Só pega as linhas reais desenhadas
+        const allLines = getLines(); 
         const nosAtivos = Object.keys(cargas).map(Number);
         
         const sd = {
@@ -715,7 +734,7 @@
             vMin:0.93, vMax:1.05, maxNALinhas:0, cargas, 
             Sbase:parseFloat(document.getElementById('sbase').value), Vbase_kV:parseFloat(document.getElementById('vbase').value), sourceBuses: getSources()
         };
-        const ind = allLines.map(()=>1); // Fluxo base testa a rede toda fechada
+        const ind = allLines.map(()=>1); 
         workerPool[0].postMessage({individual:ind, index:0, staticData:sd});
         workerPool[0].onmessage = (e) => {
             updateDash(e.data.result);
@@ -773,15 +792,13 @@
             ln.setAttribute('x2', p2.X); ln.setAttribute('y2', p2.Y);
             
             if(!isClosed) {
-                // Chave Aberta (Tracejado vermelho)
                 ln.setAttribute('stroke-dasharray', '5,5'); 
                 ln.setAttribute('stroke-width', 3); 
                 ln.setAttribute('stroke', '#e53e3e');
                 g.appendChild(ln);
             } else {
-                // Linha/Chave Fechada
                 const fluxoRes = res.data.resRamos.find(x => x.id === l.id);
-                let col = '#cbd5e1'; // Cinza base
+                let col = '#cbd5e1'; 
                 if(fluxoRes && fluxoRes.zona === fontesAtuais[0]) col = 'var(--zone-1)';
                 if(fluxoRes && fontesAtuais.length > 1 && fluxoRes.zona === fontesAtuais[1]) col = 'var(--zone-2)';
                 if(fluxoRes && fontesAtuais.length > 2 && fluxoRes.zona === fontesAtuais[2]) col = 'var(--zone-3)';
