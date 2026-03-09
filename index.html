@@ -191,7 +191,7 @@
         <div class="card grid-span-all">
             <h2>Resultados e Topologia</h2>
             <div class="svg-wrap" id="svgWrap"> 
-                <svg id="svg" width="100%" height="100%" viewBox="-50 50 900 600" preserveAspectRatio="xMidYMid meet"></svg> 
+                <svg id="svg" width="100%" height="100%" viewBox="-100 -50 1200 800" preserveAspectRatio="xMidYMid meet"></svg> 
             </div>
             <div class="legend"> 
                 <span class="pill" style="border-left: 12px solid var(--zone-1);">Zona Alimentador 1</span>
@@ -333,7 +333,6 @@
             <td><button class="btn danger" style="padding:4px 10px; font-size:11px;">Excluir</button></td>
         `;
         
-        // Estilo dinâmico ao trocar o select de Tipo
         tr.querySelector('.selTipo').addEventListener('change', function() {
             if(this.value === 'CHAVE') { this.style.color = 'var(--utfpr-blue-light)'; this.style.fontWeight = 'bold'; }
             else { this.style.color = 'inherit'; this.style.fontWeight = 'normal'; }
@@ -490,7 +489,6 @@
             }
         });
         
-        // Define fontes baseadas no menor nó se não existir
         let minId = Math.min(...nosAtivos);
         if(!document.getElementById('inpFontes').value) document.getElementById('inpFontes').value = minId !== Infinity ? minId.toString() : "1";
         
@@ -521,7 +519,8 @@
         
         nodes.forEach(n => { cargas[n].X = 400 + (Math.random() - 0.5) * 400; cargas[n].Y = 300 + (Math.random() - 0.5) * 400; });
 
-        const k = Math.sqrt((800 * 500) / nodes.length) * 0.8; 
+        // Mola afrouxada para redes compridas como o 135-barras
+        const k = Math.sqrt((800 * 500) / nodes.length) * 0.4; 
         const iterations = 200;
         let temp = 50;
 
@@ -546,8 +545,7 @@
                 const dx = cargas[e.de].X - cargas[e.para].X;
                 const dy = cargas[e.de].Y - cargas[e.para].Y;
                 let dist = Math.hypot(dx, dy) || 0.01;
-                // Reduz a força das chaves para afastar alimentadores
-                const force = e.isSwitch ? ((dist * dist) / (k * 3)) : ((dist * dist) / k); 
+                const force = ((dist * dist) / k); 
                 disp[e.de].x -= (dx / dist) * force; disp[e.de].y -= (dy / dist) * force;
                 disp[e.para].x += (dx / dist) * force; disp[e.para].y += (dy / dist) * force;
             });
@@ -556,8 +554,10 @@
                 const dist = Math.hypot(disp[n].x, disp[n].y) || 0.01;
                 cargas[n].X += (disp[n].x / dist) * Math.min(dist, temp);
                 cargas[n].Y += (disp[n].y / dist) * Math.min(dist, temp);
-                cargas[n].X = Math.max(20, Math.min(880, cargas[n].X)); 
-                cargas[n].Y = Math.max(20, Math.min(580, cargas[n].Y));
+                
+                // SVG ampliado para redes maiores não esmagarem nas bordas
+                cargas[n].X = Math.max(10, Math.min(1190, cargas[n].X)); 
+                cargas[n].Y = Math.max(10, Math.min(790, cargas[n].Y));
             });
             temp *= 0.95; 
         }
@@ -599,10 +599,32 @@
         initWorkers(); await new Promise(r=>setTimeout(r,100));
         if(!workerPool.length) return showToast("Erro: Worker não inicializado.", "error");
 
-        btnOtimizar.disabled=true; document.getElementById('ga-status').textContent="Otimizando status das Chaves...";
-        const allLines = getLines();
-        const nosAtivos = Object.keys(cargas).map(Number);
+        btnOtimizar.disabled=true; document.getElementById('ga-status').textContent="Gerando Chaves de Interligação...";
         
+        const baseLines = getLines();
+        const nosAtivos = Object.keys(cargas).map(Number);
+        const candidates = [];
+        const existing = new Set(baseLines.map(l=>`${l.de}-${l.para}`));
+        
+        // --- Inteligência de Otimização: Geração de Interligações Virtuais ---
+        // Se a rede for 100% radial (como a 135 barras), o AG precisa de opções para rotear a carga.
+        for(let i=0; i<nosAtivos.length; i++){
+             for(let j=i+1; j<nosAtivos.length; j++){
+                 const n1 = nosAtivos[i], n2 = nosAtivos[j];
+                 if(existing.has(`${n1}-${n2}`) || existing.has(`${n2}-${n1}`)) continue;
+                 const dist = Math.hypot(cargas[n1].X-cargas[n2].X, cargas[n1].Y-cargas[n2].Y);
+                 
+                 // Cria uma "Tie-Switch" candidata se os nós estiverem próximos graficamente
+                 if(dist > 0 && dist < 120) { 
+                     candidates.push({ id: 9000+candidates.length, de:n1, para:n2, R:0.05, X:0.1, Smax:15, isSwitch:true, isNewTie:true, dist: dist });
+                 }
+             }
+        }
+        candidates.sort((a,b)=> a.dist - b.dist);
+        // Pega apenas as 10 melhores conexões para não sobrecarregar o processamento
+        const topCandidates = candidates.slice(0, 10); 
+        const allLines = [...baseLines, ...topCandidates];
+
         const indicesChaves = allLines.map((l, idx) => l.isSwitch ? idx : -1).filter(idx => idx !== -1);
         
         if(indicesChaves.length === 0) {
@@ -621,9 +643,18 @@
         const mutationRate = parseFloat(document.getElementById('gaMutationRate').value) / 100;
         
         let population = [];
-        for(let i=0; i<popSize; i++) {
-            // Inicializa: Cabos fixos em 1, Chaves aleatórias 0 ou 1
-            population.push(allLines.map(l => l.isSwitch ? (Math.random() > 0.5 ? 1 : 0) : 1));
+        
+        // --- SEMENTEIRA (Elitismo) ---
+        // Indivíduo Zero: A rede original exata (garante que o AG sempre tenha a solução base de 0 MW desligado)
+        population.push(allLines.map(l => l.isNewTie ? 0 : 1));
+
+        // Resto da população enviesada
+        for(let i=1; i<popSize; i++) {
+            population.push(allLines.map(l => {
+                if(!l.isSwitch) return 1; 
+                if(l.isNewTie) return Math.random() > 0.9 ? 1 : 0; 
+                return Math.random() > 0.1 ? 1 : 0; 
+            }));
         }
 
         let bestSol = null;
@@ -676,7 +707,7 @@
     btnFluxo.onclick = async () => {
         initWorkers(); await new Promise(r=>setTimeout(r,100));
         document.getElementById('ga-status').textContent="Calculando Fluxo de Potência Base...";
-        const allLines = getLines();
+        const allLines = getLines(); // Só pega as linhas reais desenhadas
         const nosAtivos = Object.keys(cargas).map(Number);
         
         const sd = {
@@ -794,7 +825,7 @@
     }
 
     // --- Controle SVG Pan ---
-    let isDown=false, startX, startY, vBox={x:-50, y:50, w:900, h:600};
+    let isDown=false, startX, startY, vBox={x:-100, y:-50, w:1200, h:800};
     svgWrap.onmousedown = (e) => { isDown=true; startX=e.clientX; startY=e.clientY; };
     svgWrap.onmouseup = () => isDown=false;
     svgWrap.onmouseleave = () => isDown=false;
