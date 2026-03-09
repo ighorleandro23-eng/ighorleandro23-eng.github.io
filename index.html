@@ -52,6 +52,7 @@
         td input { width: 75px; padding: 4px; border: 1px solid #ddd; border-radius: 4px; } 
         td select { width: 65px; padding: 4px; }
         
+        /* Otimizado para Zoom e Arraste */
         .svg-wrap { width: 100%; height: 650px; position: relative; background: #fafbfc; border: 1px solid var(--border-color); border-radius: 12px; overflow: hidden; cursor: grab; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02); }
         .svg-wrap:active { cursor: grabbing; }
         .legend { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px }
@@ -100,7 +101,7 @@
             <div class="card">
                 <h2>Editor da Rede</h2>
                 <div class="row"> 
-                    <button class="btn primary" id="btnExemplo30">Exemplo 30 Barras</button> 
+                    <button class="btn primary" id="btnExemplo30">Exemplo 30 Barras (Manual)</button> 
                     <button class="btn danger" id="btnGerar">Limpar Rede</button>
                     <button class="btn secondary" id="btnAddBarra">+ Nova Barra</button>
                 </div>
@@ -108,11 +109,6 @@
                     <button class="btn success" id="btnExportar">Exportar (CSV)</button>
                     <button class="btn warning" id="btnImportarSelect">Importar (TXT/CSV)</button>
                     <input type="file" id="fileImport" accept=".txt,.csv" style="display: none;" />
-                </div>
-                
-                <div style="margin-bottom: 15px;">
-                    <label>Observações do Cenário</label>
-                    <textarea class="obs-box" placeholder="Ex: Simulação de Verão, falha L5..."></textarea>
                 </div>
 
                 <div class="row">
@@ -163,7 +159,10 @@
                     <div><label>Mutação (%)</label><input id="gaMutationRate" type="number" value="15"/></div>
                 </div>
 
-                <div class="row" style="justify-content:flex-end; margin-top:15px;"> 
+                <div class="row" style="justify-content:flex-end; margin-top:15px; align-items: center;"> 
+                    <label style="margin-right: 15px; display: flex; align-items: center; gap: 5px; cursor: pointer; color: var(--muted-text); font-weight: 500;">
+                        <input type="checkbox" id="chkAutoTie" /> Criar Chaves Virtuais Automáticas (Opcional)
+                    </label>
                     <button class="btn secondary" id="btnFluxo">Executar Fluxo Base</button> 
                     <button class="btn primary" id="btnOtimizar" style="font-size: 14px; padding: 10px 24px;">OTIMIZAR CHAVES</button> 
                 </div>
@@ -182,9 +181,12 @@
         </div>
 
         <div class="card grid-span-all">
-            <h2>Resultados e Topologia</h2>
+            <h2 style="display: flex; justify-content: space-between;">
+                Resultados e Topologia
+                <span style="font-size: 12px; color: var(--muted-text); font-weight: normal;">* Use a rodinha do Mouse (Scroll) para dar Zoom. Clique e Arraste para mover.</span>
+            </h2>
             <div class="svg-wrap" id="svgWrap"> 
-                <svg id="svg" width="100%" height="100%" viewBox="-100 -50 1200 800" preserveAspectRatio="xMidYMid meet"></svg> 
+                <svg id="svg" width="100%" height="100%" viewBox="-50 -20 1500 800" preserveAspectRatio="xMidYMid meet"></svg> 
             </div>
             <div class="legend"> 
                 <span class="pill" style="border-left: 12px solid var(--zone-1);">Zona Alimentador 1</span>
@@ -350,9 +352,11 @@
         });
     }
 
-    // --- EXEMPLO 30 BARRAS (Restaurado e com Liberdade Total para o AG) ---
+    // --- EXEMPLO 30 BARRAS (Fiel à versão Original) ---
     btnExemplo30.onclick = () => {
         document.getElementById('inpFontes').value = "1, 11, 21";
+        document.getElementById('chkAutoTie').checked = false; // Desliga criação automática de chaves
+        
         cargas = {}; tblMalha.innerHTML = ''; tblCargas.innerHTML = ''; lineIdCounter = 1;
         
         const setC = (b,p,q,x,y) => { cargas[b] = {P:p, Q:q, X:x, Y:y}; };
@@ -362,14 +366,17 @@
         
         gerarTabelaCargas();
 
-        // No exemplo 30, definimos TODAS as linhas como "isSwitch: true" para que o AG 
-        // tenha total liberdade de abrir/fechar e achar a melhor topologia como fazia antigamente.
         const link = (start, count) => {
-            for(let i=0; i<count-1; i++) addLinhaRow({de: start+i, para: start+i+1, R: 0.05, X: 0.1, isSwitch: true});
+            for(let i=0; i<count-1; i++) addLinhaRow({de: start+i, para: start+i+1, R: 0.05, X: 0.1, isSwitch: false}); // Troncos são cabos
         };
         link(1, 10); link(11, 10); link(21, 10);
 
-        showToast("Exemplo de 30 Barras (Totalmente Manobrável) carregado.", "success");
+        // Apenas as 3 interligações são marcadas como CHAVE
+        addLinhaRow({de: 10, para: 20, R: 0.05, X: 0.1, isSwitch: true});
+        addLinhaRow({de: 8, para: 15, R: 0.05, X: 0.1, isSwitch: true});
+        addLinhaRow({de: 20, para: 30, R: 0.05, X: 0.1, isSwitch: true});
+
+        showToast("Exemplo de 30 Barras Fiel (Com 3 Chaves) carregado.", "success");
         btnFluxo.click();
     };
 
@@ -393,7 +400,7 @@
 
     btnAddLinha.onclick = () => addLinhaRow();
 
-    // --- IMPORTADOR INTELIGENTE (Corrigido o Bug do Nó Zero) ---
+    // --- IMPORTADOR INTELIGENTE ---
     document.getElementById('btnExportar').onclick = () => {
         if(getLines().length === 0) { showToast("Não há rede para exportar.", "error"); return; }
         let csv = "TIPO;ID;DE;PARA;R_PU;X_PU;TIPO_EQ\n";
@@ -429,7 +436,6 @@
         const linhasBrutas = [];
         const cargasBrutas = {};
 
-        // 1. Extração Segura: o !== undefined garante que o Nó 0 da subestação não seja ignorado
         linhas.forEach(linha => {
             const cols = linha.trim().split(';');
             if (cols.length < 2) return;
@@ -463,7 +469,6 @@
             }
         });
 
-        // 2. Normalização de IDs (Remove buracos e mapeia de 1 a N)
         const mapaIds = {};
         let novoId = 1;
         [...nosBrutos].sort((a,b)=>a-b).forEach(oldId => { mapaIds[oldId] = novoId++; });
@@ -493,93 +498,96 @@
         
         if(coordsZeradas && nosBrutos.size > 0) {
             showToast("Calculando Layout Hierárquico do Alimentador...", "info");
-            aplicarLayoutArvore(); // Dispara o novo motor gráfico
+            aplicarLayoutArvore(); 
         } else {
             showToast(`Importação e Normalização concluídas: ${nosBrutos.size} barras válidas.`, "success");
             btnFluxo.click();
         }
     }
 
-    // --- NOVO MOTOR GRÁFICO (Layout de Árvore em Cascata) ---
+    // --- NOVO MOTOR GRÁFICO (Árvore Matemática Exata sem Sobreposição) ---
     function aplicarLayoutArvore() {
         const nodes = Object.keys(cargas).map(Number);
         const edges = getLines();
         const fontesAtuais = getSources();
         
-        // Constrói lista de adjacência para navegar
         const adj = {}; nodes.forEach(n => adj[n] = []);
         edges.forEach(e => { adj[e.de].push(e.para); adj[e.para].push(e.de); });
         
-        const nivel = {}; const q = [];
+        const children = {}; nodes.forEach(n => children[n] = []);
+        const visited = new Set();
+        const depths = {};
         
-        fontesAtuais.forEach(f => { if(adj[f]) { nivel[f] = 0; q.push(f); } });
-        if(q.length === 0 && nodes.length > 0) { const f = Math.min(...nodes); nivel[f] = 0; q.push(f); }
+        const roots = [];
+        fontesAtuais.forEach(f => { if(cargas[f]) { roots.push(f); visited.add(f); depths[f] = 0; } });
 
-        // BFS para determinar a "profundidade" (nível) de cada barra a partir da subestação
+        // Busca em Largura (Top-down)
+        let q = [...roots];
         while(q.length > 0) {
             const u = q.shift();
-            adj[u].forEach(v => {
-                if(nivel[v] === undefined) { nivel[v] = nivel[u] + 1; q.push(v); }
+            adj[u].sort((a,b)=>a-b).forEach(v => {
+                if(!visited.has(v)) {
+                    visited.add(v);
+                    children[u].push(v);
+                    depths[v] = depths[u] + 1;
+                    q.push(v);
+                }
             });
         }
 
-        const nodesPorNivel = {}; let maxNivel = 0;
+        // Pega ilhas desconectadas
         nodes.forEach(n => {
-            const lvl = nivel[n] !== undefined ? nivel[n] : 0;
-            if(!nodesPorNivel[lvl]) nodesPorNivel[lvl] = [];
-            nodesPorNivel[lvl].push(n);
-            if(lvl > maxNivel) maxNivel = lvl;
-        });
-
-        // Organiza as barras na horizontal baseada na quantidade de nós do mesmo nível
-        const width = 1400; 
-        for(let lvl = 0; lvl <= maxNivel; lvl++) {
-            const fila = nodesPorNivel[lvl];
-            if(!fila) continue;
-            const espacoX = Math.min(100, width / (fila.length + 1)); 
-            const startX = (width - (fila.length - 1) * espacoX) / 2;
-            
-            fila.forEach((n, idx) => {
-                cargas[n].X = startX + idx * espacoX;
-                cargas[n].Y = 80 + lvl * 70; // Cada nível desce 70px
-            });
-        }
-        
-        // Dá um relaxamento físico apenas no eixo X para afastar galhos que se sobrepõem
-        const k = 70; let temp = 40;
-        for (let i = 0; i < 100; i++) {
-            const dispX = {}; nodes.forEach(n => dispX[n] = 0);
-            
-            for (let u = 0; u < nodes.length; u++) {
-                for (let v = u + 1; v < nodes.length; v++) {
-                    const n1 = nodes[u], n2 = nodes[v];
-                    if (nivel[n1] !== nivel[n2]) continue; // Só repele quem tá no mesmo nível
-                    const dx = cargas[n1].X - cargas[n2].X;
-                    let dist = Math.abs(dx) || 0.1;
-                    const force = (k * k) / dist;
-                    dispX[n1] += (dx / dist) * force; dispX[n2] -= (dx / dist) * force;
+            if(!visited.has(n)) {
+                roots.push(n); visited.add(n); depths[n] = 0;
+                let subQ = [n];
+                while(subQ.length > 0) {
+                    const u = subQ.shift();
+                    adj[u].sort((a,b)=>a-b).forEach(v => {
+                        if(!visited.has(v)) {
+                            visited.add(v); children[u].push(v); depths[v] = depths[u] + 1; subQ.push(v);
+                        }
+                    });
                 }
             }
-            edges.forEach(e => {
-                if(!cargas[e.de] || !cargas[e.para]) return;
-                const dx = cargas[e.de].X - cargas[e.para].X;
-                let dist = Math.abs(dx) || 0.1;
-                const force = (dist * dist) / (k * 2);
-                dispX[e.de] -= (dx / dist) * force; dispX[e.para] += (dx / dist) * force;
-            });
+        });
 
-            nodes.forEach(n => {
-                cargas[n].X += Math.sign(dispX[n]) * Math.min(Math.abs(dispX[n]), temp);
-                cargas[n].X = Math.max(50, Math.min(1350, cargas[n].X)); 
+        // Calcula Largura de Subárvore (Bottom-up)
+        const widthMap = {};
+        function calcWidth(u) {
+            if (children[u].length === 0) { widthMap[u] = 1; } 
+            else { widthMap[u] = children[u].reduce((sum, v) => sum + calcWidth(v), 0); }
+            return widthMap[u];
+        }
+        roots.forEach(r => calcWidth(r));
+
+        // Atribuição Matemática Espacial (Pre-order)
+        const HORIZONTAL_SPACING = 50; 
+        const VERTICAL_SPACING = 80;
+
+        let currentX = 50;
+        roots.forEach(root => {
+            const rootWidth = widthMap[root] * HORIZONTAL_SPACING;
+            assignCoords(root, currentX, currentX + rootWidth, 0);
+            currentX += rootWidth + HORIZONTAL_SPACING; 
+        });
+
+        function assignCoords(u, left, right, depth) {
+            cargas[u].X = (left + right) / 2;
+            cargas[u].Y = 50 + depth * VERTICAL_SPACING;
+            let childLeft = left;
+            children[u].forEach(v => {
+                const childWidth = (widthMap[v] / widthMap[u]) * (right - left);
+                assignCoords(v, childLeft, childLeft + childWidth, depth + 1);
+                childLeft += childWidth;
             });
-            temp *= 0.9; 
         }
 
-        // Subestação sempre centralizada
-        fontesAtuais.forEach((s) => { if(cargas[s]) cargas[s].X = width / 2; });
+        // Ajusta ViewBox
+        const minX = Math.min(...nodes.map(n => cargas[n].X)) || 0;
+        const maxX = Math.max(...nodes.map(n => cargas[n].X)) || 800;
+        const maxY = Math.max(...nodes.map(n => cargas[n].Y)) || 600;
 
-        const maxAltura = 100 + maxNivel * 70 + 100;
-        vBox = { x: -50, y: -20, w: 1500, h: Math.max(800, maxAltura) };
+        vBox = { x: minX - 50, y: -20, w: (maxX - minX) + 100, h: Math.max(600, maxY + 100) };
         svg.setAttribute('viewBox', `${vBox.x} ${vBox.y} ${vBox.w} ${vBox.h}`);
         
         const trs = tblCargas.children;
@@ -587,7 +595,7 @@
             const b = parseInt(trs[i].cells[0].innerText.split(' ')[0]);
             if(cargas[b]){ trs[i].querySelectorAll('input')[2].value = cargas[b].X.toFixed(0); trs[i].querySelectorAll('input')[3].value = cargas[b].Y.toFixed(0); }
         }
-        showToast("Layout hierárquico construído perfeitamente!", "success");
+        showToast("Layout hierárquico (Árvore Real) construído com sucesso!", "success");
         btnFluxo.click();
     }
 
@@ -617,25 +625,29 @@
         
         const baseLines = getLines();
         const nosAtivos = Object.keys(cargas).map(Number);
-        const candidates = [];
-        const existing = new Set(baseLines.map(l=>`${l.de}-${l.para}`));
-        
-        // Gera Tie Switches virtuais. Limite aumentado para 160px para captar entre alimentadores do 30-barras
-        for(let i=0; i<nosAtivos.length; i++){
-             for(let j=i+1; j<nosAtivos.length; j++){
-                 const n1 = nosAtivos[i], n2 = nosAtivos[j];
-                 if(existing.has(`${n1}-${n2}`) || existing.has(`${n2}-${n1}`)) continue;
-                 const dist = Math.hypot(cargas[n1].X-cargas[n2].X, cargas[n1].Y-cargas[n2].Y);
-                 if(dist > 0 && dist < 160) { 
-                     candidates.push({ id: 9000+candidates.length, de:n1, para:n2, R:0.05, X:0.1, Smax:15, isSwitch:true, isNewTie:true, dist: dist });
-                 }
-             }
+        let allLines = [...baseLines];
+
+        // Lógica de Geração Opcional de Chaves
+        if(document.getElementById('chkAutoTie').checked) {
+            const candidates = [];
+            const existing = new Set(baseLines.map(l=>`${l.de}-${l.para}`));
+            for(let i=0; i<nosAtivos.length; i++){
+                for(let j=i+1; j<nosAtivos.length; j++){
+                    const n1 = nosAtivos[i], n2 = nosAtivos[j];
+                    if(existing.has(`${n1}-${n2}`) || existing.has(`${n2}-${n1}`)) continue;
+                    const dist = Math.hypot(cargas[n1].X-cargas[n2].X, cargas[n1].Y-cargas[n2].Y);
+                    if(dist > 0 && dist < 160) { 
+                        candidates.push({ id: 9000+candidates.length, de:n1, para:n2, R:0.05, X:0.1, Smax:15, isSwitch:true, isNewTie:true, dist: dist });
+                    }
+                }
+            }
+            candidates.sort((a,b)=> a.dist - b.dist);
+            allLines = [...baseLines, ...candidates.slice(0, 10)];
         }
-        candidates.sort((a,b)=> a.dist - b.dist);
-        const allLines = [...baseLines, ...candidates.slice(0, 10)];
+
         const indicesChaves = allLines.map((l, idx) => l.isSwitch ? idx : -1).filter(idx => idx !== -1);
 
-        if(indicesChaves.length === 0) { btnOtimizar.disabled = false; return showToast("Nenhuma chave mapeada.", "error"); }
+        if(indicesChaves.length === 0) { btnOtimizar.disabled = false; return showToast("A rede não possui nenhuma Chave Manobrável para otimizar.", "error"); }
 
         const staticData = {
             allLines, linhaFalhaKeys: [...selLinhaFalha.selectedOptions].map(o=>o.value).filter(v=>v!=='SEM_FALHA'),
@@ -803,17 +815,42 @@
         }
     }
 
+    // --- Controle SVG Pan e Zoom por Mouse Wheel ---
     let isDown=false, startX, startY, vBox={x:-50, y:-20, w:1500, h:800};
+    
     svgWrap.onmousedown = (e) => { isDown=true; startX=e.clientX; startY=e.clientY; };
     svgWrap.onmouseup = () => isDown=false;
     svgWrap.onmouseleave = () => isDown=false;
     svgWrap.onmousemove = (e) => {
         if(!isDown) return;
         e.preventDefault();
-        vBox.x += (startX - e.clientX); vBox.y += (startY - e.clientY);
+        const dx = (startX - e.clientX) * (vBox.w / svgWrap.clientWidth);
+        const dy = (startY - e.clientY) * (vBox.h / svgWrap.clientHeight);
+        vBox.x += dx; vBox.y += dy;
         svg.setAttribute('viewBox', `${vBox.x} ${vBox.y} ${vBox.w} ${vBox.h}`);
         startX = e.clientX; startY = e.clientY;
     };
+
+    // Zoom com a rodinha do mouse (Focado no ponteiro)
+    svgWrap.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        const zoomFactor = 1.15;
+        const mouseX = e.offsetX;
+        const mouseY = e.offsetY;
+
+        const svgX = vBox.x + (mouseX / svgWrap.clientWidth) * vBox.w;
+        const svgY = vBox.y + (mouseY / svgWrap.clientHeight) * vBox.h;
+
+        if (e.deltaY > 0) { // Scroll Down (Afastar/Zoom Out)
+            vBox.w *= zoomFactor; vBox.h *= zoomFactor;
+        } else { // Scroll Up (Aproximar/Zoom In)
+            vBox.w /= zoomFactor; vBox.h /= zoomFactor;
+        }
+
+        vBox.x = svgX - (mouseX / svgWrap.clientWidth) * vBox.w;
+        vBox.y = svgY - (mouseY / svgWrap.clientHeight) * vBox.h;
+        svg.setAttribute('viewBox', `${vBox.x} ${vBox.y} ${vBox.w} ${vBox.h}`);
+    });
 
     btnExemplo30.click();
     </script>
