@@ -26,7 +26,6 @@
         .main-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 20px; padding: 20px; max-width: 1600px; margin: 0 auto; }
         .grid-span-all { grid-column: 1 / -1; }
         
-        /* Cards */
         .card { background: var(--bg-light); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
         .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 12px; }
         label { font-size: 12px; color: var(--muted-text); display: block; margin-bottom: 4px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;}
@@ -36,7 +35,6 @@
         select[multiple] { height: auto; min-height: 80px; }
         textarea.obs-box { width: 100%; height: 80px; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; resize: vertical; background: var(--utfpr-gray-light); }
         
-        /* Buttons */
         .btn { padding: 10px 16px; border-radius: 6px; border: none; font-weight: 600; cursor: pointer; transition: all 0.2s ease; display: inline-flex; align-items: center; justify-content: center; }
         .btn:hover { transform: translateY(-1px); box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         .btn:active { transform: translateY(0); }
@@ -46,7 +44,6 @@
         .btn.warning { background: var(--zone-2); color: white; }
         .btn.danger { background: var(--bad); color: white; }
         
-        /* Professional Tables */
         .table-scroll { width: 100%; overflow-x: auto; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-light); max-height: 300px; }
         table { width: 100%; border-collapse: separate; border-spacing: 0; min-width: 600px; }
         th, td { padding: 8px 12px; border-bottom: 1px solid var(--border-color); text-align: left; font-size: 13px; vertical-align: middle; }
@@ -55,20 +52,17 @@
         td input { width: 75px; padding: 4px; border: 1px solid #ddd; border-radius: 4px; } 
         td select { width: 65px; padding: 4px; }
         
-        /* SVG Area */
-        .svg-wrap { width: 100%; height: 600px; position: relative; background: #fafbfc; border: 1px solid var(--border-color); border-radius: 12px; overflow: hidden; cursor: grab; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02); }
+        .svg-wrap { width: 100%; height: 650px; position: relative; background: #fafbfc; border: 1px solid var(--border-color); border-radius: 12px; overflow: hidden; cursor: grab; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02); }
         .svg-wrap:active { cursor: grabbing; }
         .legend { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px }
         .pill { display: inline-flex; align-items: center; background: #fff; padding: 6px 12px; border-radius: 99px; font-size: 11px; font-weight: 600; border: 1px solid var(--border-color); box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
         
-        /* Dashboard Stats */
         .ga-dashboard { background: #f8fafc; border-radius: 8px; padding: 15px; border: 1px solid var(--border-color); margin-top: 15px; }
         .ga-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; }
         .stat-item { background: white; padding: 12px; border-radius: 6px; border-left: 4px solid var(--utfpr-blue-light); box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
         .stat-item .value { font-size: 18px; font-weight: 700; color: var(--utfpr-blue-dark); margin-top: 4px; }
         #ga-progress-bar { width: 0%; height: 8px; background: var(--utfpr-blue-light); border-radius: 4px; margin-bottom: 10px; transition: width 0.3s ease; }
         
-        /* Modals & Toasts */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(2px); }
         .modal-box { background: white; padding: 24px; border-radius: 12px; max-width: 400px; width: 90%; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
         .modal-title { font-size: 18px; color: var(--utfpr-blue-dark); margin-bottom: 10px; font-weight: 600; }
@@ -356,7 +350,67 @@
         });
     }
 
-    // --- IMPORTADOR INTELIGENTE (Resolve o BUG de nós faltantes) ---
+    // --- EXEMPLO 30 BARRAS (Restaurado e com Liberdade Total para o AG) ---
+    btnExemplo30.onclick = () => {
+        document.getElementById('inpFontes').value = "1, 11, 21";
+        cargas = {}; tblMalha.innerHTML = ''; tblCargas.innerHTML = ''; lineIdCounter = 1;
+        
+        const setC = (b,p,q,x,y) => { cargas[b] = {P:p, Q:q, X:x, Y:y}; };
+        setC(1, 0,0, 100, 200); for(let i=2;i<=10;i++) setC(i, 0.5,0.1, 100+(i-1)*60, 200 + (i%2===0?20:-20));
+        setC(11,0,0, 100, 350); for(let i=12;i<=20;i++) setC(i, 0.6,0.2, 100+(i-11)*60, 350 + (i%2===0?20:-20));
+        setC(21,0,0, 100, 500); for(let i=22;i<=30;i++) setC(i, 0.4,0.1, 100+(i-21)*60, 500 + (i%2===0?20:-20));
+        
+        gerarTabelaCargas();
+
+        // No exemplo 30, definimos TODAS as linhas como "isSwitch: true" para que o AG 
+        // tenha total liberdade de abrir/fechar e achar a melhor topologia como fazia antigamente.
+        const link = (start, count) => {
+            for(let i=0; i<count-1; i++) addLinhaRow({de: start+i, para: start+i+1, R: 0.05, X: 0.1, isSwitch: true});
+        };
+        link(1, 10); link(11, 10); link(21, 10);
+
+        showToast("Exemplo de 30 Barras (Totalmente Manobrável) carregado.", "success");
+        btnFluxo.click();
+    };
+
+    // --- Botões Básicos ---
+    btnGerar.onclick = () => {
+        showConfirm("Limpar Rede", "Isso apagará todas as barras e linhas cadastradas. Deseja continuar?", () => {
+            cargas = {}; tblMalha.innerHTML = ''; tblCargas.innerHTML = ''; elNb.value = 0; lineIdCounter = 1; updateSelects(); 
+            showToast("Rede resetada.", "success");
+        });
+    };
+
+    btnAddBarra.onclick = () => {
+        const nos = Object.keys(cargas).map(Number);
+        const n = nos.length > 0 ? Math.max(...nos) + 1 : 1;
+        cargas[n] = {P:0, Q:0, X:400, Y:300};
+        gerarTabelaCargas();
+        [...tblMalha.querySelectorAll('select.selDe, select.selPara')].forEach(s => {
+            const opt = document.createElement('option'); opt.value = n; opt.textContent = n; s.appendChild(opt);
+        });
+    };
+
+    btnAddLinha.onclick = () => addLinhaRow();
+
+    // --- IMPORTADOR INTELIGENTE (Corrigido o Bug do Nó Zero) ---
+    document.getElementById('btnExportar').onclick = () => {
+        if(getLines().length === 0) { showToast("Não há rede para exportar.", "error"); return; }
+        let csv = "TIPO;ID;DE;PARA;R_PU;X_PU;TIPO_EQ\n";
+        getLines().forEach(l => csv += `LINHA;${l.id};${l.de};${l.para};${l.R};${l.X};${l.isSwitch ? 'CS' : 'CABO'}\n`);
+        csv += "TIPO;BARRA;P_MW;Q_MVAR;COORD_X;COORD_Y\n";
+        for(let b in cargas) csv += `BARRA;${b};${cargas[b].P};${cargas[b].Q};${cargas[b].X};${cargas[b].Y}\n`;
+        
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = "topologia_rede.csv";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        showToast("Arquivo exportado com sucesso!", "success");
+    };
+
     document.getElementById('btnImportarSelect').onclick = () => document.getElementById('fileImport').click();
     document.getElementById('fileImport').addEventListener('change', function(e) {
         const file = e.target.files[0];
@@ -375,7 +429,7 @@
         const linhasBrutas = [];
         const cargasBrutas = {};
 
-        // 1. Extração segura sem ignorar o '0'
+        // 1. Extração Segura: o !== undefined garante que o Nó 0 da subestação não seja ignorado
         linhas.forEach(linha => {
             const cols = linha.trim().split(';');
             if (cols.length < 2) return;
@@ -392,14 +446,13 @@
                     if(cols[1] === 'CS') isSwitch = true;
                 }
                 
-                // A correção vital: verifica != undefined, pois de=0 não pode ser ignorado
                 if (de !== undefined && !isNaN(de) && para !== undefined && !isNaN(para) && !isNaN(R)) { 
                     linhasBrutas.push({ id: lineIdCounter++, de: de, para: para, R: R, X: X, isSwitch: isSwitch });
                     nosBrutos.add(de); nosBrutos.add(para);
                 }
             } else if (secao === 'BARRA') {
                 const bId = parseInt(cols[0]);
-                if (!isNaN(bId) && cols.length > 5) {
+                if (bId !== undefined && !isNaN(bId) && cols.length > 5) {
                     const pVal = cols.length === 6 ? parseFloat(cols[2]) : (parseFloat(cols[4]) || 0);
                     const qVal = cols.length === 6 ? parseFloat(cols[3]) : (parseFloat(cols[6]) || 0);
                     const cx = cols.length === 6 ? parseFloat(cols[4]) : 0;
@@ -410,18 +463,16 @@
             }
         });
 
-        // 2. Normalização contígua (Ex: Pula de 1, 150, 561 para 1, 2, 3...)
+        // 2. Normalização de IDs (Remove buracos e mapeia de 1 a N)
         const mapaIds = {};
         let novoId = 1;
         [...nosBrutos].sort((a,b)=>a-b).forEach(oldId => { mapaIds[oldId] = novoId++; });
 
         elNb.value = nosBrutos.size;
-        
-        let minId = Math.min(...nosBrutos); // Provavelmente o zero da subestação
+        let minId = Math.min(...nosBrutos);
         document.getElementById('inpFontes').value = mapaIds[minId] ? mapaIds[minId].toString() : "1";
         
         let coordsZeradas = true;
-        
         [...nosBrutos].sort((a,b)=>a-b).forEach(oldId => {
             const nId = mapaIds[oldId];
             if(cargasBrutas[oldId]) {
@@ -442,19 +493,20 @@
         
         if(coordsZeradas && nosBrutos.size > 0) {
             showToast("Calculando Layout Hierárquico do Alimentador...", "info");
-            aplicarLayoutArvore();
+            aplicarLayoutArvore(); // Dispara o novo motor gráfico
         } else {
             showToast(`Importação e Normalização concluídas: ${nosBrutos.size} barras válidas.`, "success");
             btnFluxo.click();
         }
     }
 
-    // --- O NOVO LAYOUT (Árvore Hierárquica para Sistemas de Distribuição) ---
+    // --- NOVO MOTOR GRÁFICO (Layout de Árvore em Cascata) ---
     function aplicarLayoutArvore() {
         const nodes = Object.keys(cargas).map(Number);
         const edges = getLines();
         const fontesAtuais = getSources();
         
+        // Constrói lista de adjacência para navegar
         const adj = {}; nodes.forEach(n => adj[n] = []);
         edges.forEach(e => { adj[e.de].push(e.para); adj[e.para].push(e.de); });
         
@@ -463,7 +515,7 @@
         fontesAtuais.forEach(f => { if(adj[f]) { nivel[f] = 0; q.push(f); } });
         if(q.length === 0 && nodes.length > 0) { const f = Math.min(...nodes); nivel[f] = 0; q.push(f); }
 
-        // Mapeamento em Cascata (Níveis da árvore)
+        // BFS para determinar a "profundidade" (nível) de cada barra a partir da subestação
         while(q.length > 0) {
             const u = q.shift();
             adj[u].forEach(v => {
@@ -479,37 +531,35 @@
             if(lvl > maxNivel) maxNivel = lvl;
         });
 
-        const width = 1400; // Largura ampliada
+        // Organiza as barras na horizontal baseada na quantidade de nós do mesmo nível
+        const width = 1400; 
         for(let lvl = 0; lvl <= maxNivel; lvl++) {
             const fila = nodesPorNivel[lvl];
             if(!fila) continue;
-            // Distribui os nós simetricamente na horizontal dependendo de quantos estão no mesmo nível
             const espacoX = Math.min(100, width / (fila.length + 1)); 
             const startX = (width - (fila.length - 1) * espacoX) / 2;
             
             fila.forEach((n, idx) => {
                 cargas[n].X = startX + idx * espacoX;
-                cargas[n].Y = 80 + lvl * 70; // Desce 70px por nível
+                cargas[n].Y = 80 + lvl * 70; // Cada nível desce 70px
             });
         }
         
-        // Relaxamento Físico Horizontal Rápido (Apenas para evitar sobreposição de galhos laterais)
+        // Dá um relaxamento físico apenas no eixo X para afastar galhos que se sobrepõem
         const k = 70; let temp = 40;
         for (let i = 0; i < 100; i++) {
             const dispX = {}; nodes.forEach(n => dispX[n] = 0);
             
-            // Força Repulsiva (Eixo X)
             for (let u = 0; u < nodes.length; u++) {
                 for (let v = u + 1; v < nodes.length; v++) {
                     const n1 = nodes[u], n2 = nodes[v];
-                    if (nivel[n1] !== nivel[n2]) continue;
+                    if (nivel[n1] !== nivel[n2]) continue; // Só repele quem tá no mesmo nível
                     const dx = cargas[n1].X - cargas[n2].X;
                     let dist = Math.abs(dx) || 0.1;
                     const force = (k * k) / dist;
                     dispX[n1] += (dx / dist) * force; dispX[n2] -= (dx / dist) * force;
                 }
             }
-            // Força Atrativa (Cabos conectando pai e filho)
             edges.forEach(e => {
                 if(!cargas[e.de] || !cargas[e.para]) return;
                 const dx = cargas[e.de].X - cargas[e.para].X;
@@ -520,20 +570,18 @@
 
             nodes.forEach(n => {
                 cargas[n].X += Math.sign(dispX[n]) * Math.min(Math.abs(dispX[n]), temp);
-                cargas[n].X = Math.max(50, Math.min(1350, cargas[n].X)); // Limites SVG
+                cargas[n].X = Math.max(50, Math.min(1350, cargas[n].X)); 
             });
             temp *= 0.9; 
         }
 
-        // Centraliza a Subestação exatamente no meio
+        // Subestação sempre centralizada
         fontesAtuais.forEach((s) => { if(cargas[s]) cargas[s].X = width / 2; });
 
-        // Dinamicamente abre espaço na tela
         const maxAltura = 100 + maxNivel * 70 + 100;
         vBox = { x: -50, y: -20, w: 1500, h: Math.max(800, maxAltura) };
         svg.setAttribute('viewBox', `${vBox.x} ${vBox.y} ${vBox.w} ${vBox.h}`);
         
-        // Salva na tabela
         const trs = tblCargas.children;
         for(let i=0; i<trs.length; i++) {
             const b = parseInt(trs[i].cells[0].innerText.split(' ')[0]);
@@ -543,7 +591,7 @@
         btnFluxo.click();
     }
 
-    // --- Worker Pool e Botões Comuns ---
+    // --- Worker Pool e Algoritmo Genético ---
     function initWorkers(){
         workerPool.forEach(w=>w.terminate()); workerPool=[];
         const num = navigator.hardwareConcurrency||4;
@@ -562,12 +610,7 @@
         if(gaQueue.length){ e.target.postMessage(gaQueue.shift()); e.target.busy=true; }
         if(gaResults.filter(x=>x).length===gaResults.length && gaResolve) gaResolve(gaResults);
     }
-
-    btnGerar.onclick = () => { showConfirm("Limpar", "Limpar a rede?", () => { window.location.reload(); }); };
-    btnAddBarra.onclick = () => { const n=getNb()+1; cargas[n]={P:0, Q:0, X:400, Y:300}; gerarTabelaCargas(); [...tblMalha.querySelectorAll('select')].forEach(s=>{ const o=document.createElement('option'); o.value=n; o.textContent=n; s.appendChild(o); }); };
-    btnAddLinha.onclick = () => addLinhaRow();
     
-    // --- Otimização ---
     async function runGA(){
         initWorkers(); await new Promise(r=>setTimeout(r,100));
         btnOtimizar.disabled=true; document.getElementById('ga-status').textContent="Lendo dados para AG...";
@@ -577,13 +620,13 @@
         const candidates = [];
         const existing = new Set(baseLines.map(l=>`${l.de}-${l.para}`));
         
-        // Gera Tie Switches virtuais (importante para sistemas que vem 100% fechados do txt)
+        // Gera Tie Switches virtuais. Limite aumentado para 160px para captar entre alimentadores do 30-barras
         for(let i=0; i<nosAtivos.length; i++){
              for(let j=i+1; j<nosAtivos.length; j++){
                  const n1 = nosAtivos[i], n2 = nosAtivos[j];
                  if(existing.has(`${n1}-${n2}`) || existing.has(`${n2}-${n1}`)) continue;
                  const dist = Math.hypot(cargas[n1].X-cargas[n2].X, cargas[n1].Y-cargas[n2].Y);
-                 if(dist > 0 && dist < 120) { 
+                 if(dist > 0 && dist < 160) { 
                      candidates.push({ id: 9000+candidates.length, de:n1, para:n2, R:0.05, X:0.1, Smax:15, isSwitch:true, isNewTie:true, dist: dist });
                  }
              }
@@ -604,7 +647,7 @@
         const maxGen = parseInt(document.getElementById('gaMaxGen').value);
         const mutationRate = parseFloat(document.getElementById('gaMutationRate').value) / 100;
         
-        let population = [allLines.map(l => l.isNewTie ? 0 : 1)]; // Semente Original Segura
+        let population = [allLines.map(l => l.isNewTie ? 0 : 1)]; 
         for(let i=1; i<popSize; i++) {
             population.push(allLines.map(l => {
                 if(!l.isSwitch) return 1; 
@@ -684,7 +727,7 @@
         }
     }
 
-    // --- Render ---
+    // --- Renderização ---
     function renderRes(res, allLines, bestInd){
         if(res.data.error) { showToast(`Erro Topológico: ${res.data.error}`, "warning"); }
         
@@ -692,7 +735,7 @@
         tb.innerHTML = '';
         res.data.resRamos.forEach(r => {
             const l_ref = allLines.find(x => x.id === r.id);
-            const tipo = l_ref && l_ref.isSwitch ? 'Chave (Fechada)' : 'Cabo';
+            const tipo = l_ref && l_ref.isSwitch ? 'Chave' : 'Cabo';
             const row = document.createElement('tr');
             row.innerHTML = `<td><b>${r.id}</b></td><td>${tipo}</td><td>${r.de}</td><td>${r.para}</td>
                              <td style="font-weight:700; color:var(--utfpr-blue-light)">${(r.I_A || 0).toFixed(2)}</td>
@@ -760,7 +803,6 @@
         }
     }
 
-    // --- Controle SVG Pan ---
     let isDown=false, startX, startY, vBox={x:-50, y:-20, w:1500, h:800};
     svgWrap.onmousedown = (e) => { isDown=true; startX=e.clientX; startY=e.clientY; };
     svgWrap.onmouseup = () => isDown=false;
@@ -772,6 +814,8 @@
         svg.setAttribute('viewBox', `${vBox.x} ${vBox.y} ${vBox.w} ${vBox.h}`);
         startX = e.clientX; startY = e.clientY;
     };
+
+    btnExemplo30.click();
     </script>
 </body>
 </html>
