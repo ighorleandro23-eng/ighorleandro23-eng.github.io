@@ -56,7 +56,7 @@
         td select { width: 65px; padding: 4px; }
         
         /* SVG Area */
-        .svg-wrap { width: 100%; height: 500px; position: relative; background: #fafbfc; border: 1px solid var(--border-color); border-radius: 12px; overflow: hidden; cursor: grab; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02); }
+        .svg-wrap { width: 100%; height: 600px; position: relative; background: #fafbfc; border: 1px solid var(--border-color); border-radius: 12px; overflow: hidden; cursor: grab; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02); }
         .svg-wrap:active { cursor: grabbing; }
         .legend { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px }
         .pill { display: inline-flex; align-items: center; background: #fff; padding: 6px 12px; border-radius: 99px; font-size: 11px; font-weight: 600; border: 1px solid var(--border-color); box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
@@ -90,7 +90,6 @@
     </div>
 
     <div id="toastContainer" class="toast-container"></div>
-
     <div id="confirmModal" class="modal-overlay">
         <div class="modal-box">
             <div class="modal-title" id="modalTitle">Confirmação</div>
@@ -118,13 +117,13 @@
                 </div>
                 
                 <div style="margin-bottom: 15px;">
-                    <label>Observações do Cenário (Não afeta o cálculo)</label>
-                    <textarea class="obs-box" placeholder="Ex: Simulação de Verão, falha L5, limite máximo de 4 chaves NA..."></textarea>
+                    <label>Observações do Cenário</label>
+                    <textarea class="obs-box" placeholder="Ex: Simulação de Verão, falha L5..."></textarea>
                 </div>
 
                 <div class="row">
                     <div style="flex-grow: 1;">
-                        <label>Barras Fonte / Subestação (Separe por vírgula)</label>
+                        <label>Barras Fonte / Subestação (Novos IDs após normalização)</label>
                         <input id="inpFontes" type="text" value="1, 11, 21" class="mono" placeholder="Ex: 1"/>
                     </div>
                 </div>
@@ -171,7 +170,7 @@
                 </div>
 
                 <div class="row" style="justify-content:flex-end; margin-top:15px;"> 
-                    <button class="btn secondary" id="btnFluxo">Executar Fluxo Base (Tudo Fechado)</button> 
+                    <button class="btn secondary" id="btnFluxo">Executar Fluxo Base</button> 
                     <button class="btn primary" id="btnOtimizar" style="font-size: 14px; padding: 10px 24px;">OTIMIZAR CHAVES</button> 
                 </div>
 
@@ -212,7 +211,7 @@
     </div>
 
     <script>
-    // --- UI Helpers (Toasts & Modals) ---
+    // --- UI Helpers ---
     function showToast(message, type = 'info') {
         const container = document.getElementById('toastContainer');
         const toast = document.createElement('div');
@@ -220,26 +219,14 @@
         toast.innerHTML = message;
         container.appendChild(toast);
         setTimeout(() => toast.classList.add('show'), 10);
-        setTimeout(() => {
-            toast.classList.remove('show');
-            setTimeout(() => toast.remove(), 300);
-        }, 4000);
+        setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 300); }, 4000);
     }
 
     let confirmAction = null;
     const modal = document.getElementById('confirmModal');
     document.getElementById('btnModalCancel').onclick = () => modal.style.display = 'none';
-    document.getElementById('btnModalConfirm').onclick = () => {
-        if(confirmAction) confirmAction();
-        modal.style.display = 'none';
-    };
-
-    function showConfirm(title, message, callback) {
-        document.getElementById('modalTitle').textContent = title;
-        document.getElementById('modalMessage').textContent = message;
-        confirmAction = callback;
-        modal.style.display = 'flex';
-    }
+    document.getElementById('btnModalConfirm').onclick = () => { if(confirmAction) confirmAction(); modal.style.display = 'none'; };
+    function showConfirm(title, message, callback) { document.getElementById('modalTitle').textContent = title; document.getElementById('modalMessage').textContent = message; confirmAction = callback; modal.style.display = 'flex'; }
 
     // --- DOM Elements & Global Data ---
     const elNb=document.getElementById('numBarras');
@@ -258,26 +245,19 @@
     let workerPool = [];
     let lineIdCounter = 1;
 
-    // --- Funções Auxiliares ---
+    // --- Core Logic ---
     function getSources() {
         const val = document.getElementById('inpFontes').value;
         return val.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n));
     }
-
-    function getNb(){ 
-        return Object.keys(cargas).length || 30; 
-    }
+    function getNb(){ return Object.keys(cargas).length || 30; }
 
     function gerarTabelaCargas() {
         const fontesAtuais = getSources();
         const nos = Object.keys(cargas).map(Number).sort((a,b)=>a-b);
         tblCargas.innerHTML = '';
         elNb.value = nos.length;
-
-        nos.forEach(b => {
-            const isSrc = fontesAtuais.includes(b);
-            appendBarraRow(b, isSrc);
-        });
+        nos.forEach(b => appendBarraRow(b, fontesAtuais.includes(b)));
     }
 
     function appendBarraRow(b, isSrc) {
@@ -376,68 +356,7 @@
         });
     }
 
-    // --- Botões UI ---
-    btnGerar.onclick = () => {
-        showConfirm("Limpar Rede", "Isso apagará todas as barras e linhas cadastradas. Deseja continuar?", () => {
-            cargas = {}; tblMalha.innerHTML = ''; tblCargas.innerHTML = ''; elNb.value = 0; lineIdCounter = 1; updateSelects(); 
-            showToast("Rede resetada.", "success");
-        });
-    };
-
-    btnAddBarra.onclick = () => {
-        const nos = Object.keys(cargas).map(Number);
-        const n = nos.length > 0 ? Math.max(...nos) + 1 : 1;
-        cargas[n] = {P:0, Q:0, X:400, Y:300};
-        gerarTabelaCargas();
-        [...tblMalha.querySelectorAll('select.selDe, select.selPara')].forEach(s => {
-            const opt = document.createElement('option'); opt.value = n; opt.textContent = n; s.appendChild(opt);
-        });
-    };
-
-    btnAddLinha.onclick = () => addLinhaRow();
-
-    btnExemplo30.onclick = () => {
-        document.getElementById('inpFontes').value = "1, 11, 21";
-        cargas = {}; tblMalha.innerHTML = ''; tblCargas.innerHTML = ''; lineIdCounter = 1;
-        
-        const setC = (b,p,q,x,y) => { cargas[b] = {P:p, Q:q, X:x, Y:y}; };
-        setC(1, 0,0, 100, 200); for(let i=2;i<=10;i++) setC(i, 0.5,0.1, 100+(i-1)*60, 200 + (i%2===0?20:-20));
-        setC(11,0,0, 100, 350); for(let i=12;i<=20;i++) setC(i, 0.6,0.2, 100+(i-11)*60, 350 + (i%2===0?20:-20));
-        setC(21,0,0, 100, 500); for(let i=22;i<=30;i++) setC(i, 0.4,0.1, 100+(i-21)*60, 500 + (i%2===0?20:-20));
-        
-        gerarTabelaCargas();
-
-        const link = (start, count) => {
-            for(let i=0; i<count-1; i++) addLinhaRow({de: start+i, para: start+i+1, R: 0.05, X: 0.1, isSwitch: false});
-        };
-        link(1, 10); link(11, 10); link(21, 10);
-
-        addLinhaRow({de: 10, para: 20, R: 0.05, X: 0.1, isSwitch: true});
-        addLinhaRow({de: 8, para: 15, R: 0.05, X: 0.1, isSwitch: true});
-        addLinhaRow({de: 20, para: 30, R: 0.05, X: 0.1, isSwitch: true});
-
-        showToast("Exemplo de 30 Barras (Com Chaves) carregado.", "success");
-        btnFluxo.click();
-    };
-
-    document.getElementById('btnExportar').onclick = () => {
-        if(getLines().length === 0) { showToast("Não há rede para exportar.", "error"); return; }
-        let csv = "TIPO;ID;DE;PARA;R_PU;X_PU;TIPO_EQ\n";
-        getLines().forEach(l => csv += `LINHA;${l.id};${l.de};${l.para};${l.R};${l.X};${l.isSwitch ? 'CS' : 'CABO'}\n`);
-        csv += "TIPO;BARRA;P_MW;Q_MVAR;COORD_X;COORD_Y\n";
-        for(let b in cargas) csv += `BARRA;${b};${cargas[b].P};${cargas[b].Q};${cargas[b].X};${cargas[b].Y}\n`;
-        
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement("a");
-        link.href = URL.createObjectURL(blob);
-        link.download = "topologia_rede.csv";
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        showToast("Arquivo exportado com sucesso!", "success");
-    };
-
-    // --- NORMALIZADOR DE IMPORTAÇÃO (A SOLUÇÃO DO PROBLEMA) ---
+    // --- IMPORTADOR INTELIGENTE (Resolve o BUG de nós faltantes) ---
     document.getElementById('btnImportarSelect').onclick = () => document.getElementById('fileImport').click();
     document.getElementById('fileImport').addEventListener('change', function(e) {
         const file = e.target.files[0];
@@ -456,7 +375,7 @@
         const linhasBrutas = [];
         const cargasBrutas = {};
 
-        // 1. Coleta de dados brutos do arquivo
+        // 1. Extração segura sem ignorar o '0'
         linhas.forEach(linha => {
             const cols = linha.trim().split(';');
             if (cols.length < 2) return;
@@ -465,7 +384,6 @@
             
             if (secao === 'LINHA') {
                 let de, para, R, X, isSwitch = false;
-                
                 if (cols[1] === '') { 
                     de = parseInt(cols[0]); para = parseInt(cols[2]); R = parseFloat(cols[4]); X = parseFloat(cols[5]); 
                 } 
@@ -474,7 +392,8 @@
                     if(cols[1] === 'CS') isSwitch = true;
                 }
                 
-                if (de && para && !isNaN(R)) { 
+                // A correção vital: verifica != undefined, pois de=0 não pode ser ignorado
+                if (de !== undefined && !isNaN(de) && para !== undefined && !isNaN(para) && !isNaN(R)) { 
                     linhasBrutas.push({ id: lineIdCounter++, de: de, para: para, R: R, X: X, isSwitch: isSwitch });
                     nosBrutos.add(de); nosBrutos.add(para);
                 }
@@ -491,23 +410,16 @@
             }
         });
 
-        // 2. Normalização (Mapeamento de IDs caóticos para 1...N)
+        // 2. Normalização contígua (Ex: Pula de 1, 150, 561 para 1, 2, 3...)
         const mapaIds = {};
         let novoId = 1;
-        [...nosBrutos].sort((a,b)=>a-b).forEach(oldId => {
-            mapaIds[oldId] = novoId++;
-        });
+        [...nosBrutos].sort((a,b)=>a-b).forEach(oldId => { mapaIds[oldId] = novoId++; });
 
-        // 3. Aplica o mapeamento na rede final
         elNb.value = nosBrutos.size;
         
-        // Mapeia a fonte (Menor ID vira o novo ID)
-        let minId = Math.min(...nosBrutos);
-        if(!document.getElementById('inpFontes').value || true) { // Força atualizar para a nova fonte 1
-            document.getElementById('inpFontes').value = mapaIds[minId] ? mapaIds[minId].toString() : "1";
-        }
+        let minId = Math.min(...nosBrutos); // Provavelmente o zero da subestação
+        document.getElementById('inpFontes').value = mapaIds[minId] ? mapaIds[minId].toString() : "1";
         
-        const fontesAtuais = getSources();
         let coordsZeradas = true;
         
         [...nosBrutos].sort((a,b)=>a-b).forEach(oldId => {
@@ -522,7 +434,6 @@
 
         gerarTabelaCargas();
 
-        // Mapeia as linhas para os novos IDs
         linhasBrutas.forEach(l => {
             l.de = mapaIds[l.de];
             l.para = mapaIds[l.para];
@@ -530,77 +441,109 @@
         });
         
         if(coordsZeradas && nosBrutos.size > 0) {
-            showToast("Calculando física do layout espacial...", "info");
-            aplicarFisicaGrafos();
+            showToast("Calculando Layout Hierárquico do Alimentador...", "info");
+            aplicarLayoutArvore();
         } else {
-            showToast(`Importação e Normalização concluída: ${nosBrutos.size} barras carregadas.`, "success");
+            showToast(`Importação e Normalização concluídas: ${nosBrutos.size} barras válidas.`, "success");
             btnFluxo.click();
         }
     }
 
-    // --- Física de Grafos ---
-    function aplicarFisicaGrafos() {
+    // --- O NOVO LAYOUT (Árvore Hierárquica para Sistemas de Distribuição) ---
+    function aplicarLayoutArvore() {
         const nodes = Object.keys(cargas).map(Number);
         const edges = getLines();
         const fontesAtuais = getSources();
         
-        nodes.forEach(n => { cargas[n].X = 400 + (Math.random() - 0.5) * 400; cargas[n].Y = 300 + (Math.random() - 0.5) * 400; });
+        const adj = {}; nodes.forEach(n => adj[n] = []);
+        edges.forEach(e => { adj[e.de].push(e.para); adj[e.para].push(e.de); });
+        
+        const nivel = {}; const q = [];
+        
+        fontesAtuais.forEach(f => { if(adj[f]) { nivel[f] = 0; q.push(f); } });
+        if(q.length === 0 && nodes.length > 0) { const f = Math.min(...nodes); nivel[f] = 0; q.push(f); }
 
-        const k = Math.sqrt((800 * 500) / nodes.length) * 0.4; 
-        const iterations = 200;
-        let temp = 50;
+        // Mapeamento em Cascata (Níveis da árvore)
+        while(q.length > 0) {
+            const u = q.shift();
+            adj[u].forEach(v => {
+                if(nivel[v] === undefined) { nivel[v] = nivel[u] + 1; q.push(v); }
+            });
+        }
 
-        for (let i = 0; i < iterations; i++) {
-            const disp = {};
-            nodes.forEach(n => disp[n] = { x: 0, y: 0 });
+        const nodesPorNivel = {}; let maxNivel = 0;
+        nodes.forEach(n => {
+            const lvl = nivel[n] !== undefined ? nivel[n] : 0;
+            if(!nodesPorNivel[lvl]) nodesPorNivel[lvl] = [];
+            nodesPorNivel[lvl].push(n);
+            if(lvl > maxNivel) maxNivel = lvl;
+        });
 
+        const width = 1400; // Largura ampliada
+        for(let lvl = 0; lvl <= maxNivel; lvl++) {
+            const fila = nodesPorNivel[lvl];
+            if(!fila) continue;
+            // Distribui os nós simetricamente na horizontal dependendo de quantos estão no mesmo nível
+            const espacoX = Math.min(100, width / (fila.length + 1)); 
+            const startX = (width - (fila.length - 1) * espacoX) / 2;
+            
+            fila.forEach((n, idx) => {
+                cargas[n].X = startX + idx * espacoX;
+                cargas[n].Y = 80 + lvl * 70; // Desce 70px por nível
+            });
+        }
+        
+        // Relaxamento Físico Horizontal Rápido (Apenas para evitar sobreposição de galhos laterais)
+        const k = 70; let temp = 40;
+        for (let i = 0; i < 100; i++) {
+            const dispX = {}; nodes.forEach(n => dispX[n] = 0);
+            
+            // Força Repulsiva (Eixo X)
             for (let u = 0; u < nodes.length; u++) {
                 for (let v = u + 1; v < nodes.length; v++) {
                     const n1 = nodes[u], n2 = nodes[v];
+                    if (nivel[n1] !== nivel[n2]) continue;
                     const dx = cargas[n1].X - cargas[n2].X;
-                    const dy = cargas[n1].Y - cargas[n2].Y;
-                    let dist = Math.hypot(dx, dy) || 0.01;
+                    let dist = Math.abs(dx) || 0.1;
                     const force = (k * k) / dist;
-                    disp[n1].x += (dx / dist) * force; disp[n1].y += (dy / dist) * force;
-                    disp[n2].x -= (dx / dist) * force; disp[n2].y -= (dy / dist) * force;
+                    dispX[n1] += (dx / dist) * force; dispX[n2] -= (dx / dist) * force;
                 }
             }
-
+            // Força Atrativa (Cabos conectando pai e filho)
             edges.forEach(e => {
                 if(!cargas[e.de] || !cargas[e.para]) return;
                 const dx = cargas[e.de].X - cargas[e.para].X;
-                const dy = cargas[e.de].Y - cargas[e.para].Y;
-                let dist = Math.hypot(dx, dy) || 0.01;
-                const force = ((dist * dist) / k); 
-                disp[e.de].x -= (dx / dist) * force; disp[e.de].y -= (dy / dist) * force;
-                disp[e.para].x += (dx / dist) * force; disp[e.para].y += (dy / dist) * force;
+                let dist = Math.abs(dx) || 0.1;
+                const force = (dist * dist) / (k * 2);
+                dispX[e.de] -= (dx / dist) * force; dispX[e.para] += (dx / dist) * force;
             });
 
             nodes.forEach(n => {
-                const dist = Math.hypot(disp[n].x, disp[n].y) || 0.01;
-                cargas[n].X += (disp[n].x / dist) * Math.min(dist, temp);
-                cargas[n].Y += (disp[n].y / dist) * Math.min(dist, temp);
-                
-                cargas[n].X = Math.max(10, Math.min(1190, cargas[n].X)); 
-                cargas[n].Y = Math.max(10, Math.min(790, cargas[n].Y));
+                cargas[n].X += Math.sign(dispX[n]) * Math.min(Math.abs(dispX[n]), temp);
+                cargas[n].X = Math.max(50, Math.min(1350, cargas[n].X)); // Limites SVG
             });
-            temp *= 0.95; 
+            temp *= 0.9; 
         }
 
-        fontesAtuais.forEach((s, idx) => {
-            if(cargas[s]) { cargas[s].Y = 50; cargas[s].X = 150 + (600 / fontesAtuais.length) * idx; }
-        });
+        // Centraliza a Subestação exatamente no meio
+        fontesAtuais.forEach((s) => { if(cargas[s]) cargas[s].X = width / 2; });
 
+        // Dinamicamente abre espaço na tela
+        const maxAltura = 100 + maxNivel * 70 + 100;
+        vBox = { x: -50, y: -20, w: 1500, h: Math.max(800, maxAltura) };
+        svg.setAttribute('viewBox', `${vBox.x} ${vBox.y} ${vBox.w} ${vBox.h}`);
+        
+        // Salva na tabela
         const trs = tblCargas.children;
         for(let i=0; i<trs.length; i++) {
             const b = parseInt(trs[i].cells[0].innerText.split(' ')[0]);
             if(cargas[b]){ trs[i].querySelectorAll('input')[2].value = cargas[b].X.toFixed(0); trs[i].querySelectorAll('input')[3].value = cargas[b].Y.toFixed(0); }
         }
-        showToast("Layout espacial organizado!", "success");
+        showToast("Layout hierárquico construído perfeitamente!", "success");
         btnFluxo.click();
     }
 
-    // --- Algoritmo Genético & Worker Pool ---
+    // --- Worker Pool e Botões Comuns ---
     function initWorkers(){
         workerPool.forEach(w=>w.terminate()); workerPool=[];
         const num = navigator.hardwareConcurrency||4;
@@ -620,38 +563,36 @@
         if(gaResults.filter(x=>x).length===gaResults.length && gaResolve) gaResolve(gaResults);
     }
 
+    btnGerar.onclick = () => { showConfirm("Limpar", "Limpar a rede?", () => { window.location.reload(); }); };
+    btnAddBarra.onclick = () => { const n=getNb()+1; cargas[n]={P:0, Q:0, X:400, Y:300}; gerarTabelaCargas(); [...tblMalha.querySelectorAll('select')].forEach(s=>{ const o=document.createElement('option'); o.value=n; o.textContent=n; s.appendChild(o); }); };
+    btnAddLinha.onclick = () => addLinhaRow();
+    
+    // --- Otimização ---
     async function runGA(){
         initWorkers(); await new Promise(r=>setTimeout(r,100));
-        if(!workerPool.length) return showToast("Erro: Worker não inicializado.", "error");
-
-        btnOtimizar.disabled=true; document.getElementById('ga-status').textContent="Gerando Chaves de Interligação...";
+        btnOtimizar.disabled=true; document.getElementById('ga-status').textContent="Lendo dados para AG...";
         
         const baseLines = getLines();
         const nosAtivos = Object.keys(cargas).map(Number);
         const candidates = [];
         const existing = new Set(baseLines.map(l=>`${l.de}-${l.para}`));
         
+        // Gera Tie Switches virtuais (importante para sistemas que vem 100% fechados do txt)
         for(let i=0; i<nosAtivos.length; i++){
              for(let j=i+1; j<nosAtivos.length; j++){
                  const n1 = nosAtivos[i], n2 = nosAtivos[j];
                  if(existing.has(`${n1}-${n2}`) || existing.has(`${n2}-${n1}`)) continue;
                  const dist = Math.hypot(cargas[n1].X-cargas[n2].X, cargas[n1].Y-cargas[n2].Y);
-                 
                  if(dist > 0 && dist < 120) { 
                      candidates.push({ id: 9000+candidates.length, de:n1, para:n2, R:0.05, X:0.1, Smax:15, isSwitch:true, isNewTie:true, dist: dist });
                  }
              }
         }
         candidates.sort((a,b)=> a.dist - b.dist);
-        const topCandidates = candidates.slice(0, 10); 
-        const allLines = [...baseLines, ...topCandidates];
-
+        const allLines = [...baseLines, ...candidates.slice(0, 10)];
         const indicesChaves = allLines.map((l, idx) => l.isSwitch ? idx : -1).filter(idx => idx !== -1);
-        
-        if(indicesChaves.length === 0) {
-            btnOtimizar.disabled = false;
-            return showToast("A rede não possui nenhuma Chave (CS) cadastrada para otimizar.", "error");
-        }
+
+        if(indicesChaves.length === 0) { btnOtimizar.disabled = false; return showToast("Nenhuma chave mapeada.", "error"); }
 
         const staticData = {
             allLines, linhaFalhaKeys: [...selLinhaFalha.selectedOptions].map(o=>o.value).filter(v=>v!=='SEM_FALHA'),
@@ -663,11 +604,7 @@
         const maxGen = parseInt(document.getElementById('gaMaxGen').value);
         const mutationRate = parseFloat(document.getElementById('gaMutationRate').value) / 100;
         
-        let population = [];
-        
-        // SEMENTEIRA: Indivíduo Base (Rede original perfeitamente fechada, laços virtuais abertos)
-        population.push(allLines.map(l => l.isNewTie ? 0 : 1));
-
+        let population = [allLines.map(l => l.isNewTie ? 0 : 1)]; // Semente Original Segura
         for(let i=1; i<popSize; i++) {
             population.push(allLines.map(l => {
                 if(!l.isSwitch) return 1; 
@@ -689,21 +626,14 @@
             valid.sort((a,b)=>a.res.fitness - b.res.fitness);
 
             if(valid.length > 0){
-                if(!bestSol || valid[0].res.fitness < bestSol.res.fitness){
-                    bestSol = valid[0];
-                    updateDash(bestSol.res);
-                }
+                if(!bestSol || valid[0].res.fitness < bestSol.res.fitness){ bestSol = valid[0]; updateDash(bestSol.res); }
                 const newPop = [valid[0].ind]; 
                 while(newPop.length < popSize){
                     const p1 = valid[Math.floor(Math.random()*Math.min(valid.length, 10))].ind;
                     const p2 = valid[Math.floor(Math.random()*Math.min(valid.length, 10))].ind;
                     const cut = Math.floor(Math.random() * p1.length);
                     const c1 = [...p1.slice(0,cut), ...p2.slice(cut)];
-                    
-                    if(Math.random() < mutationRate) {
-                        const mutIdx = indicesChaves[Math.floor(Math.random() * indicesChaves.length)];
-                        c1[mutIdx] ^= 1;
-                    }
+                    if(Math.random() < mutationRate) { c1[indicesChaves[Math.floor(Math.random() * indicesChaves.length)]] ^= 1; }
                     newPop.push(c1);
                 }
                 population = newPop;
@@ -712,20 +642,15 @@
             }
         }
         btnOtimizar.disabled=false; document.getElementById('ga-status').textContent="Otimização Finalizada.";
-        
-        if(bestSol) {
-            renderRes(bestSol.res, allLines, bestSol.ind);
-            showToast("Otimização concluída. Chaves ajustadas.", "success");
-        } else {
-            showToast("AG falhou em encontrar solução radial. Tente aumentar a população.", "error");
-        }
+        if(bestSol) { renderRes(bestSol.res, allLines, bestSol.ind); showToast("Otimização concluída.", "success"); } 
+        else { showToast("Erro no AG.", "error"); }
     }
     btnOtimizar.onclick = runGA;
 
-    // --- Fluxo de Potência Base ---
+    // --- Fluxo Base ---
     btnFluxo.onclick = async () => {
         initWorkers(); await new Promise(r=>setTimeout(r,100));
-        document.getElementById('ga-status').textContent="Calculando Fluxo de Potência Base...";
+        document.getElementById('ga-status').textContent="Calculando Fluxo de Potência...";
         const allLines = getLines(); 
         const nosAtivos = Object.keys(cargas).map(Number);
         
@@ -739,7 +664,7 @@
         workerPool[0].onmessage = (e) => {
             updateDash(e.data.result);
             renderRes(e.data.result, allLines, ind);
-            if(e.data.result.data.error) showToast("A rede original possui Loops (Anel). Use a Otimização para radializar.", "warning");
+            if(e.data.result.data.error) showToast("Loops encontrados. Rode a otimização.", "warning");
             else document.getElementById('ga-status').textContent="Fluxo Convergido com Sucesso.";
         };
     };
@@ -759,7 +684,7 @@
         }
     }
 
-    // --- Renderização Gráfica SVG ---
+    // --- Render ---
     function renderRes(res, allLines, bestInd){
         if(res.data.error) { showToast(`Erro Topológico: ${res.data.error}`, "warning"); }
         
@@ -779,22 +704,17 @@
         svg.innerHTML = '';
         const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         svg.appendChild(g);
-
         const fontesAtuais = getSources();
 
         allLines.forEach((l, i) => {
             const isClosed = bestInd[i] === 1;
             const p1=cargas[l.de], p2=cargas[l.para];
             if(!p1 || !p2) return;
-            
             const ln = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-            ln.setAttribute('x1', p1.X); ln.setAttribute('y1', p1.Y);
-            ln.setAttribute('x2', p2.X); ln.setAttribute('y2', p2.Y);
+            ln.setAttribute('x1', p1.X); ln.setAttribute('y1', p1.Y); ln.setAttribute('x2', p2.X); ln.setAttribute('y2', p2.Y);
             
             if(!isClosed) {
-                ln.setAttribute('stroke-dasharray', '5,5'); 
-                ln.setAttribute('stroke-width', 3); 
-                ln.setAttribute('stroke', '#e53e3e');
+                ln.setAttribute('stroke-dasharray', '5,5'); ln.setAttribute('stroke-width', 3); ln.setAttribute('stroke', '#e53e3e');
                 g.appendChild(ln);
             } else {
                 const fluxoRes = res.data.resRamos.find(x => x.id === l.id);
@@ -803,8 +723,7 @@
                 if(fluxoRes && fontesAtuais.length > 1 && fluxoRes.zona === fontesAtuais[1]) col = 'var(--zone-2)';
                 if(fluxoRes && fontesAtuais.length > 2 && fluxoRes.zona === fontesAtuais[2]) col = 'var(--zone-3)';
                 
-                ln.setAttribute('stroke-width', l.isSwitch ? 4 : 3); 
-                ln.setAttribute('stroke', col);
+                ln.setAttribute('stroke-width', l.isSwitch ? 4 : 3); ln.setAttribute('stroke', col);
                 if(l.isSwitch) ln.setAttribute('stroke-linecap', 'square');
                 g.appendChild(ln);
             }
@@ -842,7 +761,7 @@
     }
 
     // --- Controle SVG Pan ---
-    let isDown=false, startX, startY, vBox={x:-100, y:-50, w:1200, h:800};
+    let isDown=false, startX, startY, vBox={x:-50, y:-20, w:1500, h:800};
     svgWrap.onmousedown = (e) => { isDown=true; startX=e.clientX; startY=e.clientY; };
     svgWrap.onmouseup = () => isDown=false;
     svgWrap.onmouseleave = () => isDown=false;
@@ -853,9 +772,6 @@
         svg.setAttribute('viewBox', `${vBox.x} ${vBox.y} ${vBox.w} ${vBox.h}`);
         startX = e.clientX; startY = e.clientY;
     };
-
-    // Auto-load exemplo na primeira renderização
-    btnExemplo30.click();
     </script>
 </body>
 </html>
