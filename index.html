@@ -99,7 +99,7 @@
             <div class="card">
                 <h2>Editor da Rede</h2>
                 <div class="row"> 
-                    <button class="btn primary" id="btnExemplo30">Exemplo 30 Barras</button> 
+                    <button class="btn primary" id="btnExemplo30">Exemplo 30 Barras (Manual)</button> 
                     <button class="btn danger" id="btnGerar">Limpar Rede</button>
                     <button class="btn secondary" id="btnAddBarra">+ Nova Barra</button>
                 </div>
@@ -108,21 +108,16 @@
                     <button class="btn warning" id="btnImportarSelect">Importar (TXT/CSV)</button>
                     <input type="file" id="fileImport" accept=".txt,.csv" style="display: none;" />
                 </div>
-                
-                <div style="margin-bottom: 15px;">
-                    <label>Observações do Cenário</label>
-                    <textarea class="obs-box" placeholder="Ex: Simulação de Verão..."></textarea>
-                </div>
 
                 <div class="row">
                     <div style="flex-grow: 1;">
-                        <label>Barras Fonte / Subestação (Ex: 1, 26, 51)</label>
+                        <label>Barras Fonte / Subestação (Novos IDs após normalização)</label>
                         <input id="inpFontes" type="text" value="1, 11, 21" class="mono" placeholder="Ex: 1"/>
                     </div>
                 </div>
 
                 <div class="row">
-                    <div><label>Nº Barras</label><input id="numBarras" type="number" value="30" class="mono" readonly style="background:#f0f0f0;"/></div>
+                    <div><label>Nº Barras (Normalizado)</label><input id="numBarras" type="number" value="30" class="mono" readonly style="background:#f0f0f0;"/></div>
                     <div><label>Sbase (MVA)</label><input id="sbase" type="number" value="10" class="mono"/></div>
                     <div><label>Vbase (kV)</label><input id="vbase" type="number" value="13.8" class="mono"/></div>
                 </div>
@@ -164,7 +159,7 @@
 
                 <div class="row" style="justify-content:flex-end; margin-top:15px; align-items: center;"> 
                     <label style="margin-right: 15px; display: flex; align-items: center; gap: 5px; cursor: pointer; color: var(--muted-text); font-weight: 500;">
-                        <input type="checkbox" id="chkAutoTie" /> Criar Chaves Virtuais Auto
+                        <input type="checkbox" id="chkAutoTie" /> Criar Chaves Virtuais Automáticas (Opcional)
                     </label>
                     <button class="btn secondary" id="btnFluxo">Executar Fluxo Base</button> 
                     <button class="btn primary" id="btnOtimizar" style="font-size: 14px; padding: 10px 24px;">OTIMIZAR CHAVES</button> 
@@ -205,7 +200,6 @@
     </div>
 
     <script>
-    // Paleta Dinâmica com 10 cores (Acompanha o nº de subestações)
     const zonePalette = ['#2b6cb0', '#dd6b20', '#805ad5', '#e84393', '#00b894', '#00cec9', '#fdcb6e', '#e17055', '#d63031', '#6c5ce7'];
 
     // --- UI Helpers ---
@@ -376,7 +370,7 @@
         addLinhaRow({de: 8, para: 15, R: 0.05, X: 0.1, isSwitch: true});
         addLinhaRow({de: 20, para: 30, R: 0.05, X: 0.1, isSwitch: true});
 
-        showToast("Exemplo de 30 Barras carregado.", "success");
+        showToast("Exemplo de 30 Barras Fiel carregado.", "success");
         btnFluxo.click();
     };
 
@@ -400,7 +394,7 @@
 
     btnAddLinha.onclick = () => addLinhaRow();
 
-    // --- IMPORTADOR TXT / CSV (COMPLETO) ---
+    // --- IMPORTADOR ---
     document.getElementById('btnExportar').onclick = () => {
         if(getLines().length === 0) { showToast("Não há rede para exportar.", "error"); return; }
         let csv = "TIPO;ID;DE;PARA;R_PU;X_PU;TIPO_EQ\n";
@@ -500,12 +494,12 @@
             showToast("Calculando Layout Hierárquico do Alimentador...", "info");
             aplicarLayoutArvore(); 
         } else {
-            showToast(`Importação concluída: ${nosBrutos.size} barras válidas.`, "success");
+            showToast(`Importação e Normalização concluídas: ${nosBrutos.size} barras válidas.`, "success");
             btnFluxo.click();
         }
     }
 
-    // --- NOVO MOTOR GRÁFICO (Árvore) ---
+    // --- NOVO MOTOR GRÁFICO (Árvore Horizontal Perfeita) ---
     function aplicarLayoutArvore() {
         const nodes = Object.keys(cargas).map(Number);
         const edges = getLines();
@@ -557,32 +551,34 @@
         }
         roots.forEach(r => calcWidth(r));
 
-        const HORIZONTAL_SPACING = 50; 
-        const VERTICAL_SPACING = 80;
+        // INVERTIDO PARA HORIZONTAL (Raiz na Esquerda, Ramos na Direita)
+        const DEPTH_SPACING = 120;  // Espaço horizontal (Cresce no Eixo X)
+        const BREADTH_SPACING = 50; // Espaço vertical entre ramos (Eixo Y)
 
-        let currentX = 50;
+        let currentY = 50;
         roots.forEach(root => {
-            const rootWidth = widthMap[root] * HORIZONTAL_SPACING;
-            assignCoords(root, currentX, currentX + rootWidth, 0);
-            currentX += rootWidth + HORIZONTAL_SPACING; 
+            const rootBreadth = widthMap[root] * BREADTH_SPACING;
+            assignCoords(root, currentY, currentY + rootBreadth, 0);
+            currentY += rootBreadth + BREADTH_SPACING; 
         });
 
-        function assignCoords(u, left, right, depth) {
-            cargas[u].X = (left + right) / 2;
-            cargas[u].Y = 50 + depth * VERTICAL_SPACING;
-            let childLeft = left;
+        function assignCoords(u, top, bottom, depth) {
+            cargas[u].X = 50 + depth * DEPTH_SPACING; // Cresce para a direita
+            cargas[u].Y = (top + bottom) / 2;         // Centraliza verticalmente
+            let childTop = top;
             children[u].forEach(v => {
-                const childWidth = (widthMap[v] / widthMap[u]) * (right - left);
-                assignCoords(v, childLeft, childLeft + childWidth, depth + 1);
-                childLeft += childWidth;
+                const childBreadth = (widthMap[v] / widthMap[u]) * (bottom - top);
+                assignCoords(v, childTop, childTop + childBreadth, depth + 1);
+                childTop += childBreadth;
             });
         }
 
         const minX = Math.min(...nodes.map(n => cargas[n].X)) || 0;
         const maxX = Math.max(...nodes.map(n => cargas[n].X)) || 800;
+        const minY = Math.min(...nodes.map(n => cargas[n].Y)) || 0;
         const maxY = Math.max(...nodes.map(n => cargas[n].Y)) || 600;
 
-        vBox = { x: minX - 50, y: -20, w: (maxX - minX) + 100, h: Math.max(600, maxY + 100) };
+        vBox = { x: -50, y: minY - 50, w: Math.max(1000, maxX + 100), h: Math.max(600, maxY - minY + 100) };
         svg.setAttribute('viewBox', `${vBox.x} ${vBox.y} ${vBox.w} ${vBox.h}`);
         
         const trs = tblCargas.children;
@@ -590,7 +586,7 @@
             const b = parseInt(trs[i].cells[0].innerText.split(' ')[0]);
             if(cargas[b]){ trs[i].querySelectorAll('input')[2].value = cargas[b].X.toFixed(0); trs[i].querySelectorAll('input')[3].value = cargas[b].Y.toFixed(0); }
         }
-        showToast("Layout hierárquico (Árvore Real) construído!", "success");
+        showToast("Layout hierárquico (Árvore Horizontal) construído com sucesso!", "success");
         btnFluxo.click();
     }
 
@@ -641,7 +637,7 @@
 
         const indicesChaves = allLines.map((l, idx) => l.isSwitch ? idx : -1).filter(idx => idx !== -1);
 
-        if(indicesChaves.length === 0) { btnOtimizar.disabled = false; return showToast("A rede não possui nenhuma Chave para otimizar.", "error"); }
+        if(indicesChaves.length === 0) { btnOtimizar.disabled = false; return showToast("A rede não possui nenhuma Chave Manobrável para otimizar.", "error"); }
 
         const staticData = {
             allLines, linhaFalhaKeys: [...selLinhaFalha.selectedOptions].map(o=>o.value).filter(v=>v!=='SEM_FALHA'),
@@ -733,7 +729,7 @@
         }
     }
 
-    // --- Renderização e Legenda Dinâmica ---
+    // --- Renderização Dinâmica e Legenda ---
     function renderRes(res, allLines, bestInd){
         if(res.data.error) { showToast(`Erro Topológico: ${res.data.error}`, "warning"); }
         
@@ -756,7 +752,7 @@
         
         const fontesAtuais = getSources();
 
-        // Legenda 100% Dinâmica baseada no Array de Fontes
+        // Legenda Dinâmica
         const legendDiv = document.getElementById('mapLegend');
         legendDiv.innerHTML = '';
         fontesAtuais.forEach((f, idx) => {
@@ -806,7 +802,7 @@
             g.appendChild(cc);
             
             const txtId = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-            txtId.setAttribute('x', cargas[b].X); txtId.setAttribute('y', cargas[b].Y - 8);
+            txtId.setAttribute('x', cargas[b].X); txtId.setAttribute('y', cargas[b].Y - 10);
             txtId.setAttribute('text-anchor', 'middle'); txtId.textContent = b; txtId.setAttribute('font-size', 10);
             txtId.setAttribute('font-weight', '600'); txtId.setAttribute('fill', 'var(--text-dark)');
             g.appendChild(txtId);
