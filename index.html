@@ -31,8 +31,8 @@
         .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 12px; }
         label { font-size: 12px; color: var(--muted-text); display: block; margin-bottom: 4px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;}
         input, select, button, textarea { font-family: inherit; font-size: 13px; }
-        input[type="number"], select { width: 100%; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-light); transition: border 0.2s; }
-        input[type="number"]:focus, select:focus { outline: none; border-color: var(--utfpr-blue-light); }
+        input[type="text"], input[type="number"], select { width: 100%; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-light); transition: border 0.2s; }
+        input[type="text"]:focus, input[type="number"]:focus, select:focus { outline: none; border-color: var(--utfpr-blue-light); }
         select[multiple] { height: auto; min-height: 80px; }
         textarea.obs-box { width: 100%; height: 80px; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; resize: vertical; background: var(--utfpr-gray-light); }
         
@@ -119,6 +119,13 @@
                 <div style="margin-bottom: 15px;">
                     <label>Observações do Cenário (Não afeta o cálculo)</label>
                     <textarea class="obs-box" placeholder="Ex: Simulação de Verão, falha L5, limite máximo de 4 chaves NA..."></textarea>
+                </div>
+
+                <div class="row">
+                    <div style="flex-grow: 1;">
+                        <label>Barras Fonte / Subestação (Separe por vírgula)</label>
+                        <input id="inpFontes" type="text" value="1, 11, 21" class="mono" placeholder="Ex: 1"/>
+                    </div>
                 </div>
 
                 <div class="row">
@@ -253,19 +260,25 @@
     
     let cargas = {};
     let workerPool = [];
-    let currentSources = [1, 11, 21];
     let lineIdCounter = 1;
+
+    // --- Core Logic ---
+    function getSources() {
+        const val = document.getElementById('inpFontes').value;
+        return val.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n));
+    }
 
     function getNb(){ const n=parseInt(elNb.value,10); return isFinite(n)&&n>=2 ? n : 2; }
 
     function gerarTabelaCargas() {
         const n = getNb();
         const oldCargas = {...cargas};
+        const fontesAtuais = getSources();
         cargas = {};
         tblCargas.innerHTML = '';
 
         for(let b=1; b<=n; b++){
-            const isSrc = currentSources.includes(b);
+            const isSrc = fontesAtuais.includes(b);
             const pVal = oldCargas[b]?.P ?? 0;
             const qVal = oldCargas[b]?.Q ?? 0;
             const xVal = oldCargas[b]?.X ?? (b*20);
@@ -370,7 +383,7 @@
         const n = getNb() + 1;
         elNb.value = n;
         cargas[n] = {P:0, Q:0, X:n*20, Y:100};
-        appendBarraRow(n, false);
+        appendBarraRow(n, getSources().includes(n));
         [...tblMalha.querySelectorAll('select')].forEach(s => {
             const opt = document.createElement('option'); opt.value = n; opt.textContent = n; s.appendChild(opt);
         });
@@ -379,6 +392,7 @@
     btnAddLinha.onclick = () => addLinhaRow();
 
     btnExemplo30.onclick = () => {
+        document.getElementById('inpFontes').value = "1, 11, 21";
         elNb.value = 30; cargas = {}; tblMalha.innerHTML = ''; tblCargas.innerHTML = ''; lineIdCounter = 1;
         gerarTabelaCargas(); 
         const setC = (b,p,q,x,y) => {
@@ -444,7 +458,6 @@
             } else if (secao === 'BARRA') {
                 const bId = parseInt(cols[0]);
                 if (!isNaN(bId) && cols.length > 5) {
-                    // Tenta ler de um CSV gerado pelo app ou do TXT do ANAFAS
                     const pVal = cols.length === 6 ? parseFloat(cols[2]) : (parseFloat(cols[4]) || 0);
                     const qVal = cols.length === 6 ? parseFloat(cols[3]) : (parseFloat(cols[6]) || 0);
                     const cx = cols.length === 6 ? parseFloat(cols[4]) : 0;
@@ -456,12 +469,20 @@
         });
         elNb.value = nMax;
         
-        // Verifica se todas as coordenadas são zero (importação de txt cru)
+        let minId = Infinity;
+        for(let b in cargas) minId = Math.min(minId, parseInt(b));
+        if(minId !== Infinity) {
+            document.getElementById('inpFontes').value = minId.toString();
+        } else {
+            document.getElementById('inpFontes').value = "1";
+        }
+        
+        const fontesAtuais = getSources();
         let coordsZeradas = Object.values(cargas).every(c => c.X === 0 && c.Y === 0);
         
         for(let b=1; b<=nMax; b++){
             if(!cargas[b]) cargas[b] = {P: 0, Q: 0, X: 0, Y: 0};
-            appendBarraRow(b, currentSources.includes(b));
+            appendBarraRow(b, fontesAtuais.includes(b));
         }
         updateSelects();
         
@@ -474,12 +495,12 @@
         }
     }
 
-    // --- Force-Directed Graph Layout (Algoritmo de Molas) ---
+    // --- Force-Directed Graph Layout ---
     function aplicarFisicaGrafos() {
         const nodes = Object.keys(cargas).map(Number);
         const edges = getLines();
+        const fontesAtuais = getSources();
         
-        // Posição inicial randômica para evitar travamento
         nodes.forEach(n => {
             cargas[n].X = 400 + (Math.random() - 0.5) * 400;
             cargas[n].Y = 300 + (Math.random() - 0.5) * 400;
@@ -493,7 +514,6 @@
             const disp = {};
             nodes.forEach(n => disp[n] = { x: 0, y: 0 });
 
-            // Repulsão (Coulomb)
             for (let u = 0; u < nodes.length; u++) {
                 for (let v = u + 1; v < nodes.length; v++) {
                     const n1 = nodes[u], n2 = nodes[v];
@@ -506,7 +526,6 @@
                 }
             }
 
-            // Atração (Hooke)
             edges.forEach(e => {
                 if(!cargas[e.de] || !cargas[e.para]) return;
                 const dx = cargas[e.de].X - cargas[e.para].X;
@@ -517,26 +536,23 @@
                 disp[e.para].x += (dx / dist) * force; disp[e.para].y += (dy / dist) * force;
             });
 
-            // Aplica os deslocamentos limitados pela temperatura (Cooling)
             nodes.forEach(n => {
                 const dist = Math.hypot(disp[n].x, disp[n].y) || 0.01;
                 cargas[n].X += (disp[n].x / dist) * Math.min(dist, temp);
                 cargas[n].Y += (disp[n].y / dist) * Math.min(dist, temp);
-                cargas[n].X = Math.max(20, Math.min(880, cargas[n].X)); // Bounding box
+                cargas[n].X = Math.max(20, Math.min(880, cargas[n].X)); 
                 cargas[n].Y = Math.max(20, Math.min(580, cargas[n].Y));
             });
             temp *= 0.95; 
         }
 
-        // Ancora as fontes de energia na parte superior
-        currentSources.forEach((s, idx) => {
+        fontesAtuais.forEach((s, idx) => {
             if(cargas[s]) {
                 cargas[s].Y = 50;
-                cargas[s].X = 150 + (600 / currentSources.length) * idx;
+                cargas[s].X = 150 + (600 / fontesAtuais.length) * idx;
             }
         });
 
-        // Sincroniza a tabela com as novas coordenadas
         const trs = tblCargas.children;
         for(let i=0; i<trs.length; i++) {
             const b = parseInt(trs[i].cells[0].innerText);
@@ -571,7 +587,7 @@
 
     async function runGA(){
         initWorkers(); await new Promise(r=>setTimeout(r,100));
-        if(!workerPool.length) return showToast("Erro Crítico: Worker não inicializado. Verifique se está rodando em um servidor local.", "error");
+        if(!workerPool.length) return showToast("Erro Crítico: Worker não inicializado.", "error");
 
         btnOtimizar.disabled=true; document.getElementById('ga-status').textContent="Analisando possibilidades de manobra...";
         const baseLines = getLines();
@@ -603,7 +619,7 @@
         const staticData = {
             allLines, linhaFalhaKeys: [...selLinhaFalha.selectedOptions].map(o=>o.value).filter(v=>v!=='SEM_FALHA'),
             nb, vMin:0.93, vMax:1.05, maxNALinhas:maxNA, cargas, 
-            Sbase:parseFloat(document.getElementById('sbase').value), Vbase_kV:parseFloat(document.getElementById('vbase').value), sourceBuses: currentSources
+            Sbase:parseFloat(document.getElementById('sbase').value), Vbase_kV:parseFloat(document.getElementById('vbase').value), sourceBuses: getSources()
         };
 
         const popSize = parseInt(document.getElementById('gaPopSize').value);
@@ -654,7 +670,7 @@
         const lines = getLines();
         const sd = {
             allLines: lines, linhaFalhaKeys:[], nb: getNb(), vMin:0.93, vMax:1.05, maxNALinhas:0, cargas, 
-            Sbase:parseFloat(document.getElementById('sbase').value), Vbase_kV:parseFloat(document.getElementById('vbase').value), sourceBuses:currentSources
+            Sbase:parseFloat(document.getElementById('sbase').value), Vbase_kV:parseFloat(document.getElementById('vbase').value), sourceBuses: getSources()
         };
         const ind = lines.map(()=>1);
         workerPool[0].postMessage({individual:ind, index:0, staticData:sd});
@@ -669,9 +685,15 @@
     function updateDash(res){
         document.getElementById('best-fitness-display').textContent = res.fitness > 1e9 ? "Inválida" : res.fitness.toFixed(1);
         if(res.data){
-            document.getElementById('unserved-load-display').textContent = res.data.unservedBuses.length > 0 ? res.data.unservedBuses.length + " Nós" : "0 MW";
-            document.getElementById('losses-display').textContent = (res.data.perdasMWtotal||0).toFixed(4) + " MW";
-            document.getElementById('active-switches-display').textContent = res.data.currentLinhas.length;
+            if(res.data.error) {
+                document.getElementById('unserved-load-display').textContent = "Erro de Topologia";
+                document.getElementById('losses-display').textContent = "---";
+                document.getElementById('active-switches-display').textContent = "---";
+            } else {
+                document.getElementById('unserved-load-display').textContent = (res.data.unservedBuses && res.data.unservedBuses.length > 0) ? res.data.unservedBuses.length + " Nós" : "0 MW";
+                document.getElementById('losses-display').textContent = (res.data.perdasMWtotal||0).toFixed(4) + " MW";
+                document.getElementById('active-switches-display').textContent = res.data.currentLinhas ? res.data.currentLinhas.length : "---";
+            }
         }
     }
 
@@ -693,6 +715,8 @@
         svg.innerHTML = '';
         const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         svg.appendChild(g);
+
+        const fontesAtuais = getSources();
 
         res.data.resRamos.forEach(l => {
             const ln = document.createElementNS('http://www.w3.org/2000/svg', 'line');
@@ -716,7 +740,7 @@
             const busRes = res.data.resBarras.find(x=>x.barra==b);
             const cc = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
             cc.setAttribute('cx', cargas[b].X); cc.setAttribute('cy', cargas[b].Y);
-            cc.setAttribute('r', currentSources.includes(parseInt(b))?10:5);
+            cc.setAttribute('r', fontesAtuais.includes(parseInt(b))?10:5);
             let stroke = '#94a3b8';
             if(busRes && busRes.zona){
                 if(busRes.zona===1) stroke='var(--zone-1)';
