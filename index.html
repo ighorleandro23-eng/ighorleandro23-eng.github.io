@@ -270,15 +270,16 @@
                         </div>
                         
                         <div id="divTieCost" style="display: none; margin-top: 15px; margin-left: 24px; padding: 15px; background: #fff; border: 1px dashed var(--border-color); border-radius: 6px;">
-                            <label style="display: block; margin-bottom: 5px; text-transform: uppercase; color: var(--utfpr-blue);">Custo da Nova Tie-Line (Penalidade no Fitness)</label>
+                            <label style="display: block; margin-bottom: 5px; text-transform: uppercase; color: var(--utfpr-blue);">Penalidade / Custo Direto da Nova Chave</label>
                             <div style="display: flex; align-items: center; gap: 10px;">
-                                <input id="inpTieCost" type="number" value="0.05" step="0.01" style="width: 120px;" />
-                                <span style="font-size: 12px; color: var(--text-muted);">
-                                    Se a linha reduzir as perdas em mais do que este valor, o AG irá propô-la no projeto.
+                                <input id="inpTieCost" type="number" value="50000" step="100" style="width: 120px;" />
+                                <span style="font-size: 12px; color: var(--text-muted); line-height: 1.4;">
+                                    Este valor <b>soma diretamente no Fitness</b>. Por ser gigantesco frente às perdas (ex: 0.1 MW), o AG só propõe a chave em desespero (ex: evitar que os clientes fiquem no escuro numa falha).
                                 </span>
                             </div>
                         </div>
-                        </div>
+
+                    </div>
 
                     <div style="display: flex; gap: 15px; align-items: center; border-top: 1px solid var(--border-color); padding-top: 20px;">
                         <button class="btn secondary" id="btnFluxo">Executar Fluxo Base</button> 
@@ -401,14 +402,14 @@
             <td>
                 <select class="selTipo" style="${isSwitch ? 'color: var(--utfpr-blue); font-weight: bold;' : ''}">
                     <option value="CABO" ${!isSwitch ? 'selected' : ''}>Cabo Fixo</option>
-                    <option value="CHAVE" ${isSwitch ? 'selected' : ''}>Chave Manobrável</option>
+                    <option value="CHAVE" ${isSwitch ? 'selected' : ''}>Chave (CS)</option>
                 </select>
             </td>
             <td><select class="selDe">${optsDe}</select></td>
             <td><select class="selPara">${optsPara}</select></td>
             <td><input type="number" step="0.001" class="inpR" value="${R}"></td>
             <td><input type="number" step="0.001" class="inpX" value="${X}"></td>
-            <td><button class="btn danger" style="padding:4px 10px; font-size:11px;">Excluir</button></td>
+            <td><button class="btn danger" style="padding:4px 10px; font-size:11px;">X</button></td>
         `;
         
         tr.querySelector('.selTipo').addEventListener('change', function() {
@@ -746,8 +747,8 @@
         const nosAtivos = Object.keys(cargas).map(Number);
         let allLines = [...baseLines];
 
-        // MUDANÇA: AGORA LÊ O VALOR DO CUSTO NA CAIXA DE TEXTO
-        const tieCostVal = parseFloat(document.getElementById('inpTieCost').value) || 0;
+        // MUDANÇA NO CÓDIGO DA PÁGINA: LÊ O CUSTO DA INTERFACE
+        const tieCostVal = parseFloat(document.getElementById('inpTieCost').value) || 50000;
 
         if(document.getElementById('chkAutoTie').checked) {
             const candidates = [];
@@ -758,7 +759,7 @@
                     if(existing.has(`${n1}-${n2}`) || existing.has(`${n2}-${n1}`)) continue;
                     const dist = Math.hypot(cargas[n1].X-cargas[n2].X, cargas[n1].Y-cargas[n2].Y);
                     if(dist > 0 && dist < 160) { 
-                        // MUDANÇA: INSERE O CUSTO AQUI PARA O WORKER LER
+                        // MUDANÇA: MANDA O CUSTO PARA O WORKER
                         candidates.push({ id: 9000+candidates.length, de:n1, para:n2, R:0.05, X:0.1, Smax:15, isSwitch:true, isNewTie:true, dist: dist, custo: tieCostVal });
                     }
                 }
@@ -825,7 +826,7 @@
             updateDashboard(bestSol.res);
             renderRes(bestSol.res, allLines, bestSol.ind); 
             showToast("Otimização concluída.", "success"); 
-            document.querySelectorAll('.sidebar .nav-item')[0].click(); // Volta pro dashboard
+            document.querySelectorAll('.sidebar .nav-item')[0].click(); 
         } 
         else { showToast("Erro no AG.", "error"); }
     }
