@@ -125,12 +125,17 @@
                 Análise de Dados
             </div>
 
+            <div class="nav-item" onclick="switchTab('historico_ag', this)">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                Histórico de Indivíduos
+            </div>
+
             <div class="nav-item" onclick="switchTab('editor', this)">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
                 Editor de Topologia
             </div>
             <div class="nav-item" onclick="switchTab('ag_config', this)">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
                 Motor de Otimização
             </div>
         </div>
@@ -255,6 +260,33 @@
 
             </div>
 
+            <div id="historico_ag" class="app-section">
+                <div class="card">
+                    <div class="card-title">
+                        <span>Registro de Cromossomos (Log de Avaliação do AG)</span>
+                        <span style="font-size: 12px; font-weight: normal; color: var(--text-muted);">* DNA: 1 = Chave Fechada / 0 = Chave Aberta (NA)</span>
+                    </div>
+                    <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 15px;">
+                        Esta tabela documenta as diferentes combinações testadas pelo Algoritmo Genético ao longo das gerações.
+                    </p>
+                    <div class="table-scroll" style="max-height: 600px;">
+                        <table id="tblHistorico">
+                            <thead>
+                                <tr>
+                                    <th>Geração</th>
+                                    <th>Indivíduo (Nº)</th>
+                                    <th>Cromossomo Completo (Vetor DNA)</th>
+                                    <th>Resultado Fitness</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr><td colspan="4" style="text-align:center;">Aguardando execução do Algoritmo Genético...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
             <div id="editor" class="app-section">
                 <div class="card">
                     <div class="card-title">Entrada de Dados</div>
@@ -351,12 +383,13 @@
 
     const zonePalette = ['#2563eb', '#ea580c', '#9333ea', '#db2777', '#059669', '#0891b2', '#eab308', '#dc2626', '#4f46e5', '#84cc16'];
 
-    // --- VARIÁVEIS DA ABA DE ANÁLISE ---
+    // --- VARIÁVEIS DA ABA DE ANÁLISE E HISTÓRICO ---
     let resultBaseGlobal = null;
     let indBaseGlobal = null;
     let resultOptGlobal = null;
     let indOptGlobal = null;
     let historyAG = [];
+    let historyFullAG = []; // NOVO: Armazena o registro detalhado de todos os indivíduos avaliados
     
     let chartVolt = null;
     let chartBal = null;
@@ -530,7 +563,7 @@
         addLinhaRow({de: 20, para: 30, R: 0.05, X: 0.1, isSwitch: true});
 
         showToast("Exemplo carregado. Teste o Fluxo Base.", "success");
-        document.querySelectorAll('.sidebar .nav-item')[2].click();
+        document.querySelectorAll('.sidebar .nav-item')[4].click(); // Aba do Motor
     };
 
     // --- Botões Básicos ---
@@ -543,7 +576,9 @@
             
             // Limpar analise
             resultBaseGlobal = null; resultOptGlobal = null; indBaseGlobal = null; indOptGlobal = null;
+            historyFullAG = [];
             updateAnalyticsData();
+            updateHistoryTable();
         });
     };
 
@@ -660,7 +695,7 @@
             aplicarLayoutArvore(); 
         } else {
             showToast(`Importação concluída: ${nosBrutos.size} barras válidas.`, "success");
-            document.querySelectorAll('.sidebar .nav-item')[2].click(); 
+            document.querySelectorAll('.sidebar .nav-item')[4].click(); 
             btnFluxo.click();
         }
     }
@@ -753,7 +788,7 @@
         }
         showToast("Layout hierárquico construído com sucesso!", "success");
         
-        document.querySelectorAll('.sidebar .nav-item')[2].click();
+        document.querySelectorAll('.sidebar .nav-item')[4].click();
         btnFluxo.click();
     }
 
@@ -796,7 +831,8 @@
     async function runGA(){
         initWorkers(); await new Promise(r=>setTimeout(r,100));
         btnOtimizar.disabled=true; document.getElementById('ga-status').textContent="Lendo dados para AG...";
-        historyAG = []; // Limpa o histórico de convergência
+        historyAG = []; 
+        historyFullAG = []; // Limpa o Histórico do DNA
         
         const baseLines = getLines();
         const nosAtivos = Object.keys(cargas).map(Number);
@@ -833,6 +869,17 @@
             workerPool.forEach(w=>{if(!w.busy && gaQueue.length){w.postMessage(gaQueue.shift()); w.busy=true;}});
             await new Promise(r=>gaResolve=r);
 
+            // INÍCIO NOVO CÓDIGO - Salva o Histórico de DNA de cada indivíduo
+            gaResults.forEach((res, i) => {
+                historyFullAG.push({
+                    gen: g + 1,
+                    idx: i + 1,
+                    dna: population[i].join(''),
+                    fitness: res.fitness
+                });
+            });
+            // FIM NOVO CÓDIGO
+
             const valid = gaResults.map((res,i)=>({res, ind:population[i]})).filter(x=> x.res.fitness < 1e14);
             valid.sort((a,b)=>a.res.fitness - b.res.fitness);
 
@@ -840,7 +887,7 @@
                 if(!bestSol || valid[0].res.fitness < bestSol.res.fitness){ 
                     bestSol = valid[0]; 
                 }
-                historyAG.push(bestSol.res.fitness); // Guarda o melhor de cada geração
+                historyAG.push(bestSol.res.fitness); 
                 
                 const newPop = [valid[0].ind]; 
                 while(newPop.length < popSize){
@@ -859,16 +906,16 @@
         btnOtimizar.disabled=false; document.getElementById('ga-status').textContent="Otimização Finalizada.";
         
         if(bestSol) { 
-            // Atualiza Dados Globais de Otimizado
             resultOptGlobal = bestSol.res;
             indOptGlobal = bestSol.ind;
 
             updateDashboard(bestSol.res);
             renderRes(bestSol.res, allLines, bestSol.ind); 
-            updateAnalyticsData(); // ATUALIZA A ABA DE ANÁLISE
+            updateAnalyticsData(); 
+            updateHistoryTable(); // Atualiza a aba Histórico
 
             showToast("Otimização concluída.", "success"); 
-            document.querySelectorAll('.sidebar .nav-item')[1].click(); // Redireciona para Aba Análise
+            document.querySelectorAll('.sidebar .nav-item')[2].click(); // Redireciona para o Histórico para você ver
         } 
         else { showToast("Erro no AG.", "error"); }
     }
@@ -894,13 +941,12 @@
         workerPool[0].onmessage = (e) => {
             document.getElementById('ga-progress-bar').style.width = '100%';
             
-            // Salva dados globais da Base
             resultBaseGlobal = e.data.result;
             indBaseGlobal = ind;
             
             updateDashboard(e.data.result);
             renderRes(e.data.result, allLines, ind);
-            updateAnalyticsData(); // ATUALIZA A ABA DE ANÁLISE
+            updateAnalyticsData(); 
 
             if(e.data.result.data.error) showToast("Aviso: Rede com defeito de base.", "warning");
             else {
@@ -910,12 +956,41 @@
         };
     };
 
-    // --- NOVA FUNÇÃO: POPULA A ABA DE ANÁLISE DE DADOS ---
+    // --- NOVA FUNÇÃO: POPULA A ABA DE HISTÓRICO DE INDIVÍDUOS ---
+    function updateHistoryTable() {
+        const tbody = document.querySelector('#tblHistorico tbody');
+        if (historyFullAG.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Aguardando execução do Algoritmo Genético...</td></tr>';
+            return;
+        }
+
+        // Para evitar travamento de renderização em populações gigantes (>5000), pegamos apenas os últimos 3000
+        let displayData = historyFullAG;
+        let warningHtml = '';
+        if (historyFullAG.length > 3000) {
+            displayData = historyFullAG.slice(-3000);
+            warningHtml = `<tr><td colspan="4" style="text-align:center; color:var(--st-warn); font-weight:bold; background:#fffbeb;">Para garantir a performance do seu navegador, estamos exibindo apenas os últimos 3000 cromossomos avaliados (do total de ${historyFullAG.length}).</td></tr>`;
+        }
+
+        let html = warningHtml;
+        displayData.forEach(log => {
+            let fitDisplay = log.fitness >= 1e14 ? '<span class="text-bad" style="font-weight:600;">Inválido (Loop / Ilha)</span>' : log.fitness.toFixed(4) + ' MW';
+            html += `<tr>
+                <td>Ger. ${log.gen}</td>
+                <td>#${log.idx}</td>
+                <td class="mono" style="font-size:11px; letter-spacing:1px; color:var(--utfpr-blue); word-break: break-all;">[${log.dna}]</td>
+                <td class="mono">${fitDisplay}</td>
+            </tr>`;
+        });
+
+        tbody.innerHTML = html;
+    }
+
+    // --- POPULA A ABA DE ANÁLISE DE DADOS ---
     function updateAnalyticsData() {
         const lines = getLines();
         const sources = getSources();
 
-        // 1. Tabela de Resumo Comparativo
         const tbComp = document.querySelector('#tblComparativo tbody');
         if (resultBaseGlobal && resultOptGlobal && !resultBaseGlobal.data.error && !resultOptGlobal.data.error) {
             const pBase = resultBaseGlobal.data.perdasMWtotal;
@@ -938,7 +1013,6 @@
             tbComp.innerHTML = `<tr><td colspan="4" style="text-align:center;">Execute o Fluxo Base e a Otimização para visualizar a comparação.</td></tr>`;
         }
 
-        // 2. Plano de Manobras (Switching Operations)
         const tbManobras = document.querySelector('#tblManobras tbody');
         if (indBaseGlobal && indOptGlobal) {
             let html = '';
@@ -954,7 +1028,6 @@
             tbManobras.innerHTML = '<tr><td colspan="3" style="text-align:center;">Aguardando otimização.</td></tr>';
         }
 
-        // 3. Gráfico de Perfil de Tensão
         const ctxVolt = document.getElementById('chartVoltage');
         if (ctxVolt) {
             let labels = []; let dataBase = []; let dataOpt = [];
@@ -986,7 +1059,6 @@
             }
         }
 
-        // 4. Gráfico de Balanceamento de Carga
         const ctxBal = document.getElementById('chartBalance');
         if (ctxBal) {
             let labels = sources.map(s => `Subestação ${s}`);
@@ -1019,7 +1091,6 @@
             }
         }
 
-        // 5. Curva de Convergência do AG
         const ctxConv = document.getElementById('chartConvergence');
         if (ctxConv && historyAG.length > 0) {
             if (chartConv) chartConv.destroy();
