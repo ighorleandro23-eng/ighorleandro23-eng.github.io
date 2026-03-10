@@ -262,23 +262,6 @@
                             <label>Simular Falha em Linha(s)</label> 
                             <select id="linhaFalha" class="mono" multiple size="3"></select> 
                         </div>
-                        <div style="margin-top: 15px;">
-                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; text-transform: none; color: var(--text-dark); font-size: 14px;">
-                                <input type="checkbox" id="chkAutoTie" style="width: auto; height: 16px;" onchange="document.getElementById('divTieCost').style.display = this.checked ? 'block' : 'none';"/> 
-                                Permitir que o AG crie interligações (Tie-lines) automáticas pela distância
-                            </label>
-                        </div>
-                        
-                        <div id="divTieCost" style="display: none; margin-top: 15px; margin-left: 24px; padding: 15px; background: #fff; border: 1px dashed var(--border-color); border-radius: 6px;">
-                            <label style="display: block; margin-bottom: 5px; text-transform: uppercase; color: var(--utfpr-blue);">Penalidade / Custo Direto da Nova Chave</label>
-                            <div style="display: flex; align-items: center; gap: 10px;">
-                                <input id="inpTieCost" type="number" value="50000" step="100" style="width: 120px;" />
-                                <span style="font-size: 12px; color: var(--text-muted); line-height: 1.4;">
-                                    Este valor <b>soma diretamente no Fitness</b>. Por ser gigantesco frente às perdas (ex: 0.1 MW), o AG só propõe a chave em desespero (ex: evitar que os clientes fiquem no escuro numa falha).
-                                </span>
-                            </div>
-                        </div>
-
                     </div>
 
                     <div style="display: flex; gap: 15px; align-items: center; border-top: 1px solid var(--border-color); padding-top: 20px;">
@@ -402,14 +385,14 @@
             <td>
                 <select class="selTipo" style="${isSwitch ? 'color: var(--utfpr-blue); font-weight: bold;' : ''}">
                     <option value="CABO" ${!isSwitch ? 'selected' : ''}>Cabo Fixo</option>
-                    <option value="CHAVE" ${isSwitch ? 'selected' : ''}>Chave (CS)</option>
+                    <option value="CHAVE" ${isSwitch ? 'selected' : ''}>Chave Manobrável</option>
                 </select>
             </td>
             <td><select class="selDe">${optsDe}</select></td>
             <td><select class="selPara">${optsPara}</select></td>
             <td><input type="number" step="0.001" class="inpR" value="${R}"></td>
             <td><input type="number" step="0.001" class="inpX" value="${X}"></td>
-            <td><button class="btn danger" style="padding:4px 10px; font-size:11px;">X</button></td>
+            <td><button class="btn danger" style="padding:4px 10px; font-size:11px;">Excluir</button></td>
         `;
         
         tr.querySelector('.selTipo').addEventListener('change', function() {
@@ -458,8 +441,6 @@
     // --- EXEMPLO 30 BARRAS ---
     btnExemplo30.onclick = () => {
         document.getElementById('inpFontes').value = "1, 11, 21";
-        document.getElementById('chkAutoTie').checked = false;
-        document.getElementById('divTieCost').style.display = 'none';
         
         cargas = {}; tblMalha.innerHTML = ''; tblCargas.innerHTML = ''; lineIdCounter = 1;
         
@@ -733,8 +714,8 @@
         sources.forEach(s => parent[s] = superSource);
         parent[superSource] = superSource;
 
-        lines.forEach((l, idx) => { if (!l.isSwitch && !l.isNewTie) { ind[idx] = 1; union(l.de, l.para); } });
-        lines.forEach((l, idx) => { if (l.isSwitch && !l.isNewTie) { if (union(l.de, l.para)) { ind[idx] = 1; } else { ind[idx] = 0; } } });
+        lines.forEach((l, idx) => { if (!l.isSwitch) { ind[idx] = 1; union(l.de, l.para); } });
+        lines.forEach((l, idx) => { if (l.isSwitch) { if (union(l.de, l.para)) { ind[idx] = 1; } else { ind[idx] = 0; } } });
         
         return ind;
     }
@@ -746,27 +727,6 @@
         const baseLines = getLines();
         const nosAtivos = Object.keys(cargas).map(Number);
         let allLines = [...baseLines];
-
-        // MUDANÇA NO CÓDIGO DA PÁGINA: LÊ O CUSTO DA INTERFACE
-        const tieCostVal = parseFloat(document.getElementById('inpTieCost').value) || 50000;
-
-        if(document.getElementById('chkAutoTie').checked) {
-            const candidates = [];
-            const existing = new Set(baseLines.map(l=>`${l.de}-${l.para}`));
-            for(let i=0; i<nosAtivos.length; i++){
-                for(let j=i+1; j<nosAtivos.length; j++){
-                    const n1 = nosAtivos[i], n2 = nosAtivos[j];
-                    if(existing.has(`${n1}-${n2}`) || existing.has(`${n2}-${n1}`)) continue;
-                    const dist = Math.hypot(cargas[n1].X-cargas[n2].X, cargas[n1].Y-cargas[n2].Y);
-                    if(dist > 0 && dist < 160) { 
-                        // MUDANÇA: MANDA O CUSTO PARA O WORKER
-                        candidates.push({ id: 9000+candidates.length, de:n1, para:n2, R:0.05, X:0.1, Smax:15, isSwitch:true, isNewTie:true, dist: dist, custo: tieCostVal });
-                    }
-                }
-            }
-            candidates.sort((a,b)=> a.dist - b.dist);
-            allLines = [...baseLines, ...candidates.slice(0, 10)];
-        }
 
         const indicesChaves = allLines.map((l, idx) => l.isSwitch ? idx : -1).filter(idx => idx !== -1);
 
@@ -786,7 +746,6 @@
         for(let i=1; i<popSize; i++) {
             population.push(allLines.map(l => {
                 if(!l.isSwitch) return 1; 
-                if(l.isNewTie) return Math.random() > 0.9 ? 1 : 0; 
                 return Math.random() > 0.1 ? 1 : 0; 
             }));
         }
@@ -826,7 +785,7 @@
             updateDashboard(bestSol.res);
             renderRes(bestSol.res, allLines, bestSol.ind); 
             showToast("Otimização concluída.", "success"); 
-            document.querySelectorAll('.sidebar .nav-item')[0].click(); 
+            document.querySelectorAll('.sidebar .nav-item')[0].click(); // Volta pro dashboard
         } 
         else { showToast("Erro no AG.", "error"); }
     }
