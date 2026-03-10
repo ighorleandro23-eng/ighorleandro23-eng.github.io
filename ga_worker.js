@@ -10,12 +10,12 @@ function cAbs(a){return Math.hypot(a.re,a.im)}
 function cDiv(a,b){const d=b.re*b.re+b.im*b.im||1e-30;return c((a.re*b.re+a.im*b.im)/d,(a.im*b.re-a.re*b.im)/d)} 
 function angDeg(a){return Math.atan2(a.im,a.re)*180/Math.PI}
 
-// --- Penalidades ---
 const GA_PENALTIES = {
-    UNSERVED_MW: 100000,
+    UNSERVED_NODE: 5000000,   
+    UNSERVED_MW: 10000000,    
     VOLTAGE_VIOL_PU: 50000,
     SMAX_VIOL_MVA: 10000,
-    LOOP_ALIMENTADOR: 1e15,
+    LOOP_ALIMENTADOR: 1e15,   
     MAX_NA_VIOL: 1e8
 };
 
@@ -64,10 +64,9 @@ function analisarTopologia(n, linhas, sources) {
 // --- Fluxo de Potência ---
 async function runFluxo(linhasData, nb, Sbase, Vbase_kV, cargas, sourceBuses) {
     const topo = analisarTopologia(nb, linhasData, sourceBuses);
-    if (!topo.ok) return { resBarras: [], resRamos: [], perdasMWtotal: 0, unservedBuses: new Set(), error: topo.msg };
+    if (!topo.ok) return { resBarras: [], resRamos: [], perdasMWtotal: 0, unservedBuses: Array.from(topo.unserved), error: topo.msg };
 
     const Zbase = (Vbase_kV * Vbase_kV) / Sbase;
-    // Corrente Base em Amperes: Ibase = (Sbase_MVA * 10^6) / (sqrt(3) * Vbase_kV * 10^3)
     const Ibase_A = (Sbase * 1000) / (Math.sqrt(3) * Vbase_kV);
 
     const V = Array(nb + 1).fill(0).map(() => c(0, 0));
@@ -104,7 +103,6 @@ async function runFluxo(linhasData, nb, Sbase, Vbase_kV, cargas, sourceBuses) {
     const ramoMap = {}; 
     linhasData.forEach(r => { ramoMap[`${r.de}-${r.para}`] = r; ramoMap[`${r.para}-${r.de}`] = r; });
 
-    // Sweep
     const iterMax = 50;
     const IramoFinal = {}; 
 
@@ -142,17 +140,10 @@ async function runFluxo(linhasData, nb, Sbase, Vbase_kV, cargas, sourceBuses) {
         if (maxDv < 1e-6) break;
     }
 
-    // Resultados
     const resBarras = [];
     for (let b = 1; b <= nb; b++) {
         const z = topo.zones[b];
-        resBarras.push({
-            barra: b,
-            zona: z,
-            Vmag: z ? cAbs(V[b]) : 0,
-            Vang: z ? angDeg(V[b]) : 0,
-            isConnected: !!z
-        });
+        resBarras.push({ barra: b, zona: z, Vmag: z ? cAbs(V[b]) : 0, Vang: z ? angDeg(V[b]) : 0, isConnected: !!z });
     }
 
     let perdasMWtotal = 0;
@@ -162,13 +153,8 @@ async function runFluxo(linhasData, nb, Sbase, Vbase_kV, cargas, sourceBuses) {
         let I = c(0,0);
         let flowFromDe = true;
 
-        if (parent.get(l.para) === l.de) { 
-            I = IramoFinal[`${l.de}-${l.para}`] || c(0,0);
-            flowFromDe = true;
-        } else if (parent.get(l.de) === l.para) { 
-            I = IramoFinal[`${l.para}-${l.de}`] || c(0,0);
-            flowFromDe = false;
-        }
+        if (parent.get(l.para) === l.de) { I = IramoFinal[`${l.de}-${l.para}`] || c(0,0); flowFromDe = true; } 
+        else if (parent.get(l.de) === l.para) { I = IramoFinal[`${l.para}-${l.de}`] || c(0,0); flowFromDe = false; }
 
         const V_ref = flowFromDe ? V[l.de] : V[l.para];
         const S_flow_pu = cMul(V_ref, cConj(I));
@@ -178,20 +164,16 @@ async function runFluxo(linhasData, nb, Sbase, Vbase_kV, cargas, sourceBuses) {
         const S_mva = cAbs(S_flow_pu) * Sbase;
         
         const modI = cAbs(I);
-        const I_Ampere = modI * Ibase_A; // Conversão para Amperes
+        const I_Ampere = modI * Ibase_A;
         const R_pu = (l.R || 0) / Zbase;
         const Loss_mw = modI * modI * R_pu * Sbase;
 
         if(topo.zones[l.de] && topo.zones[l.para]) perdasMWtotal += Loss_mw;
 
         resRamos.push({
-            ...l,
-            zona: topo.zones[l.de], 
-            Pmw: isFinite(P_mw) ? Math.abs(P_mw) : 0,
-            Qmvar: isFinite(Q_mvar) ? Math.abs(Q_mvar) : 0,
-            Smva: isFinite(S_mva) ? S_mva : 0,
-            perdasMW: isFinite(Loss_mw) ? Loss_mw : 0,
-            I_A: isFinite(I_Ampere) ? I_Ampere : 0 // Nova propriedade
+            ...l, zona: topo.zones[l.de], 
+            Pmw: isFinite(P_mw) ? Math.abs(P_mw) : 0, Qmvar: isFinite(Q_mvar) ? Math.abs(Q_mvar) : 0, Smva: isFinite(S_mva) ? S_mva : 0,
+            perdasMW: isFinite(Loss_mw) ? Loss_mw : 0, I_A: isFinite(I_Ampere) ? I_Ampere : 0 
         });
     });
 
@@ -202,7 +184,7 @@ async function runFluxo(linhasData, nb, Sbase, Vbase_kV, cargas, sourceBuses) {
 async function calculateFitness(individual, allLines, linhaFalhaKeys, nb, vMin, vMax, maxNALinhas, cargas, Sbase, Vbase_kV, sourceBuses) {
     const falhaSet = new Set(linhaFalhaKeys);
     let activeLines = [];
-    let custoChaves = 0;
+    let penalidadeFinanceiraTies = 0; // O Custo Bruto das Novas Chaves
     let numNA = 0;
     
     individual.forEach((gene, i) => {
@@ -213,15 +195,18 @@ async function calculateFitness(individual, allLines, linhaFalhaKeys, nb, vMin, 
             
             if (!falhaSet.has(k1) && !falhaSet.has(k2)) {
                 activeLines.push(l);
-                // Custo agora pode incluir distância (passado no objeto linha)
-                custoChaves += (l.custo || 0);
-                if(l.isNA) numNA++;
+                
+                // MUDANÇA: Se for uma TIE-LINE virtual construída, aplica a multa pesada diretamente!
+                if(l.isNewTie) {
+                    penalidadeFinanceiraTies += (l.custo || 0);
+                }
+                if(l.isSwitch || l.isNewTie) numNA++;
             }
         }
     });
 
-    let fitness = custoChaves;
-    if(numNA > maxNALinhas) fitness += (numNA - maxNALinhas) * GA_PENALTIES.MAX_NA_VIOL;
+    // O Fitness começa pesando o custo financeiro diretamente (Ex: 50.000 pontos de multa)
+    let fitness = penalidadeFinanceiraTies;
 
     const res = await runFluxo(activeLines, nb, Sbase, Vbase_kV, cargas, sourceBuses);
 
@@ -232,8 +217,11 @@ async function calculateFitness(individual, allLines, linhaFalhaKeys, nb, vMin, 
 
     let unservedP = 0;
     res.unservedBuses.forEach(b => { if(cargas[b]) unservedP += (cargas[b].P || 0); });
+    
     fitness += unservedP * GA_PENALTIES.UNSERVED_MW;
+    fitness += res.unservedBuses.length * GA_PENALTIES.UNSERVED_NODE; 
 
+    // Soma as perdas elétricas (que serão muito pequenas perto da penalidade da Tie-line)
     fitness += res.perdasMWtotal; 
 
     res.resBarras.forEach(b => {
@@ -247,7 +235,7 @@ async function calculateFitness(individual, allLines, linhaFalhaKeys, nb, vMin, 
         if(r.Smva > r.Smax) fitness += (r.Smva - r.Smax) * GA_PENALTIES.SMAX_VIOL_MVA;
     });
 
-    return { fitness, data: { ...res, currentLinhas: activeLines, custoChaves, numNA_Usadas: numNA } };
+    return { fitness, data: { ...res, currentLinhas: activeLines, custoChaves: penalidadeFinanceiraTies, numNA_Usadas: numNA } };
 }
 
 self.onmessage = async (event) => {
