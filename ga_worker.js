@@ -184,7 +184,6 @@ async function runFluxo(linhasData, nb, Sbase, Vbase_kV, cargas, sourceBuses) {
 async function calculateFitness(individual, allLines, linhaFalhaKeys, nb, vMin, vMax, maxNALinhas, cargas, Sbase, Vbase_kV, sourceBuses) {
     const falhaSet = new Set(linhaFalhaKeys);
     let activeLines = [];
-    let penalidadeFinanceiraTies = 0; // O Custo Bruto das Novas Chaves
     let numNA = 0;
     
     individual.forEach((gene, i) => {
@@ -195,18 +194,12 @@ async function calculateFitness(individual, allLines, linhaFalhaKeys, nb, vMin, 
             
             if (!falhaSet.has(k1) && !falhaSet.has(k2)) {
                 activeLines.push(l);
-                
-                // MUDANÇA: Se for uma TIE-LINE virtual construída, aplica a multa pesada diretamente!
-                if(l.isNewTie) {
-                    penalidadeFinanceiraTies += (l.custo || 0);
-                }
-                if(l.isSwitch || l.isNewTie) numNA++;
+                if(l.isSwitch) numNA++;
             }
         }
     });
 
-    // O Fitness começa pesando o custo financeiro diretamente (Ex: 50.000 pontos de multa)
-    let fitness = penalidadeFinanceiraTies;
+    let fitness = 0;
 
     const res = await runFluxo(activeLines, nb, Sbase, Vbase_kV, cargas, sourceBuses);
 
@@ -221,7 +214,6 @@ async function calculateFitness(individual, allLines, linhaFalhaKeys, nb, vMin, 
     fitness += unservedP * GA_PENALTIES.UNSERVED_MW;
     fitness += res.unservedBuses.length * GA_PENALTIES.UNSERVED_NODE; 
 
-    // Soma as perdas elétricas (que serão muito pequenas perto da penalidade da Tie-line)
     fitness += res.perdasMWtotal; 
 
     res.resBarras.forEach(b => {
@@ -235,7 +227,7 @@ async function calculateFitness(individual, allLines, linhaFalhaKeys, nb, vMin, 
         if(r.Smva > r.Smax) fitness += (r.Smva - r.Smax) * GA_PENALTIES.SMAX_VIOL_MVA;
     });
 
-    return { fitness, data: { ...res, currentLinhas: activeLines, custoChaves: penalidadeFinanceiraTies, numNA_Usadas: numNA } };
+    return { fitness, data: { ...res, currentLinhas: activeLines, numNA_Usadas: numNA } };
 }
 
 self.onmessage = async (event) => {
