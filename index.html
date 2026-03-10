@@ -6,6 +6,9 @@
     <title>Gestão de Redes - Painel Profissional</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <style>
         :root {
             --bg-body: #f4f6f8;
@@ -116,6 +119,12 @@
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>
                 Dashboard Analítico
             </div>
+            
+            <div class="nav-item" onclick="switchTab('analise', this)">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+                Análise de Dados
+            </div>
+
             <div class="nav-item" onclick="switchTab('editor', this)">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
                 Editor de Topologia
@@ -195,6 +204,55 @@
                         </table> 
                     </div>
                 </div>
+            </div>
+
+            <div id="analise" class="app-section">
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div class="card" style="margin-bottom: 0;">
+                        <div class="card-title">Resumo Comparativo (Base vs Otimizado)</div>
+                        <div class="table-scroll">
+                            <table id="tblComparativo">
+                                <thead><tr><th>Métrica</th><th>Cenário Base</th><th>Cenário Otimizado</th><th>Ganho / Melhoria</th></tr></thead>
+                                <tbody><tr><td colspan="4" style="text-align:center;">Execute o Fluxo Base e a Otimização para comparar.</td></tr></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="card" style="margin-bottom: 0;">
+                        <div class="card-title">Plano de Manobras (Switching Operations)</div>
+                        <div class="table-scroll">
+                            <table id="tblManobras">
+                                <thead><tr><th>Ação Necessária</th><th>Equipamento</th><th>De ➔ Para</th></tr></thead>
+                                <tbody><tr><td colspan="3" style="text-align:center;">Aguardando otimização.</td></tr></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px;">
+                    <div class="card" style="margin-bottom: 0;">
+                        <div class="card-title">Perfil de Tensão (Voltage Profile)</div>
+                        <div style="height: 300px; width: 100%;">
+                            <canvas id="chartVoltage"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="card" style="margin-bottom: 0;">
+                        <div class="card-title">Carga nas Subestações / Fontes (MVA)</div>
+                        <div style="height: 300px; width: 100%;">
+                            <canvas id="chartBalance"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card" style="margin-top: 20px;">
+                    <div class="card-title">Curva de Convergência do Algoritmo Genético</div>
+                    <div style="height: 250px; width: 100%;">
+                        <canvas id="chartConvergence"></canvas>
+                    </div>
+                </div>
+
             </div>
 
             <div id="editor" class="app-section">
@@ -292,6 +350,17 @@
     }
 
     const zonePalette = ['#2563eb', '#ea580c', '#9333ea', '#db2777', '#059669', '#0891b2', '#eab308', '#dc2626', '#4f46e5', '#84cc16'];
+
+    // --- VARIÁVEIS DA ABA DE ANÁLISE ---
+    let resultBaseGlobal = null;
+    let indBaseGlobal = null;
+    let resultOptGlobal = null;
+    let indOptGlobal = null;
+    let historyAG = [];
+    
+    let chartVolt = null;
+    let chartBal = null;
+    let chartConv = null;
 
     // --- UI Helpers ---
     function showToast(message, type = 'info') {
@@ -471,6 +540,10 @@
             showToast("Rede resetada.", "success");
             document.getElementById('relatorioCard').style.display = 'none';
             svg.innerHTML = '';
+            
+            // Limpar analise
+            resultBaseGlobal = null; resultOptGlobal = null; indBaseGlobal = null; indOptGlobal = null;
+            updateAnalyticsData();
         });
     };
 
@@ -723,6 +796,7 @@
     async function runGA(){
         initWorkers(); await new Promise(r=>setTimeout(r,100));
         btnOtimizar.disabled=true; document.getElementById('ga-status').textContent="Lendo dados para AG...";
+        historyAG = []; // Limpa o histórico de convergência
         
         const baseLines = getLines();
         const nosAtivos = Object.keys(cargas).map(Number);
@@ -766,6 +840,8 @@
                 if(!bestSol || valid[0].res.fitness < bestSol.res.fitness){ 
                     bestSol = valid[0]; 
                 }
+                historyAG.push(bestSol.res.fitness); // Guarda o melhor de cada geração
+                
                 const newPop = [valid[0].ind]; 
                 while(newPop.length < popSize){
                     const p1 = valid[Math.floor(Math.random()*Math.min(valid.length, 10))].ind;
@@ -781,11 +857,18 @@
             }
         }
         btnOtimizar.disabled=false; document.getElementById('ga-status').textContent="Otimização Finalizada.";
+        
         if(bestSol) { 
+            // Atualiza Dados Globais de Otimizado
+            resultOptGlobal = bestSol.res;
+            indOptGlobal = bestSol.ind;
+
             updateDashboard(bestSol.res);
             renderRes(bestSol.res, allLines, bestSol.ind); 
+            updateAnalyticsData(); // ATUALIZA A ABA DE ANÁLISE
+
             showToast("Otimização concluída.", "success"); 
-            document.querySelectorAll('.sidebar .nav-item')[0].click(); // Volta pro dashboard
+            document.querySelectorAll('.sidebar .nav-item')[1].click(); // Redireciona para Aba Análise
         } 
         else { showToast("Erro no AG.", "error"); }
     }
@@ -810,8 +893,15 @@
         workerPool[0].postMessage({individual:ind, index:0, staticData:sd});
         workerPool[0].onmessage = (e) => {
             document.getElementById('ga-progress-bar').style.width = '100%';
+            
+            // Salva dados globais da Base
+            resultBaseGlobal = e.data.result;
+            indBaseGlobal = ind;
+            
             updateDashboard(e.data.result);
             renderRes(e.data.result, allLines, ind);
+            updateAnalyticsData(); // ATUALIZA A ABA DE ANÁLISE
+
             if(e.data.result.data.error) showToast("Aviso: Rede com defeito de base.", "warning");
             else {
                 document.getElementById('ga-status').textContent="Fluxo Base Convergido.";
@@ -819,6 +909,130 @@
             }
         };
     };
+
+    // --- NOVA FUNÇÃO: POPULA A ABA DE ANÁLISE DE DADOS ---
+    function updateAnalyticsData() {
+        const lines = getLines();
+        const sources = getSources();
+
+        // 1. Tabela de Resumo Comparativo
+        const tbComp = document.querySelector('#tblComparativo tbody');
+        if (resultBaseGlobal && resultOptGlobal && !resultBaseGlobal.data.error && !resultOptGlobal.data.error) {
+            const pBase = resultBaseGlobal.data.perdasMWtotal;
+            const pOpt = resultOptGlobal.data.perdasMWtotal;
+            const diffP = pBase - pOpt;
+            const percP = (diffP / pBase) * 100;
+
+            const vBaseArr = resultBaseGlobal.data.resBarras.filter(b=>b.isConnected).map(b=>b.Vmag);
+            const vOptArr = resultOptGlobal.data.resBarras.filter(b=>b.isConnected).map(b=>b.Vmag);
+            const vBase = vBaseArr.length > 0 ? Math.min(...vBaseArr) : 0;
+            const vOpt = vOptArr.length > 0 ? Math.min(...vOptArr) : 0;
+
+            tbComp.innerHTML = `
+                <tr><td>Perdas Ativas Totais</td><td class="mono">${pBase.toFixed(4)} MW</td><td class="mono">${pOpt.toFixed(4)} MW</td><td class="mono ${percP >= 0 ? 'text-ok' : 'text-bad'}">${percP >= 0 ? '-' : '+'}${Math.abs(percP).toFixed(2)}%</td></tr>
+                <tr><td>Pior Tensão do Sistema</td><td class="mono">${vBase.toFixed(3)} pu</td><td class="mono">${vOpt.toFixed(3)} pu</td><td class="mono ${(vOpt - vBase) >= 0 ? 'text-ok' : 'text-bad'}">${(vOpt - vBase) >= 0 ? '+' : ''}${(vOpt - vBase).toFixed(3)} pu</td></tr>
+            `;
+        } else if (resultBaseGlobal && !resultBaseGlobal.data.error) {
+            tbComp.innerHTML = `<tr><td colspan="4" style="text-align:center;">Execute a Otimização para comparar os ganhos com o Cenário Base.</td></tr>`;
+        } else {
+            tbComp.innerHTML = `<tr><td colspan="4" style="text-align:center;">Execute o Fluxo Base e a Otimização para visualizar a comparação.</td></tr>`;
+        }
+
+        // 2. Plano de Manobras (Switching Operations)
+        const tbManobras = document.querySelector('#tblManobras tbody');
+        if (indBaseGlobal && indOptGlobal) {
+            let html = '';
+            lines.forEach((l, i) => {
+                if (l.isSwitch && indBaseGlobal[i] !== indOptGlobal[i]) {
+                    const acao = indOptGlobal[i] === 1 ? '<span class="text-ok">FECHAR</span>' : '<span class="text-bad">ABRIR</span>';
+                    html += `<tr><td><b>${acao}</b></td><td>Chave <b>L-${l.id}</b></td><td>Nó ${l.de} ➔ Nó ${l.para}</td></tr>`;
+                }
+            });
+            if (html === '') html = '<tr><td colspan="3" style="text-align:center;">A Otimização não sugeriu nenhuma mudança no estado atual das chaves.</td></tr>';
+            tbManobras.innerHTML = html;
+        } else {
+            tbManobras.innerHTML = '<tr><td colspan="3" style="text-align:center;">Aguardando otimização.</td></tr>';
+        }
+
+        // 3. Gráfico de Perfil de Tensão
+        const ctxVolt = document.getElementById('chartVoltage');
+        if (ctxVolt) {
+            let labels = []; let dataBase = []; let dataOpt = [];
+            
+            if(resultBaseGlobal && !resultBaseGlobal.data.error) {
+                const sorted = [...resultBaseGlobal.data.resBarras].sort((a,b)=>a.barra - b.barra);
+                labels = sorted.map(b=>b.barra);
+                dataBase = sorted.map(b=>b.Vmag);
+            }
+            if(resultOptGlobal && !resultOptGlobal.data.error) {
+                const sorted = [...resultOptGlobal.data.resBarras].sort((a,b)=>a.barra - b.barra);
+                if(labels.length === 0) labels = sorted.map(b=>b.barra);
+                dataOpt = sorted.map(b=>b.Vmag);
+            }
+
+            if (chartVolt) chartVolt.destroy();
+            if (labels.length > 0) {
+                chartVolt = new Chart(ctxVolt, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            { label: 'Tensão Base (pu)', data: dataBase, borderColor: '#94a3b8', borderWidth: 2, borderDash: [5,5], fill: false, pointRadius: 2 },
+                            { label: 'Tensão Otimizada (pu)', data: dataOpt, borderColor: '#2563eb', borderWidth: 2, fill: false, pointRadius: 3 }
+                        ]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, scales: { y: { min: 0.85, max: 1.05 } } }
+                });
+            }
+        }
+
+        // 4. Gráfico de Balanceamento de Carga
+        const ctxBal = document.getElementById('chartBalance');
+        if (ctxBal) {
+            let labels = sources.map(s => `Subestação ${s}`);
+            let dataBase = []; let dataOpt = [];
+
+            if(resultBaseGlobal && !resultBaseGlobal.data.error) {
+                dataBase = sources.map(s => {
+                    return resultBaseGlobal.data.resRamos.filter(r => r.de === s || r.para === s).reduce((acc, r) => acc + r.Smva, 0);
+                });
+            }
+            if(resultOptGlobal && !resultOptGlobal.data.error) {
+                dataOpt = sources.map(s => {
+                    return resultOptGlobal.data.resRamos.filter(r => r.de === s || r.para === s).reduce((acc, r) => acc + r.Smva, 0);
+                });
+            }
+
+            if (chartBal) chartBal.destroy();
+            if (dataBase.length > 0 || dataOpt.length > 0) {
+                chartBal = new Chart(ctxBal, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            { label: 'Carga Base (MVA)', data: dataBase, backgroundColor: '#94a3b8' },
+                            { label: 'Carga Otimizada (MVA)', data: dataOpt, backgroundColor: '#10b981' }
+                        ]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false }
+                });
+            }
+        }
+
+        // 5. Curva de Convergência do AG
+        const ctxConv = document.getElementById('chartConvergence');
+        if (ctxConv && historyAG.length > 0) {
+            if (chartConv) chartConv.destroy();
+            chartConv = new Chart(ctxConv, {
+                type: 'line',
+                data: {
+                    labels: historyAG.map((_, i) => `Ger ${i+1}`),
+                    datasets: [{ label: 'Fitness (Menores Perdas)', data: historyAG, borderColor: '#f59e0b', backgroundColor: 'rgba(245, 158, 11, 0.1)', fill: true, tension: 0.1, pointRadius: 0 }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, scales: { x: { display: false } } }
+            });
+        }
+    }
 
     // --- Atualiza Cartões do Dashboard ---
     function updateDashboard(res){
