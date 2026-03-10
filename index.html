@@ -264,11 +264,21 @@
                         </div>
                         <div style="margin-top: 15px;">
                             <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; text-transform: none; color: var(--text-dark); font-size: 14px;">
-                                <input type="checkbox" id="chkAutoTie" style="width: auto; height: 16px;"/> 
+                                <input type="checkbox" id="chkAutoTie" style="width: auto; height: 16px;" onchange="document.getElementById('divTieCost').style.display = this.checked ? 'block' : 'none';"/> 
                                 Permitir que o AG crie interligações (Tie-lines) automáticas pela distância
                             </label>
                         </div>
-                    </div>
+                        
+                        <div id="divTieCost" style="display: none; margin-top: 15px; margin-left: 24px; padding: 15px; background: #fff; border: 1px dashed var(--border-color); border-radius: 6px;">
+                            <label style="display: block; margin-bottom: 5px; text-transform: uppercase; color: var(--utfpr-blue);">Custo da Nova Tie-Line (Penalidade no Fitness)</label>
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <input id="inpTieCost" type="number" value="0.05" step="0.01" style="width: 120px;" />
+                                <span style="font-size: 12px; color: var(--text-muted);">
+                                    Se a linha reduzir as perdas em mais do que este valor, o AG irá propô-la no projeto.
+                                </span>
+                            </div>
+                        </div>
+                        </div>
 
                     <div style="display: flex; gap: 15px; align-items: center; border-top: 1px solid var(--border-color); padding-top: 20px;">
                         <button class="btn secondary" id="btnFluxo">Executar Fluxo Base</button> 
@@ -391,14 +401,14 @@
             <td>
                 <select class="selTipo" style="${isSwitch ? 'color: var(--utfpr-blue); font-weight: bold;' : ''}">
                     <option value="CABO" ${!isSwitch ? 'selected' : ''}>Cabo Fixo</option>
-                    <option value="CHAVE" ${isSwitch ? 'selected' : ''}>Chave (CS)</option>
+                    <option value="CHAVE" ${isSwitch ? 'selected' : ''}>Chave Manobrável</option>
                 </select>
             </td>
             <td><select class="selDe">${optsDe}</select></td>
             <td><select class="selPara">${optsPara}</select></td>
             <td><input type="number" step="0.001" class="inpR" value="${R}"></td>
             <td><input type="number" step="0.001" class="inpX" value="${X}"></td>
-            <td><button class="btn danger" style="padding:4px 10px; font-size:11px;">X</button></td>
+            <td><button class="btn danger" style="padding:4px 10px; font-size:11px;">Excluir</button></td>
         `;
         
         tr.querySelector('.selTipo').addEventListener('change', function() {
@@ -448,6 +458,7 @@
     btnExemplo30.onclick = () => {
         document.getElementById('inpFontes').value = "1, 11, 21";
         document.getElementById('chkAutoTie').checked = false;
+        document.getElementById('divTieCost').style.display = 'none';
         
         cargas = {}; tblMalha.innerHTML = ''; tblCargas.innerHTML = ''; lineIdCounter = 1;
         
@@ -711,7 +722,6 @@
         if(gaResults.filter(x=>x).length===gaResults.length && gaResolve) gaResolve(gaResults);
     }
     
-    // --- FUNÇÃO MATEMÁTICA: Encontra chaves NA automaticamente na base ---
     function getBaseRadialDNA(lines, sources) {
         const ind = new Array(lines.length).fill(0);
         const parent = {};
@@ -736,6 +746,9 @@
         const nosAtivos = Object.keys(cargas).map(Number);
         let allLines = [...baseLines];
 
+        // MUDANÇA: AGORA LÊ O VALOR DO CUSTO NA CAIXA DE TEXTO
+        const tieCostVal = parseFloat(document.getElementById('inpTieCost').value) || 0;
+
         if(document.getElementById('chkAutoTie').checked) {
             const candidates = [];
             const existing = new Set(baseLines.map(l=>`${l.de}-${l.para}`));
@@ -745,7 +758,8 @@
                     if(existing.has(`${n1}-${n2}`) || existing.has(`${n2}-${n1}`)) continue;
                     const dist = Math.hypot(cargas[n1].X-cargas[n2].X, cargas[n1].Y-cargas[n2].Y);
                     if(dist > 0 && dist < 160) { 
-                        candidates.push({ id: 9000+candidates.length, de:n1, para:n2, R:0.05, X:0.1, Smax:15, isSwitch:true, isNewTie:true, dist: dist });
+                        // MUDANÇA: INSERE O CUSTO AQUI PARA O WORKER LER
+                        candidates.push({ id: 9000+candidates.length, de:n1, para:n2, R:0.05, X:0.1, Smax:15, isSwitch:true, isNewTie:true, dist: dist, custo: tieCostVal });
                     }
                 }
             }
@@ -817,7 +831,7 @@
     }
     btnOtimizar.onclick = runGA;
 
-    // --- Fluxo Base (Usa getBaseRadialDNA) ---
+    // --- Fluxo Base ---
     btnFluxo.onclick = async () => {
         initWorkers(); await new Promise(r=>setTimeout(r,100));
         document.getElementById('ga-status').textContent="Calculando Fluxo de Potência Base...";
@@ -831,7 +845,6 @@
             Sbase:parseFloat(document.getElementById('sbase').value), Vbase_kV:parseFloat(document.getElementById('vbase').value), sourceBuses: getSources()
         };
         
-        // Descobre as NA automaticamente
         const ind = getBaseRadialDNA(allLines, getSources()); 
         
         workerPool[0].postMessage({individual:ind, index:0, staticData:sd});
@@ -842,7 +855,7 @@
             if(e.data.result.data.error) showToast("Aviso: Rede com defeito de base.", "warning");
             else {
                 document.getElementById('ga-status').textContent="Fluxo Base Convergido.";
-                document.querySelectorAll('.sidebar .nav-item')[0].click(); // Vai pro dashboard
+                document.querySelectorAll('.sidebar .nav-item')[0].click(); 
             }
         };
     };
