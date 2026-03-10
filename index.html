@@ -70,6 +70,7 @@
         table { width: 100%; border-collapse: separate; border-spacing: 0; min-width: 600px; text-align: left;}
         th { padding: 12px 15px; background: #f8fafc; color: var(--text-muted); font-size: 12px; font-weight: 600; text-transform: uppercase; position: sticky; top: 0; z-index: 1; border-bottom: 1px solid var(--border-color); letter-spacing: 0.5px;}
         td { padding: 12px 15px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: var(--text-dark); vertical-align: middle;}
+        tr:last-child td { border-bottom: none; }
         tr:hover td { background-color: #f8fafc; }
         td input { padding: 6px; width: 80px; font-size: 13px;} 
         td select { width: auto; padding: 6px; font-size: 13px;}
@@ -390,14 +391,14 @@
             <td>
                 <select class="selTipo" style="${isSwitch ? 'color: var(--utfpr-blue); font-weight: bold;' : ''}">
                     <option value="CABO" ${!isSwitch ? 'selected' : ''}>Cabo Fixo</option>
-                    <option value="CHAVE" ${isSwitch ? 'selected' : ''}>Chave Manobrável</option>
+                    <option value="CHAVE" ${isSwitch ? 'selected' : ''}>Chave (CS)</option>
                 </select>
             </td>
             <td><select class="selDe">${optsDe}</select></td>
             <td><select class="selPara">${optsPara}</select></td>
             <td><input type="number" step="0.001" class="inpR" value="${R}"></td>
             <td><input type="number" step="0.001" class="inpX" value="${X}"></td>
-            <td><button class="btn danger" style="padding:4px 10px; font-size:11px;">Excluir</button></td>
+            <td><button class="btn danger" style="padding:4px 10px; font-size:11px;">X</button></td>
         `;
         
         tr.querySelector('.selTipo').addEventListener('change', function() {
@@ -467,7 +468,6 @@
         addLinhaRow({de: 20, para: 30, R: 0.05, X: 0.1, isSwitch: true});
 
         showToast("Exemplo carregado. Teste o Fluxo Base.", "success");
-        // Força ir para aba motor para rodar
         document.querySelectorAll('.sidebar .nav-item')[2].click();
     };
 
@@ -493,7 +493,7 @@
 
     btnAddLinha.onclick = () => addLinhaRow();
 
-    // --- IMPORTADOR ---
+    // --- IMPORTADOR INTELIGENTE ---
     document.getElementById('btnExportar').onclick = () => {
         if(getLines().length === 0) { showToast("Não há rede para exportar.", "error"); return; }
         let csv = "TIPO;ID;DE;PARA;R_PU;X_PU;TIPO_EQ\n";
@@ -594,7 +594,7 @@
             aplicarLayoutArvore(); 
         } else {
             showToast(`Importação concluída: ${nosBrutos.size} barras válidas.`, "success");
-            document.querySelectorAll('.sidebar .nav-item')[2].click(); // Vai p/ aba de otimização
+            document.querySelectorAll('.sidebar .nav-item')[2].click(); 
             btnFluxo.click();
         }
     }
@@ -685,7 +685,7 @@
             const b = parseInt(trs[i].cells[0].innerText.split(' ')[0]);
             if(cargas[b]){ trs[i].querySelectorAll('input')[2].value = cargas[b].X.toFixed(0); trs[i].querySelectorAll('input')[3].value = cargas[b].Y.toFixed(0); }
         }
-        showToast("Layout hierárquico (Árvore Horizontal) construído com sucesso!", "success");
+        showToast("Layout hierárquico construído com sucesso!", "success");
         
         document.querySelectorAll('.sidebar .nav-item')[2].click();
         btnFluxo.click();
@@ -722,10 +722,7 @@
         sources.forEach(s => parent[s] = superSource);
         parent[superSource] = superSource;
 
-        // 1. Fecha sempre os Cabos
         lines.forEach((l, idx) => { if (!l.isSwitch && !l.isNewTie) { ind[idx] = 1; union(l.de, l.para); } });
-        
-        // 2. Fecha Chaves apenas se não causarem Loop
         lines.forEach((l, idx) => { if (l.isSwitch && !l.isNewTie) { if (union(l.de, l.para)) { ind[idx] = 1; } else { ind[idx] = 0; } } });
         
         return ind;
@@ -792,7 +789,9 @@
             valid.sort((a,b)=>a.res.fitness - b.res.fitness);
 
             if(valid.length > 0){
-                if(!bestSol || valid[0].res.fitness < bestSol.res.fitness){ bestSol = valid[0]; updateDash(bestSol.res); }
+                if(!bestSol || valid[0].res.fitness < bestSol.res.fitness){ 
+                    bestSol = valid[0]; 
+                }
                 const newPop = [valid[0].ind]; 
                 while(newPop.length < popSize){
                     const p1 = valid[Math.floor(Math.random()*Math.min(valid.length, 10))].ind;
@@ -818,7 +817,7 @@
     }
     btnOtimizar.onclick = runGA;
 
-    // --- Fluxo Base (AGORA USA getBaseRadialDNA PARA NÃO DAR LOOP) ---
+    // --- Fluxo Base (Usa getBaseRadialDNA) ---
     btnFluxo.onclick = async () => {
         initWorkers(); await new Promise(r=>setTimeout(r,100));
         document.getElementById('ga-status').textContent="Calculando Fluxo de Potência Base...";
@@ -832,31 +831,21 @@
             Sbase:parseFloat(document.getElementById('sbase').value), Vbase_kV:parseFloat(document.getElementById('vbase').value), sourceBuses: getSources()
         };
         
-        // Em vez de fechar tudo (o que dava loop com as interzonas), ele descobre as NA matematicamente
+        // Descobre as NA automaticamente
         const ind = getBaseRadialDNA(allLines, getSources()); 
         
         workerPool[0].postMessage({individual:ind, index:0, staticData:sd});
         workerPool[0].onmessage = (e) => {
             document.getElementById('ga-progress-bar').style.width = '100%';
             updateDashboard(e.data.result);
-            updateDash(e.data.result);
             renderRes(e.data.result, allLines, ind);
             if(e.data.result.data.error) showToast("Aviso: Rede com defeito de base.", "warning");
             else {
                 document.getElementById('ga-status').textContent="Fluxo Base Convergido.";
-                document.querySelectorAll('.sidebar .nav-item')[0].click(); // Vai pro dashboard mostrar os dados base
+                document.querySelectorAll('.sidebar .nav-item')[0].click(); // Vai pro dashboard
             }
         };
     };
-
-    function updateDash(res){
-        document.getElementById('best-fitness-display').textContent = res.fitness > 1e9 ? "Inválida" : res.fitness.toFixed(1);
-        if(res.data && !res.data.error){
-            document.getElementById('unserved-load-display').textContent = (res.data.unservedBuses && res.data.unservedBuses.length > 0) ? res.data.unservedBuses.length + " Nós" : "0 MW";
-            document.getElementById('losses-display').textContent = (res.data.perdasMWtotal||0).toFixed(4) + " MW";
-            document.getElementById('active-switches-display').textContent = res.data.currentLinhas ? res.data.currentLinhas.length : "---";
-        }
-    }
 
     // --- Atualiza Cartões do Dashboard ---
     function updateDashboard(res){
@@ -984,7 +973,7 @@
                 txtData.setAttribute('x', cargas[b].X + 8); txtData.setAttribute('y', cargas[b].Y + 4);
                 txtData.setAttribute('font-size', '10'); txtData.setAttribute('font-family', 'monospace');
                 txtData.setAttribute('fill', busRes.Vmag < 0.93 || busRes.Vmag > 1.05 ? 'var(--st-bad)' : 'var(--text-muted)');
-                txtData.textContent = `${busRes.Vmag.toFixed(3)}`;
+                txtData.textContent = `${busRes.Vmag.toFixed(3)}pu`;
                 g.appendChild(txtData);
             }
         }
@@ -1022,7 +1011,6 @@
         svg.setAttribute('viewBox', `${vBox.x} ${vBox.y} ${vBox.w} ${vBox.h}`);
     });
 
-    btnExemplo30.click();
     </script>
 </body>
 </html>
