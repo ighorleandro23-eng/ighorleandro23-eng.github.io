@@ -3,21 +3,23 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Gestão de Redes - Painel Profissional</title>
+    <title>NetOp PRO | Reconfiguração de Redes - UTFPR</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
     
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
+        /* --- TEMA UTFPR (Preto e Amarelo Ouro) --- */
         :root {
-            --bg-body: #f4f6f8;
-            --bg-sidebar: #ffffff;
+            --bg-body: #f0f2f5;           /* Cinza muito claro */
+            --bg-sidebar: #000000;       /* Preto Oficial UTFPR */
+            --text-sidebar: #ffffff;     /* Texto branco no menu preto */
             --bg-card: #ffffff;
             --text-dark: #1e293b;
             --text-muted: #64748b;
-            --utfpr-blue: #2563eb;
-            --border-color: #e2e8f0;
+            --utfpr-accent: #F9D606;     /* Amarelo Ouro Oficial UTFPR */
+            --border-color: #dce0e6;
             --card-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
             --st-ok: #10b981;
             --st-warn: #f59e0b;
@@ -28,22 +30,28 @@
         body { font-family: 'Inter', sans-serif; color: var(--text-dark); background: var(--bg-body); display: flex; height: 100vh; overflow: hidden; }
         .mono { font-family: 'Roboto Mono', monospace; }
 
-        /* --- MENU LATERAL (SIDEBAR) --- */
-        .sidebar { width: 250px; background: var(--bg-sidebar); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; flex-shrink: 0; z-index: 10;}
-        .sidebar-header { padding: 20px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; gap: 10px; }
-        .sidebar-header h2 { font-size: 18px; font-weight: 700; color: var(--text-dark); margin: 0;}
-        .sidebar-header .icon { background: var(--utfpr-blue); color: white; width: 30px; height: 30px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px;}
+        /* --- MENU LATERAL (SIDEBAR) UTFPR --- */
+        .sidebar { width: 250px; background: var(--bg-sidebar); border-right: 1px solid var(--bg-sidebar); display: flex; flex-direction: column; flex-shrink: 0; z-index: 10;}
         
-        .nav-menu { padding: 20px 0; display: flex; flex-direction: column; gap: 5px; }
-        .nav-item { padding: 12px 20px; cursor: pointer; color: var(--text-muted); font-weight: 500; font-size: 14px; border-left: 3px solid transparent; transition: all 0.2s; display: flex; align-items: center; gap: 10px;}
-        .nav-item:hover { background: #f8fafc; color: var(--text-dark); }
-        .nav-item.active { background: #eff6ff; color: var(--utfpr-blue); border-left-color: var(--utfpr-blue); font-weight: 600; }
+        .sidebar-header { padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
+        .sidebar-header img { width: 100%; max-width: 180px; height: auto; display: block; filter: none;} /* Logo UTFPR Colorido/Ouro */
+        .sidebar-header h2 { font-size: 16px; font-weight: 700; color: var(--utfpr-accent); margin: 0;}
+        
+        .nav-menu { padding: 20px 0; display: flex; flex-direction: column; gap: 2px; }
+        .nav-item { padding: 12px 20px; cursor: pointer; color: rgba(255,255,255,0.7); font-weight: 500; font-size: 14px; border-left: 3px solid transparent; transition: all 0.2s; display: flex; align-items: center; gap: 10px;}
+        .nav-item svg { color: rgba(255,255,255,0.5); }
+        
+        .nav-item:hover { background: rgba(255,255,255,0.05); color: var(--text-sidebar); }
+        .nav-item:hover svg { color: var(--text-sidebar); }
+        
+        .nav-item.active { background: rgba(249, 214, 6, 0.1); color: var(--utfpr-accent); border-left-color: var(--utfpr-accent); font-weight: 600; }
+        .nav-item.active svg { color: var(--utfpr-accent); }
 
         /* --- ÁREA PRINCIPAL --- */
         .main-content { flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; }
         .top-bar { background: var(--bg-card); height: 70px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; padding: 0 30px; flex-shrink: 0; }
-        .top-bar .page-title { font-size: 20px; font-weight: 600; }
-        .top-bar .user-info { font-size: 14px; color: var(--text-muted); display: flex; align-items: center; gap: 15px;}
+        .top-bar .page-title { font-size: 20px; font-weight: 600; color: var(--text-dark); }
+        .top-bar .user-info { font-size: 13px; color: var(--text-muted); display: flex; align-items: center; gap: 15px;}
         .content-container { padding: 30px; max-width: 1600px; margin: 0 auto; width: 100%; }
 
         /* Abas */
@@ -59,11 +67,11 @@
         label { font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 6px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;}
         input, select, button, textarea { font-family: inherit; font-size: 14px; }
         input[type="text"], input[type="number"], select { width: 100%; padding: 10px 12px; border-radius: 6px; border: 1px solid #cbd5e1; background: #fff; transition: border 0.2s; }
-        input:focus, select:focus { outline: none; border-color: var(--utfpr-blue); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
+        input:focus, select:focus { outline: none; border-color: var(--utfpr-accent); box-shadow: 0 0 0 3px rgba(249, 214, 6, 0.1); }
         
         .btn { padding: 10px 18px; border-radius: 6px; border: none; font-weight: 500; cursor: pointer; transition: all 0.2s ease; display: inline-flex; align-items: center; justify-content: center; }
         .btn:hover { transform: translateY(-1px); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
-        .btn.primary { background: var(--utfpr-blue); color: white; }
+        .btn.primary { background: var(--utfpr-accent); color: var(--bg-sidebar); font-weight: 600; } /* Botão Ouro com texto preto */
         .btn.secondary { background: #f1f5f9; color: var(--text-dark); border: 1px solid #cbd5e1;}
         .btn.success { background: var(--st-ok); color: white; }
         .btn.danger { background: white; color: var(--st-bad); border: 1px solid #fecaca;}
@@ -80,7 +88,7 @@
 
         /* --- DASHBOARD --- */
         .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 25px; }
-        .kpi-card { background: white; padding: 20px; border-radius: 10px; border: 1px solid var(--border-color); box-shadow: 0 1px 2px rgba(0,0,0,0.05); border-left: 4px solid var(--utfpr-blue);}
+        .kpi-card { background: white; padding: 20px; border-radius: 10px; border: 1px solid var(--border-color); box-shadow: 0 1px 2px rgba(0,0,0,0.05); border-left: 4px solid var(--utfpr-accent);}
         .kpi-card.bad { border-left-color: var(--st-bad); }
         .kpi-title { font-size: 13px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; margin-bottom: 8px;}
         .kpi-value { font-size: 28px; font-weight: 700; color: var(--text-dark); }
@@ -95,15 +103,15 @@
         .text-bad { color: var(--st-bad); font-weight: bold;}
         .text-ok { color: var(--st-ok); font-weight: bold;}
         
-        /* Modals & Toasts */
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(2px); }
+        /* Modals & Toasts UTFPR */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(2px); }
         .modal-box { background: white; padding: 30px; border-radius: 12px; max-width: 400px; width: 90%; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
         .toast-container { position: fixed; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 1000; }
         .toast { padding: 16px 24px; border-radius: 8px; color: white; font-weight: 500; font-size: 14px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); opacity: 0; transform: translateY(20px); transition: all 0.3s ease; }
         .toast.show { opacity: 1; transform: translateY(0); }
         .toast.success { background-color: var(--st-ok); }
         .toast.error { background-color: var(--st-bad); }
-        .toast.info { background-color: var(--utfpr-blue); }
+        .toast.info { background-color: var(--utfpr-accent); color: var(--bg-sidebar); } /* Toast Ouro com texto preto */
         .toast.warning { background-color: var(--st-warn); color: white;}
     </style>
 </head>
@@ -111,7 +119,7 @@
 
     <div class="sidebar">
         <div class="sidebar-header">
-            <div class="icon">N</div>
+            <img src="https://image.api.playground.ai/get-image?content_fetch_id=uploaded%3Aimage_2f41b4.png-89689f25-b4bb-4235-9856-2f0f46c31861" alt="Logo UTFPR">
             <h2>NetOp PRO</h2>
         </div>
         <div class="nav-menu">
@@ -145,7 +153,7 @@
         <div class="top-bar">
             <div class="page-title" id="topTitle">Dashboard Analítico</div>
             <div class="user-info">
-                <span>Engenharia</span>
+                <span>Engenharia UTFPR</span>
                 <button class="btn secondary" style="padding: 6px 12px; font-size: 12px;" onclick="location.reload()">Reset</button>
             </div>
         </div>
@@ -340,7 +348,7 @@
 
             <div id="ag_config" class="app-section">
                 <div class="card" style="max-width: 800px; margin: 0 auto;">
-                    <div class="card-title">Configurações do Algoritmo Genético</div>
+                    <div class="card-title">Configurações do Algoritmo Genético (UTFPR)</div>
                     
                     <div style="background: #f8fafc; padding: 20px; border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 20px;">
                         <div class="row">
@@ -359,9 +367,9 @@
                         <button class="btn primary" id="btnOtimizar" style="font-size: 15px; padding: 12px 24px;">INICIAR OTIMIZAÇÃO</button> 
                         
                         <div style="flex-grow: 1; text-align: right;">
-                            <div id="ga-status" style="font-weight:600; color: var(--utfpr-blue); margin-bottom: 5px; font-size: 14px;">Aguardando...</div> 
+                            <div id="ga-status" style="font-weight:600; color: var(--utfpr-accent); margin-bottom: 5px; font-size: 14px;">Aguardando...</div> 
                             <div style="background:#e2e8f0; height:6px; border-radius:3px; overflow:hidden; width: 200px; margin-left: auto;">
-                                <div id="ga-progress-bar" style="width: 0%; height: 100%; background: var(--utfpr-blue); transition: width 0.1s;"></div>
+                                <div id="ga-progress-bar" style="width: 0%; height: 100%; background: var(--utfpr-accent); transition: width 0.1s;"></div>
                             </div> 
                         </div>
                     </div>
@@ -381,7 +389,8 @@
         document.getElementById('topTitle').innerText = element.innerText;
     }
 
-    const zonePalette = ['#2563eb', '#ea580c', '#9333ea', '#db2777', '#059669', '#0891b2', '#eab308', '#dc2626', '#4f46e5', '#84cc16'];
+    // Paleta de zonas UTFPR (Preto/Amarelo Ouro + variações seguras)
+    const zonePalette = ['#F9D606', '#ea580c', '#000000', '#db2777', '#059669', '#0891b2', '#eab308', '#dc2626', '#4f46e5', '#84cc16'];
 
     // --- VARIÁVEIS DA ABA DE ANÁLISE E HISTÓRICO ---
     let resultBaseGlobal = null;
@@ -389,7 +398,7 @@
     let resultOptGlobal = null;
     let indOptGlobal = null;
     let historyAG = [];
-    let historyFullAG = []; // NOVO: Armazena o registro detalhado de todos os indivíduos avaliados
+    let historyFullAG = []; 
     
     let chartVolt = null;
     let chartBal = null;
@@ -447,7 +456,7 @@
     function appendBarraRow(b, isSrc) {
         const r = document.createElement('tr');
         r.innerHTML = `
-            <td style="${isSrc ? 'font-weight:700; color:var(--utfpr-blue)' : ''}">${b} ${isSrc?'(F)':''}</td>
+            <td style="${isSrc ? 'font-weight:700; color:var(--utfpr-accent)' : ''}">${b} ${isSrc?'(F)':''}</td>
             <td><input type="number" step="0.001" class="iP" value="${cargas[b].P}"></td>
             <td><input type="number" step="0.001" class="iQ" value="${cargas[b].Q}"></td>
             <td><input type="number" class="iX" value="${cargas[b].X.toFixed(0)}"></td>
@@ -485,7 +494,7 @@
         tr.innerHTML = `
             <td><b>${id}</b></td>
             <td>
-                <select class="selTipo" style="${isSwitch ? 'color: var(--utfpr-blue); font-weight: bold;' : ''}">
+                <select class="selTipo" style="${isSwitch ? 'color: var(--utfpr-accent); font-weight: bold;' : ''}">
                     <option value="CABO" ${!isSwitch ? 'selected' : ''}>Cabo Fixo</option>
                     <option value="CHAVE" ${isSwitch ? 'selected' : ''}>Chave Manobrável</option>
                 </select>
@@ -498,7 +507,7 @@
         `;
         
         tr.querySelector('.selTipo').addEventListener('change', function() {
-            if(this.value === 'CHAVE') { this.style.color = 'var(--utfpr-blue)'; this.style.fontWeight = 'bold'; }
+            if(this.value === 'CHAVE') { this.style.color = 'var(--utfpr-accent)'; this.style.fontWeight = 'bold'; }
             else { this.style.color = 'inherit'; this.style.fontWeight = 'normal'; }
             updateSelects();
         });
@@ -563,7 +572,7 @@
         addLinhaRow({de: 20, para: 30, R: 0.05, X: 0.1, isSwitch: true});
 
         showToast("Exemplo carregado. Teste o Fluxo Base.", "success");
-        document.querySelectorAll('.sidebar .nav-item')[4].click(); // Aba do Motor
+        document.querySelectorAll('.sidebar .nav-item')[4].click(); 
     };
 
     // --- Botões Básicos ---
@@ -574,7 +583,6 @@
             document.getElementById('relatorioCard').style.display = 'none';
             svg.innerHTML = '';
             
-            // Limpar analise
             resultBaseGlobal = null; resultOptGlobal = null; indBaseGlobal = null; indOptGlobal = null;
             historyFullAG = [];
             updateAnalyticsData();
@@ -691,16 +699,16 @@
         });
         
         if(coordsZeradas && nosBrutos.size > 0) {
-            showToast("Calculando Layout Hierárquico do Alimentador...", "info");
+            showToast("Calculando Layout Hierárquico UTFPR...", "info");
             aplicarLayoutArvore(); 
         } else {
-            showToast(`Importação concluída: ${nosBrutos.size} barras válidas.`, "success");
+            showToast(`Importação concluída: ${nosBrutos.size} barras UTFPR válidas.`, "success");
             document.querySelectorAll('.sidebar .nav-item')[4].click(); 
             btnFluxo.click();
         }
     }
 
-    // --- NOVO MOTOR GRÁFICO (Árvore Horizontal Perfeita) ---
+    // --- MOTOR GRÁFICO (Árvore Horizontal UTFPR) ---
     function aplicarLayoutArvore() {
         const nodes = Object.keys(cargas).map(Number);
         const edges = getLines();
@@ -786,7 +794,7 @@
             const b = parseInt(trs[i].cells[0].innerText.split(' ')[0]);
             if(cargas[b]){ trs[i].querySelectorAll('input')[2].value = cargas[b].X.toFixed(0); trs[i].querySelectorAll('input')[3].value = cargas[b].Y.toFixed(0); }
         }
-        showToast("Layout hierárquico construído com sucesso!", "success");
+        showToast("Layout UTFPR construído com sucesso!", "success");
         
         document.querySelectorAll('.sidebar .nav-item')[4].click();
         btnFluxo.click();
@@ -830,9 +838,9 @@
 
     async function runGA(){
         initWorkers(); await new Promise(r=>setTimeout(r,100));
-        btnOtimizar.disabled=true; document.getElementById('ga-status').textContent="Lendo dados para AG...";
+        btnOtimizar.disabled=true; document.getElementById('ga-status').textContent="Lendo dados para AG UTFPR...";
         historyAG = []; 
-        historyFullAG = []; // Limpa o Histórico do DNA
+        historyFullAG = []; 
         
         const baseLines = getLines();
         const nosAtivos = Object.keys(cargas).map(Number);
@@ -863,13 +871,12 @@
         let bestSol = null;
         for(let g=0; g<maxGen; g++){
             document.getElementById('ga-progress-bar').style.width = `${(g/maxGen)*100}%`;
-            document.getElementById('ga-status').textContent = `AG: Geração ${g+1} de ${maxGen}`;
+            document.getElementById('ga-status').textContent = `AG UTFPR: Gen ${g+1} / ${maxGen}`;
             gaResults = new Array(popSize);
             gaQueue = population.map((ind,i)=>({individual:ind, index:i, staticData}));
             workerPool.forEach(w=>{if(!w.busy && gaQueue.length){w.postMessage(gaQueue.shift()); w.busy=true;}});
             await new Promise(r=>gaResolve=r);
 
-            // INÍCIO NOVO CÓDIGO - Salva o Histórico de DNA de cada indivíduo
             gaResults.forEach((res, i) => {
                 historyFullAG.push({
                     gen: g + 1,
@@ -878,7 +885,6 @@
                     fitness: res.fitness
                 });
             });
-            // FIM NOVO CÓDIGO
 
             const valid = gaResults.map((res,i)=>({res, ind:population[i]})).filter(x=> x.res.fitness < 1e14);
             valid.sort((a,b)=>a.res.fitness - b.res.fitness);
@@ -903,7 +909,7 @@
                 population = population.map(ind => allLines.map(l => l.isSwitch ? (Math.random() > 0.5 ? 1 : 0) : 1));
             }
         }
-        btnOtimizar.disabled=false; document.getElementById('ga-status').textContent="Otimização Finalizada.";
+        btnOtimizar.disabled=false; document.getElementById('ga-status').textContent="Otimização UTFPR Finalizada.";
         
         if(bestSol) { 
             resultOptGlobal = bestSol.res;
@@ -912,19 +918,19 @@
             updateDashboard(bestSol.res);
             renderRes(bestSol.res, allLines, bestSol.ind); 
             updateAnalyticsData(); 
-            updateHistoryTable(); // Atualiza a aba Histórico
+            updateHistoryTable();
 
-            showToast("Otimização concluída.", "success"); 
-            document.querySelectorAll('.sidebar .nav-item')[2].click(); // Redireciona para o Histórico para você ver
+            showToast("Otimização concluída com sucesso.", "success"); 
+            document.querySelectorAll('.sidebar .nav-item')[2].click(); 
         } 
-        else { showToast("Erro no AG.", "error"); }
+        else { showToast("Erro no AG UTFPR.", "error"); }
     }
     btnOtimizar.onclick = runGA;
 
     // --- Fluxo Base ---
     btnFluxo.onclick = async () => {
         initWorkers(); await new Promise(r=>setTimeout(r,100));
-        document.getElementById('ga-status').textContent="Calculando Fluxo de Potência Base...";
+        document.getElementById('ga-status').textContent="Calculando Fluxo Base (UTFPR)...";
         document.getElementById('ga-progress-bar').style.width = '50%';
         const allLines = getLines(); 
         const nosAtivos = Object.keys(cargas).map(Number);
@@ -948,7 +954,7 @@
             renderRes(e.data.result, allLines, ind);
             updateAnalyticsData(); 
 
-            if(e.data.result.data.error) showToast("Aviso: Rede com defeito de base.", "warning");
+            if(e.data.result.data.error) showToast("Aviso: Rede com defeito de base UTFPR.", "warning");
             else {
                 document.getElementById('ga-status').textContent="Fluxo Base Convergido.";
                 document.querySelectorAll('.sidebar .nav-item')[0].click(); 
@@ -956,29 +962,27 @@
         };
     };
 
-    // --- NOVA FUNÇÃO: POPULA A ABA DE HISTÓRICO DE INDIVÍDUOS ---
     function updateHistoryTable() {
         const tbody = document.querySelector('#tblHistorico tbody');
         if (historyFullAG.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Aguardando execução do Algoritmo Genético...</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Aguardando execução do AG UTFPR...</td></tr>';
             return;
         }
 
-        // Para evitar travamento de renderização em populações gigantes (>5000), pegamos apenas os últimos 3000
         let displayData = historyFullAG;
         let warningHtml = '';
         if (historyFullAG.length > 3000) {
             displayData = historyFullAG.slice(-3000);
-            warningHtml = `<tr><td colspan="4" style="text-align:center; color:var(--st-warn); font-weight:bold; background:#fffbeb;">Para garantir a performance do seu navegador, estamos exibindo apenas os últimos 3000 cromossomos avaliados (do total de ${historyFullAG.length}).</td></tr>`;
+            warningHtml = `<tr><td colspan="4" style="text-align:center; color:var(--st-warn); font-weight:bold; background:#fffbeb;">Exibindo últimos 3000 cromossomos (total: ${historyFullAG.length}) para performance.</td></tr>`;
         }
 
         let html = warningHtml;
         displayData.forEach(log => {
-            let fitDisplay = log.fitness >= 1e14 ? '<span class="text-bad" style="font-weight:600;">Inválido (Loop / Ilha)</span>' : log.fitness.toFixed(4) + ' MW';
+            let fitDisplay = log.fitness >= 1e14 ? '<span class="text-bad">Inválido</span>' : log.fitness.toFixed(4) + ' MW';
             html += `<tr>
-                <td>Ger. ${log.gen}</td>
+                <td>Gen ${log.gen}</td>
                 <td>#${log.idx}</td>
-                <td class="mono" style="font-size:11px; letter-spacing:1px; color:var(--utfpr-blue); word-break: break-all;">[${log.dna}]</td>
+                <td class="mono" style="font-size:11px; letter-spacing:1px; color:var(--utfpr-accent); word-break: break-all;">[${log.dna}]</td>
                 <td class="mono">${fitDisplay}</td>
             </tr>`;
         });
@@ -986,7 +990,6 @@
         tbody.innerHTML = html;
     }
 
-    // --- POPULA A ABA DE ANÁLISE DE DADOS ---
     function updateAnalyticsData() {
         const lines = getLines();
         const sources = getSources();
@@ -1008,9 +1011,9 @@
                 <tr><td>Pior Tensão do Sistema</td><td class="mono">${vBase.toFixed(3)} pu</td><td class="mono">${vOpt.toFixed(3)} pu</td><td class="mono ${(vOpt - vBase) >= 0 ? 'text-ok' : 'text-bad'}">${(vOpt - vBase) >= 0 ? '+' : ''}${(vOpt - vBase).toFixed(3)} pu</td></tr>
             `;
         } else if (resultBaseGlobal && !resultBaseGlobal.data.error) {
-            tbComp.innerHTML = `<tr><td colspan="4" style="text-align:center;">Execute a Otimização para comparar os ganhos com o Cenário Base.</td></tr>`;
+            tbComp.innerHTML = `<tr><td colspan="4" style="text-align:center;">Execute a Otimização para comparar.</td></tr>`;
         } else {
-            tbComp.innerHTML = `<tr><td colspan="4" style="text-align:center;">Execute o Fluxo Base e a Otimização para visualizar a comparação.</td></tr>`;
+            tbComp.innerHTML = `<tr><td colspan="4" style="text-align:center;">Execute o Fluxo Base e a Otimização.</td></tr>`;
         }
 
         const tbManobras = document.querySelector('#tblManobras tbody');
@@ -1022,7 +1025,7 @@
                     html += `<tr><td><b>${acao}</b></td><td>Chave <b>L-${l.id}</b></td><td>Nó ${l.de} ➔ Nó ${l.para}</td></tr>`;
                 }
             });
-            if (html === '') html = '<tr><td colspan="3" style="text-align:center;">A Otimização não sugeriu nenhuma mudança no estado atual das chaves.</td></tr>';
+            if (html === '') html = '<tr><td colspan="3" style="text-align:center;">Nenhuma mudança sugerida UTFPR.</td></tr>';
             tbManobras.innerHTML = html;
         } else {
             tbManobras.innerHTML = '<tr><td colspan="3" style="text-align:center;">Aguardando otimização.</td></tr>';
@@ -1051,7 +1054,7 @@
                         labels: labels,
                         datasets: [
                             { label: 'Tensão Base (pu)', data: dataBase, borderColor: '#94a3b8', borderWidth: 2, borderDash: [5,5], fill: false, pointRadius: 2 },
-                            { label: 'Tensão Otimizada (pu)', data: dataOpt, borderColor: '#2563eb', borderWidth: 2, fill: false, pointRadius: 3 }
+                            { label: 'Tensão Otimizada (pu)', data: dataOpt, borderColor: '#F9D606', borderWidth: 2, fill: false, pointRadius: 3 } // Amarelo UTFPR
                         ]
                     },
                     options: { responsive: true, maintainAspectRatio: false, scales: { y: { min: 0.85, max: 1.05 } } }
@@ -1061,7 +1064,7 @@
 
         const ctxBal = document.getElementById('chartBalance');
         if (ctxBal) {
-            let labels = sources.map(s => `Subestação ${s}`);
+            let labels = sources.map(s => `Sub ${s}`);
             let dataBase = []; let dataOpt = [];
 
             if(resultBaseGlobal && !resultBaseGlobal.data.error) {
@@ -1083,7 +1086,7 @@
                         labels: labels,
                         datasets: [
                             { label: 'Carga Base (MVA)', data: dataBase, backgroundColor: '#94a3b8' },
-                            { label: 'Carga Otimizada (MVA)', data: dataOpt, backgroundColor: '#10b981' }
+                            { label: 'Carga Otimizada (MVA)', data: dataOpt, backgroundColor: '#000000' } // Preto UTFPR
                         ]
                     },
                     options: { responsive: true, maintainAspectRatio: false }
@@ -1098,14 +1101,13 @@
                 type: 'line',
                 data: {
                     labels: historyAG.map((_, i) => `Ger ${i+1}`),
-                    datasets: [{ label: 'Fitness (Menores Perdas)', data: historyAG, borderColor: '#f59e0b', backgroundColor: 'rgba(245, 158, 11, 0.1)', fill: true, tension: 0.1, pointRadius: 0 }]
+                    datasets: [{ label: 'Fitness (MW)', data: historyAG, borderColor: '#F9D606', backgroundColor: 'rgba(249, 214, 6, 0.1)', fill: true, tension: 0.1, pointRadius: 0 }] // Ouro UTFPR
                 },
                 options: { responsive: true, maintainAspectRatio: false, scales: { x: { display: false } } }
             });
         }
     }
 
-    // --- Atualiza Cartões do Dashboard ---
     function updateDashboard(res){
         const cardRadial = document.getElementById('kpiCardRadial');
         const cardVolt = document.getElementById('kpiCardVolt');
@@ -1114,7 +1116,7 @@
         if(!res.data || res.data.error) {
             document.getElementById('dashPerdas').textContent = "--- MW";
             document.getElementById('dashTensao').textContent = "--- pu";
-            document.getElementById('dashDesligados').textContent = "Erro";
+            document.getElementById('dashDesligados').textContent = "Erro UTFPR";
             document.getElementById('dashRadial').textContent = "Rede em Anel";
             document.getElementById('dashRadial').className = "kpi-value text-bad";
             cardRadial.style.borderLeftColor = "var(--st-bad)";
@@ -1126,7 +1128,7 @@
         const numUnserved = res.data.unservedBuses.length;
         document.getElementById('dashDesligados').textContent = numUnserved;
         if(numUnserved > 0) { cardUnserved.style.borderLeftColor = "var(--st-bad)"; document.getElementById('dashDesligados').className = "kpi-value mono text-bad"; }
-        else { cardUnserved.style.borderLeftColor = "var(--utfpr-blue)"; document.getElementById('dashDesligados').className = "kpi-value mono"; }
+        else { cardUnserved.style.borderLeftColor = "var(--utfpr-accent)"; document.getElementById('dashDesligados').className = "kpi-value mono"; }
 
         const conectadas = res.data.resBarras.filter(b=>b.isConnected).sort((a,b)=>a.Vmag-b.Vmag);
         if(conectadas.length > 0) {
@@ -1134,19 +1136,18 @@
             document.getElementById('dashTensao').textContent = minV.toFixed(3) + " pu";
             document.getElementById('dashTensaoSub').textContent = "Barra: " + conectadas[0].barra;
             if(minV < 0.93) { cardVolt.style.borderLeftColor = "var(--st-bad)"; document.getElementById('dashTensao').className = "kpi-value mono text-bad"; }
-            else { cardVolt.style.borderLeftColor = "var(--utfpr-blue)"; document.getElementById('dashTensao').className = "kpi-value mono"; }
+            else { cardVolt.style.borderLeftColor = "var(--utfpr-accent)"; document.getElementById('dashTensao').className = "kpi-value mono"; }
         }
 
         document.getElementById('dashRadial').textContent = "Radial (OK)";
         document.getElementById('dashRadial').className = "kpi-value text-ok";
-        cardRadial.style.borderLeftColor = "var(--utfpr-blue)";
+        cardRadial.style.borderLeftColor = "var(--utfpr-accent)";
         
         document.getElementById('relatorioCard').style.display = 'block';
     }
 
-    // --- Renderização Dinâmica e Legenda ---
     function renderRes(res, allLines, bestInd){
-        if(res.data.error) { showToast(`Erro Topológico: ${res.data.error}`, "warning"); }
+        if(res.data.error) { showToast(`Erro Topológico Base: ${res.data.error}`, "warning"); }
         
         const tb = document.getElementById('tblResRamos').querySelector('tbody');
         tb.innerHTML = '';
@@ -1156,7 +1157,7 @@
                 const tipo = l_ref && l_ref.isSwitch ? 'Chave' : 'Cabo';
                 const row = document.createElement('tr');
                 row.innerHTML = `<td><b>${r.id}</b></td><td>${tipo}</td><td>${r.de}</td><td>${r.para}</td>
-                                 <td style="font-weight:700; color:var(--utfpr-blue)">${(r.I_A || 0).toFixed(2)}</td>
+                                 <td style="font-weight:700; color:var(--text-dark)">${(r.I_A || 0).toFixed(2)}</td>
                                  <td class="mono">${r.Pmw.toFixed(3)}</td><td class="mono">${r.Qmvar.toFixed(3)}</td>
                                  <td class="mono">${r.Smva.toFixed(3)}</td><td class="mono">${r.perdasMW.toFixed(4)}</td>`;
                 tb.appendChild(row);
@@ -1169,15 +1170,15 @@
         
         const fontesAtuais = getSources();
 
-        // Legenda Dinâmica
+        // Legenda Dinâmica UTFPR
         const legendDiv = document.getElementById('mapLegend');
         legendDiv.innerHTML = '';
         fontesAtuais.forEach((f, idx) => {
             const cor = zonePalette[idx % zonePalette.length];
-            legendDiv.innerHTML += `<span class="pill"><div class="pill-color" style="background:${cor}"></div>Zona ${f}</span>`;
+            legendDiv.innerHTML += `<span class="pill"><div class="pill-color" style="background:${cor}"></div>Zona Sub ${f}</span>`;
         });
         legendDiv.innerHTML += `
-            <span class="pill" style="border: 1px dashed #ef4444; color: #ef4444;">Chave Aberta (NA)</span>
+            <span class="pill" style="border: 1px dashed #ef4444; color: #ef4444;">Chave Aberta</span>
             <span class="pill" style="background:var(--st-bad); color:white; border:none;">Alerta: Baixa Tensão</span>
         `;
 
