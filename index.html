@@ -12,13 +12,13 @@
     <style>
         /* --- TEMA UTFPR (Preto e Amarelo Ouro) --- */
         :root {
-            --bg-body: #f0f2f5;           /* Cinza muito claro */
-            --bg-sidebar: #000000;       /* Preto Oficial UTFPR */
-            --text-sidebar: #ffffff;     /* Texto branco no menu preto */
+            --bg-body: #f0f2f5;
+            --bg-sidebar: #000000;
+            --text-sidebar: #ffffff;
             --bg-card: #ffffff;
             --text-dark: #1e293b;
             --text-muted: #64748b;
-            --utfpr-accent: #F9D606;     /* Amarelo Ouro Oficial UTFPR */
+            --utfpr-accent: #F9D606;
             --border-color: #dce0e6;
             --card-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
             --st-ok: #10b981;
@@ -34,7 +34,7 @@
         .sidebar { width: 250px; background: var(--bg-sidebar); border-right: 1px solid var(--bg-sidebar); display: flex; flex-direction: column; flex-shrink: 0; z-index: 10;}
         
         .sidebar-header { padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
-        .sidebar-header img { width: 100%; max-width: 180px; height: auto; display: block; filter: none;} /* Logo UTFPR Colorido/Ouro */
+        .sidebar-header img { width: 100%; max-width: 180px; height: auto; display: block; filter: none;}
         .sidebar-header h2 { font-size: 16px; font-weight: 700; color: var(--utfpr-accent); margin: 0;}
         
         .nav-menu { padding: 20px 0; display: flex; flex-direction: column; gap: 2px; }
@@ -54,7 +54,6 @@
         .top-bar .user-info { font-size: 13px; color: var(--text-muted); display: flex; align-items: center; gap: 15px;}
         .content-container { padding: 30px; max-width: 1600px; margin: 0 auto; width: 100%; }
 
-        /* Abas */
         .app-section { display: none; animation: fadeIn 0.3s ease; }
         .app-section.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -71,7 +70,7 @@
         
         .btn { padding: 10px 18px; border-radius: 6px; border: none; font-weight: 500; cursor: pointer; transition: all 0.2s ease; display: inline-flex; align-items: center; justify-content: center; }
         .btn:hover { transform: translateY(-1px); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
-        .btn.primary { background: var(--utfpr-accent); color: var(--bg-sidebar); font-weight: 600; } /* Botão Ouro com texto preto */
+        .btn.primary { background: var(--utfpr-accent); color: var(--bg-sidebar); font-weight: 600; }
         .btn.secondary { background: #f1f5f9; color: var(--text-dark); border: 1px solid #cbd5e1;}
         .btn.success { background: var(--st-ok); color: white; }
         .btn.danger { background: white; color: var(--st-bad); border: 1px solid #fecaca;}
@@ -103,7 +102,7 @@
         .text-bad { color: var(--st-bad); font-weight: bold;}
         .text-ok { color: var(--st-ok); font-weight: bold;}
         
-        /* Modals & Toasts UTFPR */
+        /* Modals & Toasts */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(2px); }
         .modal-box { background: white; padding: 30px; border-radius: 12px; max-width: 400px; width: 90%; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
         .toast-container { position: fixed; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 1000; }
@@ -111,7 +110,7 @@
         .toast.show { opacity: 1; transform: translateY(0); }
         .toast.success { background-color: var(--st-ok); }
         .toast.error { background-color: var(--st-bad); }
-        .toast.info { background-color: var(--utfpr-accent); color: var(--bg-sidebar); } /* Toast Ouro com texto preto */
+        .toast.info { background-color: var(--utfpr-accent); color: var(--bg-sidebar); }
         .toast.warning { background-color: var(--st-warn); color: white;}
     </style>
 </head>
@@ -119,7 +118,7 @@
 
     <div class="sidebar">
         <div class="sidebar-header">
-           <img src="logo_UTFPR_cor.png" alt="Logo UTFPR" style="background: white; padding: 5px; border-radius: 8px;">
+            <img src="logo_UTFPR_cor.png" alt="Logo UTFPR" style="background: white; padding: 5px; border-radius: 8px;">
             <h2>NetOp PRO</h2>
         </div>
         <div class="nav-menu">
@@ -220,7 +219,6 @@
             </div>
 
             <div id="analise" class="app-section">
-                
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
                     <div class="card" style="margin-bottom: 0;">
                         <div class="card-title">Resumo Comparativo (Base vs Otimizado)</div>
@@ -265,7 +263,6 @@
                         <canvas id="chartConvergence"></canvas>
                     </div>
                 </div>
-
             </div>
 
             <div id="historico_ag" class="app-section">
@@ -356,9 +353,16 @@
                             <div><label>Gerações</label><input id="gaMaxGen" type="number" value="100"/></div>
                             <div><label>Mutação (%)</label><input id="gaMutationRate" type="number" value="15"/></div>
                         </div>
-                        <div style="margin-top: 15px;"> 
-                            <label>Simular Falha em Linha(s)</label> 
-                            <select id="linhaFalha" class="mono" multiple size="3"></select> 
+
+                        <div style="margin-top: 15px; display: flex; gap: 20px;">
+                            <div style="flex: 1;">
+                                <label>Simular Falha em Linha(s)</label>
+                                <select id="linhaFalha" class="mono" multiple size="4" style="height: 100px;"></select>
+                            </div>
+                            <div style="flex: 1;">
+                                <label>Simular Falha em Barra(s) / Isolamento</label>
+                                <select id="barraFalha" class="mono" multiple size="4" style="height: 100px;"></select>
+                            </div>
                         </div>
                     </div>
 
@@ -380,7 +384,6 @@
     </div>
 
     <script>
-    // --- LÓGICA DE ABAS ---
     function switchTab(sectionId, element) {
         document.querySelectorAll('.app-section').forEach(s => s.classList.remove('active'));
         document.querySelectorAll('.nav-item').forEach(a => a.classList.remove('active'));
@@ -389,10 +392,8 @@
         document.getElementById('topTitle').innerText = element.innerText;
     }
 
-    // Paleta de zonas UTFPR (Preto/Amarelo Ouro + variações seguras)
     const zonePalette = ['#F9D606', '#ea580c', '#000000', '#db2777', '#059669', '#0891b2', '#eab308', '#dc2626', '#4f46e5', '#84cc16'];
 
-    // --- VARIÁVEIS DA ABA DE ANÁLISE E HISTÓRICO ---
     let resultBaseGlobal = null;
     let indBaseGlobal = null;
     let resultOptGlobal = null;
@@ -404,7 +405,6 @@
     let chartBal = null;
     let chartConv = null;
 
-    // --- UI Helpers ---
     function showToast(message, type = 'info') {
         const container = document.getElementById('toastContainer');
         const toast = document.createElement('div');
@@ -421,7 +421,6 @@
     document.getElementById('btnModalConfirm').onclick = () => { if(confirmAction) confirmAction(); modal.style.display = 'none'; };
     function showConfirm(title, message, callback) { document.getElementById('modalTitle').textContent = title; document.getElementById('modalMessage').textContent = message; confirmAction = callback; modal.style.display = 'flex'; }
 
-    // --- DOM Elements & Global Data ---
     const elNb=document.getElementById('numBarras');
     const tblMalha=document.getElementById('tblMalha').querySelector('tbody');
     const tblCargas=document.getElementById('tblCargas').querySelector('tbody');
@@ -431,18 +430,22 @@
     const btnAddLinha=document.getElementById('btnAddLinha');
     const btnFluxo=document.getElementById('btnFluxo');
     const btnOtimizar=document.getElementById('btnOtimizar');
+    
+    // Referências aos seletores de falha
     const selLinhaFalha=document.getElementById('linhaFalha');
+    const selBarraFalha=document.getElementById('barraFalha'); // NOVO SELETOR
+    
     const svgWrap=document.getElementById('svgWrap'), svg=document.getElementById('svg');
     
     let cargas = {};
     let workerPool = [];
     let lineIdCounter = 1;
 
-    // --- Core Logic ---
     function getSources() {
         const val = document.getElementById('inpFontes').value;
         return val.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n));
     }
+    
     function getNb(){ return Object.keys(cargas).length || 30; }
 
     function gerarTabelaCargas() {
@@ -538,8 +541,12 @@
         return lines;
     }
 
+    // --- ATUALIZAÇÃO DOS SELETORES DE FALHA ---
     function updateSelects() {
         const lines = getLines(); 
+        const nosValidos = Object.keys(cargas).map(Number).sort((a,b)=>a-b);
+
+        // Popula Falha em Linhas
         selLinhaFalha.innerHTML = '<option value="SEM_FALHA">Operação Normal (Sem Falhas)</option>';
         lines.forEach(l => {
             const op = document.createElement('option');
@@ -547,9 +554,17 @@
             op.textContent = `L-${l.id} (${l.de} ➔ ${l.para}) [${l.isSwitch?'CHAVE':'CABO'}]`;
             selLinhaFalha.appendChild(op);
         });
+
+        // Popula Falha em Barras (Isolamento)
+        selBarraFalha.innerHTML = '<option value="SEM_FALHA">Todas as Barras Operacionais</option>';
+        nosValidos.forEach(b => {
+            const op = document.createElement('option');
+            op.value = b;
+            op.textContent = `Barra ${b} (Isolar Nó)`;
+            selBarraFalha.appendChild(op);
+        });
     }
 
-    // --- EXEMPLO 30 BARRAS ---
     btnExemplo30.onclick = () => {
         document.getElementById('inpFontes').value = "1, 11, 21";
         
@@ -575,7 +590,6 @@
         document.querySelectorAll('.sidebar .nav-item')[4].click(); 
     };
 
-    // --- Botões Básicos ---
     btnGerar.onclick = () => {
         showConfirm("Limpar Rede", "Isso apagará todas as barras e linhas cadastradas. Deseja continuar?", () => {
             cargas = {}; tblMalha.innerHTML = ''; tblCargas.innerHTML = ''; elNb.value = 0; lineIdCounter = 1; updateSelects(); 
@@ -598,11 +612,11 @@
         [...tblMalha.querySelectorAll('select.selDe, select.selPara')].forEach(s => {
             const opt = document.createElement('option'); opt.value = n; opt.textContent = n; s.appendChild(opt);
         });
+        updateSelects(); // Atualiza dropdown de falhas de barra
     };
 
     btnAddLinha.onclick = () => addLinhaRow();
 
-    // --- IMPORTADOR INTELIGENTE ---
     document.getElementById('btnExportar').onclick = () => {
         if(getLines().length === 0) { showToast("Não há rede para exportar.", "error"); return; }
         let csv = "TIPO;ID;DE;PARA;R_PU;X_PU;TIPO_EQ\n";
@@ -698,6 +712,8 @@
             addLinhaRow(l);
         });
         
+        updateSelects(); // Atualiza dropdowns
+
         if(coordsZeradas && nosBrutos.size > 0) {
             showToast("Calculando Layout Hierárquico UTFPR...", "info");
             aplicarLayoutArvore(); 
@@ -708,7 +724,6 @@
         }
     }
 
-    // --- MOTOR GRÁFICO (Árvore Horizontal UTFPR) ---
     function aplicarLayoutArvore() {
         const nodes = Object.keys(cargas).map(Number);
         const edges = getLines();
@@ -800,7 +815,6 @@
         btnFluxo.click();
     }
 
-    // --- Worker Pool e Algoritmo Genético ---
     function initWorkers(){
         workerPool.forEach(w=>w.terminate()); workerPool=[];
         const num = navigator.hardwareConcurrency||4;
@@ -850,8 +864,19 @@
 
         if(indicesChaves.length === 0) { btnOtimizar.disabled = false; return showToast("A rede não possui nenhuma Chave para otimizar.", "error"); }
 
+        // --- LÓGICA DE PROTEÇÃO: ISOLAMENTO DE BARRA ---
+        let linhaFalhaKeys = [...selLinhaFalha.selectedOptions].map(o=>o.value).filter(v=>v!=='SEM_FALHA');
+        const barrasFalhas = [...selBarraFalha.selectedOptions].map(o=>parseInt(o.value)).filter(v=>!isNaN(v));
+
+        allLines.forEach(l => {
+            if (barrasFalhas.includes(l.de) || barrasFalhas.includes(l.para)) {
+                const key = `${l.de}-${l.para}`;
+                if (!linhaFalhaKeys.includes(key)) linhaFalhaKeys.push(key); // Corta os cabos da barra falha
+            }
+        });
+
         const staticData = {
-            allLines, linhaFalhaKeys: [...selLinhaFalha.selectedOptions].map(o=>o.value).filter(v=>v!=='SEM_FALHA'),
+            allLines, linhaFalhaKeys: linhaFalhaKeys,
             nb: Math.max(...nosAtivos), vMin:0.93, vMax:1.05, maxNALinhas:99, cargas, 
             Sbase:parseFloat(document.getElementById('sbase').value), Vbase_kV:parseFloat(document.getElementById('vbase').value), sourceBuses: getSources()
         };
@@ -927,7 +952,6 @@
     }
     btnOtimizar.onclick = runGA;
 
-    // --- Fluxo Base ---
     btnFluxo.onclick = async () => {
         initWorkers(); await new Promise(r=>setTimeout(r,100));
         document.getElementById('ga-status').textContent="Calculando Fluxo Base (UTFPR)...";
@@ -935,8 +959,19 @@
         const allLines = getLines(); 
         const nosAtivos = Object.keys(cargas).map(Number);
         
+        // --- LÓGICA DE PROTEÇÃO: ISOLAMENTO DE BARRA NO FLUXO BASE ---
+        let linhaFalhaKeys = [...selLinhaFalha.selectedOptions].map(o=>o.value).filter(v=>v!=='SEM_FALHA');
+        const barrasFalhas = [...selBarraFalha.selectedOptions].map(o=>parseInt(o.value)).filter(v=>!isNaN(v));
+
+        allLines.forEach(l => {
+            if (barrasFalhas.includes(l.de) || barrasFalhas.includes(l.para)) {
+                const key = `${l.de}-${l.para}`;
+                if (!linhaFalhaKeys.includes(key)) linhaFalhaKeys.push(key);
+            }
+        });
+
         const sd = {
-            allLines: allLines, linhaFalhaKeys:[], nb: nosAtivos.length > 0 ? Math.max(...nosAtivos) : 30, 
+            allLines: allLines, linhaFalhaKeys: linhaFalhaKeys, nb: nosAtivos.length > 0 ? Math.max(...nosAtivos) : 30, 
             vMin:0.93, vMax:1.05, maxNALinhas:0, cargas, 
             Sbase:parseFloat(document.getElementById('sbase').value), Vbase_kV:parseFloat(document.getElementById('vbase').value), sourceBuses: getSources()
         };
@@ -1054,7 +1089,7 @@
                         labels: labels,
                         datasets: [
                             { label: 'Tensão Base (pu)', data: dataBase, borderColor: '#94a3b8', borderWidth: 2, borderDash: [5,5], fill: false, pointRadius: 2 },
-                            { label: 'Tensão Otimizada (pu)', data: dataOpt, borderColor: '#F9D606', borderWidth: 2, fill: false, pointRadius: 3 } // Amarelo UTFPR
+                            { label: 'Tensão Otimizada (pu)', data: dataOpt, borderColor: '#F9D606', borderWidth: 2, fill: false, pointRadius: 3 } 
                         ]
                     },
                     options: { responsive: true, maintainAspectRatio: false, scales: { y: { min: 0.85, max: 1.05 } } }
@@ -1086,7 +1121,7 @@
                         labels: labels,
                         datasets: [
                             { label: 'Carga Base (MVA)', data: dataBase, backgroundColor: '#94a3b8' },
-                            { label: 'Carga Otimizada (MVA)', data: dataOpt, backgroundColor: '#000000' } // Preto UTFPR
+                            { label: 'Carga Otimizada (MVA)', data: dataOpt, backgroundColor: '#000000' } 
                         ]
                     },
                     options: { responsive: true, maintainAspectRatio: false }
@@ -1101,7 +1136,7 @@
                 type: 'line',
                 data: {
                     labels: historyAG.map((_, i) => `Ger ${i+1}`),
-                    datasets: [{ label: 'Fitness (MW)', data: historyAG, borderColor: '#F9D606', backgroundColor: 'rgba(249, 214, 6, 0.1)', fill: true, tension: 0.1, pointRadius: 0 }] // Ouro UTFPR
+                    datasets: [{ label: 'Fitness (MW)', data: historyAG, borderColor: '#F9D606', backgroundColor: 'rgba(249, 214, 6, 0.1)', fill: true, tension: 0.1, pointRadius: 0 }] 
                 },
                 options: { responsive: true, maintainAspectRatio: false, scales: { x: { display: false } } }
             });
@@ -1117,7 +1152,7 @@
             document.getElementById('dashPerdas').textContent = "--- MW";
             document.getElementById('dashTensao').textContent = "--- pu";
             document.getElementById('dashDesligados').textContent = "Erro UTFPR";
-            document.getElementById('dashRadial').textContent = "Rede em Anel";
+            document.getElementById('dashRadial').textContent = "Rede em Anel / Ilha";
             document.getElementById('dashRadial').className = "kpi-value text-bad";
             cardRadial.style.borderLeftColor = "var(--st-bad)";
             return;
@@ -1147,7 +1182,7 @@
     }
 
     function renderRes(res, allLines, bestInd){
-        if(res.data.error) { showToast(`Erro Topológico Base: ${res.data.error}`, "warning"); }
+        if(res.data.error) { showToast(`Erro Topológico: ${res.data.error}`, "warning"); }
         
         const tb = document.getElementById('tblResRamos').querySelector('tbody');
         tb.innerHTML = '';
@@ -1170,7 +1205,6 @@
         
         const fontesAtuais = getSources();
 
-        // Legenda Dinâmica UTFPR
         const legendDiv = document.getElementById('mapLegend');
         legendDiv.innerHTML = '';
         fontesAtuais.forEach((f, idx) => {
@@ -1181,6 +1215,9 @@
             <span class="pill" style="border: 1px dashed #ef4444; color: #ef4444;">Chave Aberta</span>
             <span class="pill" style="background:var(--st-bad); color:white; border:none;">Alerta: Baixa Tensão</span>
         `;
+
+        // Identifica quais barras estão falhas (selecionadas no UI)
+        const barrasFalhas = [...document.getElementById('barraFalha').selectedOptions].map(o=>parseInt(o.value)).filter(v=>!isNaN(v));
 
         allLines.forEach((l, i) => {
             const isClosed = bestInd[i] === 1;
@@ -1212,12 +1249,16 @@
             cc.setAttribute('cx', cargas[b].X); cc.setAttribute('cy', cargas[b].Y);
             cc.setAttribute('r', fontesAtuais.includes(parseInt(b))?10:5);
             let stroke = '#94a3b8';
-            let isBad = false;
-            if (busRes && busRes.zona) {
+            
+            // Se a barra foi selecionada como falha, força o visual de alerta (vermelho)
+            let isBad = barrasFalhas.includes(parseInt(b)); 
+
+            if (busRes && busRes.zona && !isBad) {
                 const zIdx = fontesAtuais.indexOf(busRes.zona);
                 if(zIdx > -1) stroke = zonePalette[zIdx % zonePalette.length];
                 if(busRes.Vmag < 0.93) isBad = true;
             }
+
             cc.setAttribute('fill', isBad ? 'var(--st-bad)' : 'white'); cc.setAttribute('stroke', stroke); cc.setAttribute('stroke-width', 3);
             g.appendChild(cc);
             
@@ -1233,6 +1274,14 @@
                 txtData.setAttribute('font-size', '10'); txtData.setAttribute('font-family', 'monospace');
                 txtData.setAttribute('fill', busRes.Vmag < 0.93 || busRes.Vmag > 1.05 ? 'var(--st-bad)' : 'var(--text-muted)');
                 txtData.textContent = `${busRes.Vmag.toFixed(3)}pu`;
+                g.appendChild(txtData);
+            } else if (isBad) {
+                // Barra isolada não tem tensão
+                const txtData = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                txtData.setAttribute('x', cargas[b].X + 8); txtData.setAttribute('y', cargas[b].Y + 4);
+                txtData.setAttribute('font-size', '10'); txtData.setAttribute('font-family', 'monospace');
+                txtData.setAttribute('fill', 'var(--st-bad)');
+                txtData.textContent = `0.000pu`;
                 g.appendChild(txtData);
             }
         }
@@ -1273,5 +1322,3 @@
     </script>
 </body>
 </html>
-
-
