@@ -68,15 +68,15 @@
         input[type="text"], input[type="number"], select:not([multiple]) { width: 100%; padding: 10px 12px; border-radius: 6px; border: 1px solid #cbd5e1; background: #fff; transition: border 0.2s; }
         input:focus, select:focus { outline: none; border-color: var(--utfpr-accent); box-shadow: 0 0 0 3px rgba(249, 214, 6, 0.1); }
         
-        /* Estilização Profissional para os Selects Múltiplos */
+        /* Seletores múltiplos com altura expandida e estilo limpo */
         select[multiple] { 
             width: 100%; 
             border-radius: 6px; 
             border: 1px solid #cbd5e1; 
             background: #fff; 
             padding: 5px; 
-            font-size: 13px;
-            outline: none;
+            font-size: 13px; 
+            outline: none; 
         }
         select[multiple]:focus { border-color: var(--utfpr-accent); box-shadow: 0 0 0 3px rgba(249, 214, 6, 0.1); }
         select[multiple] option { padding: 8px 10px; border-bottom: 1px solid #f1f5f9; border-radius: 4px; cursor: pointer; }
@@ -160,7 +160,7 @@
                 Editor de Topologia
             </div>
             <div class="nav-item" onclick="switchTab('ag_config', this)">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
                 Motor de Otimização
             </div>
         </div>
@@ -237,6 +237,14 @@
             </div>
 
             <div id="analise" class="app-section">
+                
+                <div style="display: flex; justify-content: flex-end; margin-bottom: 20px;">
+                    <button class="btn primary" onclick="gerarRelatorio()" style="gap: 8px;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                        Gerar Relatório (PDF)
+                    </button>
+                </div>
+
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
                     <div class="card" style="margin-bottom: 0;">
                         <div class="card-title">Resumo Comparativo (Base vs Otimizado)</div>
@@ -402,6 +410,7 @@
     </div>
 
     <script>
+    // Funções de Interface UI
     function switchTab(sectionId, element) {
         document.querySelectorAll('.app-section').forEach(s => s.classList.remove('active'));
         document.querySelectorAll('.nav-item').forEach(a => a.classList.remove('active'));
@@ -439,6 +448,7 @@
     document.getElementById('btnModalConfirm').onclick = () => { if(confirmAction) confirmAction(); modal.style.display = 'none'; };
     function showConfirm(title, message, callback) { document.getElementById('modalTitle').textContent = title; document.getElementById('modalMessage').textContent = message; confirmAction = callback; modal.style.display = 'flex'; }
 
+    // Referências DOM
     const elNb=document.getElementById('numBarras');
     const tblMalha=document.getElementById('tblMalha').querySelector('tbody');
     const tblCargas=document.getElementById('tblCargas').querySelector('tbody');
@@ -449,7 +459,6 @@
     const btnFluxo=document.getElementById('btnFluxo');
     const btnOtimizar=document.getElementById('btnOtimizar');
     
-    // Referências aos seletores de falha
     const selLinhaFalha=document.getElementById('linhaFalha');
     const selBarraFalha=document.getElementById('barraFalha');
     
@@ -459,6 +468,7 @@
     let workerPool = [];
     let lineIdCounter = 1;
 
+    // Funções de Gestão de Dados (Editor)
     function getSources() {
         const val = document.getElementById('inpFontes').value;
         return val.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n));
@@ -559,12 +569,10 @@
         return lines;
     }
 
-    // --- ATUALIZAÇÃO DOS SELETORES DE FALHA ---
     function updateSelects() {
         const lines = getLines(); 
         const nosValidos = Object.keys(cargas).map(Number).sort((a,b)=>a-b);
 
-        // Popula Falha em Linhas
         selLinhaFalha.innerHTML = '<option value="SEM_FALHA" selected>Operação Normal (Sem Falhas)</option>';
         lines.forEach(l => {
             const op = document.createElement('option');
@@ -573,7 +581,6 @@
             selLinhaFalha.appendChild(op);
         });
 
-        // Popula Falha em Barras (Isolamento)
         selBarraFalha.innerHTML = '<option value="SEM_FALHA" selected>Todas as Barras Operacionais</option>';
         nosValidos.forEach(b => {
             const op = document.createElement('option');
@@ -585,19 +592,24 @@
 
     btnExemplo30.onclick = () => {
         document.getElementById('inpFontes').value = "1, 11, 21";
-        
         cargas = {}; tblMalha.innerHTML = ''; tblCargas.innerHTML = ''; lineIdCounter = 1;
         
         const setC = (b,p,q,x,y) => { cargas[b] = {P:p, Q:q, X:x, Y:y}; };
-        setC(1, 0,0, 100, 200); for(let i=2;i<=10;i++) setC(i, 0.5,0.1, 100+(i-1)*60, 200 + (i%2===0?20:-20));
-        setC(11,0,0, 100, 350); for(let i=12;i<=20;i++) setC(i, 0.6,0.2, 100+(i-11)*60, 350 + (i%2===0?20:-20));
-        setC(21,0,0, 100, 500); for(let i=22;i<=30;i++) setC(i, 0.4,0.1, 100+(i-21)*60, 500 + (i%2===0?20:-20));
+        setC(1, 0,0, 100, 200); 
+        for(let i=2;i<=10;i++) setC(i, 0.5,0.1, 100+(i-1)*60, 200 + (i%2===0?20:-20));
+        
+        setC(11,0,0, 100, 350); 
+        for(let i=12;i<=20;i++) setC(i, 0.6,0.2, 100+(i-11)*60, 350 + (i%2===0?20:-20));
+        
+        setC(21,0,0, 100, 500); 
+        for(let i=22;i<=30;i++) setC(i, 0.4,0.1, 100+(i-21)*60, 500 + (i%2===0?20:-20));
         
         gerarTabelaCargas();
 
         const link = (start, count) => {
             for(let i=0; i<count-1; i++) addLinhaRow({de: start+i, para: start+i+1, R: 0.05, X: 0.1, isSwitch: false}); 
         };
+        
         link(1, 10); link(11, 10); link(21, 10);
 
         addLinhaRow({de: 10, para: 20, R: 0.05, X: 0.1, isSwitch: true});
@@ -833,6 +845,7 @@
         btnFluxo.click();
     }
 
+    // Funções do Motor de Otimização e Paralelismo (AG)
     function initWorkers(){
         workerPool.forEach(w=>w.terminate()); workerPool=[];
         const num = navigator.hardwareConcurrency||4;
@@ -1013,6 +1026,7 @@
         };
     };
 
+    // Funções de Update Visual
     function updateHistoryTable() {
         const tbody = document.querySelector('#tblHistorico tbody');
         if (historyFullAG.length === 0) {
@@ -1331,6 +1345,164 @@
         vBox.y = svgY - (mouseY / svgWrap.clientHeight) * vBox.h;
         svg.setAttribute('viewBox', `${vBox.x} ${vBox.y} ${vBox.w} ${vBox.h}`);
     });
+
+    // ====================================================================================
+    // NOVA FUNÇÃO: GERAÇÃO DO RELATÓRIO PDF OFICIAL DA UTFPR
+    // ====================================================================================
+    function gerarRelatorio() {
+        if (!resultBaseGlobal || !resultOptGlobal) {
+            showToast("Atenção: Execute o Fluxo Base e inicie a Otimização antes de gerar o relatório.", "warning");
+            return;
+        }
+
+        showToast("Gerando documento... Por favor, aguarde.", "info");
+
+        // 1. Capturar imagens dos Canvas (Gráficos)
+        const imgVolt = document.getElementById('chartVoltage').toDataURL('image/png');
+        const imgBal = document.getElementById('chartBalance').toDataURL('image/png');
+        const imgConv = document.getElementById('chartConvergence').toDataURL('image/png');
+
+        const allLines = getLines();
+
+        // 2. Capturar o SVG do Fluxo Base (Silenciosamente)
+        renderRes(resultBaseGlobal, allLines, indBaseGlobal);
+        const svgBaseHTML = document.getElementById('svgWrap').innerHTML;
+        
+        // 3. Re-renderizar o SVG do Fluxo Otimizado (Retorna a tela ao normal)
+        renderRes(resultOptGlobal, allLines, indOptGlobal);
+        const svgOptHTML = document.getElementById('svgWrap').innerHTML;
+
+        // 4. Construir as Tabelas de Dados (Cenário Otimizado)
+        // Tabela 1: Barras (Tensão e Ângulo)
+        let tbBarras = `<table><thead><tr><th>Nó / Barra</th><th>Magnitude da Tensão (pu)</th><th>Ângulo (graus)</th></tr></thead><tbody>`;
+        const barrasOrdenadas = [...resultOptGlobal.data.resBarras].sort((a,b) => a.barra - b.barra);
+        barrasOrdenadas.forEach(b => {
+            let ang = b.Vang !== undefined ? b.Vang.toFixed(4) : '---'; 
+            let vmag = b.Vmag !== undefined ? b.Vmag.toFixed(4) : '---';
+            let bgRow = b.Vmag < 0.93 ? 'style="background-color: #fef2f2; color: #ef4444; font-weight: bold;"' : '';
+            tbBarras += `<tr ${bgRow}><td>${b.barra}</td><td>${vmag}</td><td>${ang}</td></tr>`;
+        });
+        tbBarras += `</tbody></table>`;
+
+        // Tabela 2: Ramos (Fluxo de Potência)
+        let tbRamos = `<table><thead><tr><th>ID Linha</th><th>De ➔ Para</th><th>Corrente (A)</th><th>P (MW)</th><th>Q (MVAr)</th><th>|S| (MVA)</th><th>Perdas Ativas (MW)</th></tr></thead><tbody>`;
+        const ramosOrdenados = [...resultOptGlobal.data.resRamos].sort((a,b) => a.id - b.id);
+        ramosOrdenados.forEach(r => {
+            tbRamos += `<tr><td><b>L-${r.id}</b></td><td>${r.de} ➔ ${r.para}</td><td>${(r.I_A || 0).toFixed(2)}</td><td>${(r.Pmw || 0).toFixed(4)}</td><td>${(r.Qmvar || 0).toFixed(4)}</td><td>${(r.Smva || 0).toFixed(4)}</td><td style="color:#059669; font-weight:bold;">${(r.perdasMW || 0).toFixed(6)}</td></tr>`;
+        });
+        tbRamos += `</tbody></table>`;
+
+        // 5. Montar o Documento HTML para a Impressão
+        const win = window.open('', '_blank');
+        win.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Relatório NetOp PRO - UTFPR</title>
+            <style>
+                body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #1e293b; padding: 40px; margin: 0; background: white;}
+                .header { display: flex; align-items: center; border-bottom: 4px solid #F9D606; padding-bottom: 20px; margin-bottom: 30px; }
+                .header img { max-width: 180px; margin-right: 30px; }
+                .header-titles { flex-grow: 1; }
+                .header-titles h1 { margin: 0; color: #000000; font-size: 26px; text-transform: uppercase; letter-spacing: -0.5px;}
+                .header-titles p { margin: 5px 0 0; color: #64748b; font-size: 14px; }
+                h2 { color: #000000; border-bottom: 2px solid #f1f5f9; padding-bottom: 8px; margin-top: 40px; page-break-after: avoid; font-size: 20px;}
+                h3 { font-size: 16px; color: #334155; margin-bottom: 10px;}
+                
+                .svg-box { width: 100%; border: 1px solid #dce0e6; border-radius: 8px; margin-bottom: 30px; background: #f8fafc; overflow: hidden; page-break-inside: avoid;}
+                .svg-box svg { width: 100%; height: 500px; display: block; }
+                
+                .img-container { width: 100%; text-align: center; margin-bottom: 30px; page-break-inside: avoid; }
+                .img-container img { max-width: 100%; height: 350px; border: 1px solid #dce0e6; border-radius: 8px; background: white;}
+                
+                table { width: 100%; border-collapse: collapse; margin-bottom: 30px; font-size: 11px; font-family: monospace; }
+                th, td { border: 1px solid #cbd5e1; padding: 8px 12px; text-align: center; }
+                th { background-color: #000000; font-weight: bold; text-transform: uppercase; color: #F9D606; letter-spacing: 1px;}
+                tr:nth-child(even) { background-color: #f8fafc; }
+                
+                .kpi-row { display: flex; gap: 20px; margin-bottom: 30px; page-break-inside: avoid;}
+                .kpi { flex: 1; border: 1px solid #dce0e6; padding: 15px; border-radius: 8px; border-left: 4px solid #F9D606;}
+                .kpi p { margin: 0; font-size: 12px; color: #64748b; font-weight: bold; text-transform: uppercase;}
+                .kpi h4 { margin: 5px 0 0; font-size: 22px; color: #000; }
+
+                .page-break { page-break-before: always; }
+                
+                @media print {
+                    .page-break { page-break-before: always; }
+                    body { padding: 0; }
+                    th { -webkit-print-color-adjust: exact; color-adjust: exact; background-color: #000000 !important; color: #F9D606 !important;}
+                }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <img src="logo_UTFPR_cor.png" alt="UTFPR Logo" />
+                <div class="header-titles">
+                    <h1>Relatório de Reconfiguração Ótima (DNR)</h1>
+                    <p>Documento gerado pelo <b>NetOp PRO</b> - Eng. Elétrica / UTFPR</p>
+                    <p><strong>Data da Simulação:</strong> ${new Date().toLocaleString('pt-BR')}</p>
+                </div>
+            </div>
+
+            <div class="kpi-row">
+                <div class="kpi">
+                    <p>Redução de Perdas (Base ➔ Opt)</p>
+                    <h4>${resultBaseGlobal.data.perdasMWtotal.toFixed(4)} ➔ ${resultOptGlobal.data.perdasMWtotal.toFixed(4)} MW</h4>
+                </div>
+                <div class="kpi">
+                    <p>Melhoria de Tensão Crítica</p>
+                    <h4>${(Math.min(...resultBaseGlobal.data.resBarras.filter(b=>b.isConnected).map(b=>b.Vmag))).toFixed(4)} ➔ ${(Math.min(...resultOptGlobal.data.resBarras.filter(b=>b.isConnected).map(b=>b.Vmag))).toFixed(4)} pu</h4>
+                </div>
+            </div>
+
+            <h2>1. Mapas Topológicos do Sistema</h2>
+            
+            <h3>1.1. Cenário Base Original (Antes da Otimização)</h3>
+            <div class="svg-box">${svgBaseHTML}</div>
+            
+            <div class="page-break"></div>
+
+            <h3>1.2. Cenário Otimizado (Plano de Manobras Sugerido)</h3>
+            <div class="svg-box">${svgOptHTML}</div>
+
+            <div class="page-break"></div>
+
+            <h2>2. Análise Gráfica de Desempenho</h2>
+            <div class="img-container">
+                <h3>2.1. Melhoria no Perfil de Tensão (Base vs Otimizado)</h3>
+                <img src="${imgVolt}" />
+            </div>
+            <div class="img-container">
+                <h3>2.2. Alívio e Balanceamento das Subestações (MVA)</h3>
+                <img src="${imgBal}" />
+            </div>
+            <div class="img-container">
+                <h3>2.3. Curva de Convergência do Algoritmo Genético</h3>
+                <img src="${imgConv}" />
+            </div>
+
+            <div class="page-break"></div>
+
+            <h2>3. Relatório Detalhado de Barras (Cenário Otimizado)</h2>
+            ${tbBarras}
+
+            <div class="page-break"></div>
+
+            <h2>4. Relatório Detalhado de Fluxo nos Ramos (Cenário Otimizado)</h2>
+            ${tbRamos}
+
+        </body>
+        </html>
+        `);
+        
+        win.document.close();
+        
+        setTimeout(() => {
+            win.focus();
+            win.print();
+        }, 800);
+    }
+    // ====================================================================================
 
     </script>
 </body>
