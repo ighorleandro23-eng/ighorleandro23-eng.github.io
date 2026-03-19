@@ -68,16 +68,7 @@
         input[type="text"], input[type="number"], select:not([multiple]) { width: 100%; padding: 10px 12px; border-radius: 6px; border: 1px solid #cbd5e1; background: #fff; transition: border 0.2s; }
         input:focus, select:focus { outline: none; border-color: var(--utfpr-accent); box-shadow: 0 0 0 3px rgba(249, 214, 6, 0.1); }
         
-        /* Seletores múltiplos com altura expandida e estilo limpo */
-        select[multiple] { 
-            width: 100%; 
-            border-radius: 6px; 
-            border: 1px solid #cbd5e1; 
-            background: #fff; 
-            padding: 5px; 
-            font-size: 13px; 
-            outline: none; 
-        }
+        select[multiple] { width: 100%; border-radius: 6px; border: 1px solid #cbd5e1; background: #fff; padding: 5px; font-size: 13px; outline: none; }
         select[multiple]:focus { border-color: var(--utfpr-accent); box-shadow: 0 0 0 3px rgba(249, 214, 6, 0.1); }
         select[multiple] option { padding: 8px 10px; border-bottom: 1px solid #f1f5f9; border-radius: 4px; cursor: pointer; }
         select[multiple] option:hover { background-color: #f8fafc; }
@@ -410,7 +401,6 @@
     </div>
 
     <script>
-    // Funções de Interface UI
     function switchTab(sectionId, element) {
         document.querySelectorAll('.app-section').forEach(s => s.classList.remove('active'));
         document.querySelectorAll('.nav-item').forEach(a => a.classList.remove('active'));
@@ -448,7 +438,6 @@
     document.getElementById('btnModalConfirm').onclick = () => { if(confirmAction) confirmAction(); modal.style.display = 'none'; };
     function showConfirm(title, message, callback) { document.getElementById('modalTitle').textContent = title; document.getElementById('modalMessage').textContent = message; confirmAction = callback; modal.style.display = 'flex'; }
 
-    // Referências DOM
     const elNb=document.getElementById('numBarras');
     const tblMalha=document.getElementById('tblMalha').querySelector('tbody');
     const tblCargas=document.getElementById('tblCargas').querySelector('tbody');
@@ -468,7 +457,6 @@
     let workerPool = [];
     let lineIdCounter = 1;
 
-    // Funções de Gestão de Dados (Editor)
     function getSources() {
         const val = document.getElementById('inpFontes').value;
         return val.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n));
@@ -501,6 +489,7 @@
         inputs.forEach(i => i.addEventListener('input', updateObj));
     }
 
+    // ADIÇÃO 1: O Editor entende NA e NF
     function addLinhaRow(data = null) {
         const tr = document.createElement('tr');
         const id = data?.id || lineIdCounter++;
@@ -508,7 +497,10 @@
         const para = data?.para || 2;
         const R = data?.R ?? 0.05;
         const X = data?.X ?? 0.1;
-        const isSwitch = data?.isSwitch || false;
+        
+        let tipoOriginal = 'CABO';
+        if (data?.tipo) { tipoOriginal = data.tipo; } 
+        else if (data?.isSwitch !== undefined) { tipoOriginal = data.isSwitch ? 'CHAVE_NF' : 'CABO'; }
 
         let optsDe = '', optsPara = '';
         let nosValidos = Object.keys(cargas).map(Number).sort((a,b)=>a-b);
@@ -525,9 +517,10 @@
         tr.innerHTML = `
             <td><b>${id}</b></td>
             <td>
-                <select class="selTipo" style="${isSwitch ? 'color: var(--utfpr-accent); font-weight: bold;' : ''}">
-                    <option value="CABO" ${!isSwitch ? 'selected' : ''}>Cabo Fixo</option>
-                    <option value="CHAVE" ${isSwitch ? 'selected' : ''}>Chave Manobrável</option>
+                <select class="selTipo" style="${tipoOriginal.includes('CHAVE') ? 'color: var(--utfpr-accent); font-weight: bold;' : ''}">
+                    <option value="CABO" ${tipoOriginal === 'CABO' ? 'selected' : ''}>Cabo Fixo</option>
+                    <option value="CHAVE_NF" ${tipoOriginal === 'CHAVE_NF' ? 'selected' : ''}>Chave Fechada (NF)</option>
+                    <option value="CHAVE_NA" ${tipoOriginal === 'CHAVE_NA' ? 'selected' : ''}>Chave Aberta (NA)</option>
                 </select>
             </td>
             <td><select class="selDe">${optsDe}</select></td>
@@ -538,7 +531,7 @@
         `;
         
         tr.querySelector('.selTipo').addEventListener('change', function() {
-            if(this.value === 'CHAVE') { this.style.color = 'var(--utfpr-accent)'; this.style.fontWeight = 'bold'; }
+            if(this.value.includes('CHAVE')) { this.style.color = 'var(--utfpr-accent)'; this.style.fontWeight = 'bold'; }
             else { this.style.color = 'inherit'; this.style.fontWeight = 'normal'; }
             updateSelects();
         });
@@ -549,16 +542,20 @@
         updateSelects();
     }
 
+    // ADIÇÃO 2: Extrator de Dados do Editor
     function getLines() {
         const lines = [];
         [...tblMalha.children].forEach(r => {
             const de = parseInt(r.querySelector('.selDe').value);
             const para = parseInt(r.querySelector('.selPara').value);
             const tipo = r.querySelector('.selTipo').value;
+            
             if(de !== para) {
                 lines.push({
                     id: parseInt(r.children[0].textContent),
-                    isSwitch: (tipo === 'CHAVE'),
+                    tipo: tipo,
+                    isSwitch: tipo.includes('CHAVE'),
+                    defaultState: tipo === 'CHAVE_NA' ? 0 : 1, // NA = 0, NF = 1, CABO = 1
                     de: de, para: para,
                     R: parseFloat(r.querySelector('.inpR').value),
                     X: parseFloat(r.querySelector('.inpX').value),
@@ -577,7 +574,8 @@
         lines.forEach(l => {
             const op = document.createElement('option');
             op.value = `${l.de}-${l.para}`;
-            op.textContent = `L-${l.id} (${l.de} ➔ ${l.para}) [${l.isSwitch?'CHAVE':'CABO'}]`;
+            let tipoLabel = l.tipo === 'CABO' ? 'CABO' : (l.tipo === 'CHAVE_NA' ? 'CHAVE NA' : 'CHAVE NF');
+            op.textContent = `L-${l.id} (${l.de} ➔ ${l.para}) [${tipoLabel}]`;
             selLinhaFalha.appendChild(op);
         });
 
@@ -590,31 +588,30 @@
         });
     }
 
+    // ADIÇÃO 3: Exemplo 30 Barras com NAs e NFs reais
     btnExemplo30.onclick = () => {
         document.getElementById('inpFontes').value = "1, 11, 21";
         cargas = {}; tblMalha.innerHTML = ''; tblCargas.innerHTML = ''; lineIdCounter = 1;
         
         const setC = (b,p,q,x,y) => { cargas[b] = {P:p, Q:q, X:x, Y:y}; };
-        setC(1, 0,0, 100, 200); 
-        for(let i=2;i<=10;i++) setC(i, 0.5,0.1, 100+(i-1)*60, 200 + (i%2===0?20:-20));
-        
-        setC(11,0,0, 100, 350); 
-        for(let i=12;i<=20;i++) setC(i, 0.6,0.2, 100+(i-11)*60, 350 + (i%2===0?20:-20));
-        
-        setC(21,0,0, 100, 500); 
-        for(let i=22;i<=30;i++) setC(i, 0.4,0.1, 100+(i-21)*60, 500 + (i%2===0?20:-20));
-        
+        setC(1, 0,0, 100, 200); for(let i=2;i<=10;i++) setC(i, 0.5,0.1, 100+(i-1)*60, 200 + (i%2===0?20:-20));
+        setC(11,0,0, 100, 350); for(let i=12;i<=20;i++) setC(i, 0.6,0.2, 100+(i-11)*60, 350 + (i%2===0?20:-20));
+        setC(21,0,0, 100, 500); for(let i=22;i<=30;i++) setC(i, 0.4,0.1, 100+(i-21)*60, 500 + (i%2===0?20:-20));
         gerarTabelaCargas();
 
         const link = (start, count) => {
-            for(let i=0; i<count-1; i++) addLinhaRow({de: start+i, para: start+i+1, R: 0.05, X: 0.1, isSwitch: false}); 
+            for(let i=0; i<count-1; i++) {
+                // Transformando algumas linhas do meio em chaves seccionadoras NF
+                let tipoLinha = (i === 3 || i === 7) ? 'CHAVE_NF' : 'CABO';
+                addLinhaRow({de: start+i, para: start+i+1, R: 0.05, X: 0.1, tipo: tipoLinha}); 
+            }
         };
-        
         link(1, 10); link(11, 10); link(21, 10);
 
-        addLinhaRow({de: 10, para: 20, R: 0.05, X: 0.1, isSwitch: true});
-        addLinhaRow({de: 8, para: 15, R: 0.05, X: 0.1, isSwitch: true});
-        addLinhaRow({de: 20, para: 30, R: 0.05, X: 0.1, isSwitch: true});
+        // Chaves de Interligação (Tie Switches) são sempre NA por padrão na engenharia
+        addLinhaRow({de: 10, para: 20, R: 0.05, X: 0.1, tipo: 'CHAVE_NA'});
+        addLinhaRow({de: 8, para: 15, R: 0.05, X: 0.1, tipo: 'CHAVE_NA'});
+        addLinhaRow({de: 20, para: 30, R: 0.05, X: 0.1, tipo: 'CHAVE_NA'});
 
         showToast("Exemplo carregado. Teste o Fluxo Base.", "success");
         document.querySelectorAll('.sidebar .nav-item')[4].click(); 
@@ -626,19 +623,14 @@
             showToast("Rede resetada.", "success");
             document.getElementById('relatorioCard').style.display = 'none';
             svg.innerHTML = '';
-            
-            resultBaseGlobal = null; resultOptGlobal = null; indBaseGlobal = null; indOptGlobal = null;
-            historyFullAG = [];
-            updateAnalyticsData();
-            updateHistoryTable();
+            resultBaseGlobal = null; resultOptGlobal = null; indBaseGlobal = null; indOptGlobal = null; historyFullAG = [];
+            updateAnalyticsData(); updateHistoryTable();
         });
     };
 
     btnAddBarra.onclick = () => {
-        const nos = Object.keys(cargas).map(Number);
-        const n = nos.length > 0 ? Math.max(...nos) + 1 : 1;
-        cargas[n] = {P:0, Q:0, X:400, Y:300};
-        gerarTabelaCargas();
+        const nos = Object.keys(cargas).map(Number); const n = nos.length > 0 ? Math.max(...nos) + 1 : 1;
+        cargas[n] = {P:0, Q:0, X:400, Y:300}; gerarTabelaCargas();
         [...tblMalha.querySelectorAll('select.selDe, select.selPara')].forEach(s => {
             const opt = document.createElement('option'); opt.value = n; opt.textContent = n; s.appendChild(opt);
         });
@@ -647,190 +639,112 @@
 
     btnAddLinha.onclick = () => addLinhaRow();
 
+    // ADIÇÃO 4: Importador e Exportador (Lendo NA e NF no TXT/CSV)
     document.getElementById('btnExportar').onclick = () => {
         if(getLines().length === 0) { showToast("Não há rede para exportar.", "error"); return; }
         let csv = "TIPO;ID;DE;PARA;R_PU;X_PU;TIPO_EQ\n";
-        getLines().forEach(l => csv += `LINHA;${l.id};${l.de};${l.para};${l.R};${l.X};${l.isSwitch ? 'CS' : 'CABO'}\n`);
+        getLines().forEach(l => csv += `LINHA;${l.id};${l.de};${l.para};${l.R};${l.X};${l.tipo}\n`);
         csv += "TIPO;BARRA;P_MW;Q_MVAR;COORD_X;COORD_Y\n";
         for(let b in cargas) csv += `BARRA;${b};${cargas[b].P};${cargas[b].Q};${cargas[b].X};${cargas[b].Y}\n`;
-        
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement("a");
-        link.href = URL.createObjectURL(blob);
-        link.download = "topologia_rede.csv";
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' }); const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob); link.download = "topologia_rede.csv"; document.body.appendChild(link); link.click(); document.body.removeChild(link);
         showToast("Arquivo exportado com sucesso!", "success");
     };
 
     document.getElementById('btnImportarSelect').onclick = () => document.getElementById('fileImport').click();
     document.getElementById('fileImport').addEventListener('change', function(e) {
-        const file = e.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = e => processarArquivoImportado(e.target.result);
-        reader.readAsText(file);
-        this.value = ''; 
+        const file = e.target.files[0]; if (!file) return;
+        const reader = new FileReader(); reader.onload = e => processarArquivoImportado(e.target.result);
+        reader.readAsText(file); this.value = ''; 
     });
 
     function processarArquivoImportado(texto) {
         tblMalha.innerHTML = ''; tblCargas.innerHTML = ''; cargas = {}; lineIdCounter = 1; 
         const linhas = texto.split('\n'); let secao = '';
-        
-        const nosBrutos = new Set();
-        const linhasBrutas = [];
-        const cargasBrutas = {};
+        const nosBrutos = new Set(); const linhasBrutas = []; const cargasBrutas = {};
 
         linhas.forEach(linha => {
-            const cols = linha.trim().split(';');
-            if (cols.length < 2) return;
+            const cols = linha.trim().split(';'); if (cols.length < 2) return;
             if (cols[0] === 'LINHA') { secao = 'LINHA'; return; }
             if (cols[0] === 'BARRA') { secao = 'BARRA'; return; }
             
             if (secao === 'LINHA') {
-                let de, para, R, X, isSwitch = false;
-                if (cols[1] === '') { 
+                let de, para, R, X, tipoL = 'CABO';
+                if(cols.length >= 7 && cols[0] === 'LINHA') {
+                    de = parseInt(cols[2]); para = parseInt(cols[3]); R = parseFloat(cols[4]); X = parseFloat(cols[5]);
+                    let t = cols[6].trim();
+                    if(t === 'CS' || t === 'CHAVE_NF') tipoL = 'CHAVE_NF';
+                    else if(t === 'CHAVE_NA') tipoL = 'CHAVE_NA';
+                } else {
+                    // Fallback para modelos antigos
                     de = parseInt(cols[0]); para = parseInt(cols[2]); R = parseFloat(cols[4]); X = parseFloat(cols[5]); 
-                } 
-                else if (['DJ', 'RL', 'CS', 'CF'].includes(cols[1])) { 
-                    de = parseInt(cols[0]); para = parseInt(cols[2]); R = 0.001; X = 0.001; 
-                    if(cols[1] === 'CS') isSwitch = true;
+                    if(cols[1]==='CS') tipoL = 'CHAVE_NF';
                 }
                 
-                if (de !== undefined && !isNaN(de) && para !== undefined && !isNaN(para) && !isNaN(R)) { 
-                    linhasBrutas.push({ id: lineIdCounter++, de: de, para: para, R: R, X: X, isSwitch: isSwitch });
-                    nosBrutos.add(de); nosBrutos.add(para);
+                if (!isNaN(de) && !isNaN(para) && !isNaN(R)) { 
+                    linhasBrutas.push({ id: lineIdCounter++, de: de, para: para, R: R, X: X, tipo: tipoL }); 
+                    nosBrutos.add(de); nosBrutos.add(para); 
                 }
             } else if (secao === 'BARRA') {
                 const bId = parseInt(cols[0]);
-                if (bId !== undefined && !isNaN(bId) && cols.length > 5) {
-                    const pVal = cols.length === 6 ? parseFloat(cols[2]) : (parseFloat(cols[4]) || 0);
-                    const qVal = cols.length === 6 ? parseFloat(cols[3]) : (parseFloat(cols[6]) || 0);
-                    const cx = cols.length === 6 ? parseFloat(cols[4]) : 0;
-                    const cy = cols.length === 6 ? parseFloat(cols[5]) : 0;
-                    cargasBrutas[bId] = { P: pVal, Q: qVal, X: cx, Y: cy };
-                    nosBrutos.add(bId);
+                if (!isNaN(bId) && cols.length > 5) {
+                    const pVal = cols.length === 6 ? parseFloat(cols[2]) : (parseFloat(cols[4]) || 0); const qVal = cols.length === 6 ? parseFloat(cols[3]) : (parseFloat(cols[6]) || 0);
+                    const cx = cols.length === 6 ? parseFloat(cols[4]) : 0; const cy = cols.length === 6 ? parseFloat(cols[5]) : 0;
+                    cargasBrutas[bId] = { P: pVal, Q: qVal, X: cx, Y: cy }; nosBrutos.add(bId);
                 }
             }
         });
 
-        const mapaIds = {};
-        let novoId = 1;
-        [...nosBrutos].sort((a,b)=>a-b).forEach(oldId => { mapaIds[oldId] = novoId++; });
-
-        elNb.value = nosBrutos.size;
-        let minId = Math.min(...nosBrutos);
-        document.getElementById('inpFontes').value = mapaIds[minId] ? mapaIds[minId].toString() : "1";
+        const mapaIds = {}; let novoId = 1; [...nosBrutos].sort((a,b)=>a-b).forEach(oldId => { mapaIds[oldId] = novoId++; });
+        elNb.value = nosBrutos.size; let minId = Math.min(...nosBrutos); document.getElementById('inpFontes').value = mapaIds[minId] ? mapaIds[minId].toString() : "1";
         
         let coordsZeradas = true;
         [...nosBrutos].sort((a,b)=>a-b).forEach(oldId => {
             const nId = mapaIds[oldId];
-            if(cargasBrutas[oldId]) {
-                cargas[nId] = cargasBrutas[oldId];
-                if(cargas[nId].X !== 0 || cargas[nId].Y !== 0) coordsZeradas = false;
-            } else {
-                cargas[nId] = {P: 0, Q: 0, X: 0, Y: 0};
-            }
+            if(cargasBrutas[oldId]) { cargas[nId] = cargasBrutas[oldId]; if(cargas[nId].X !== 0 || cargas[nId].Y !== 0) coordsZeradas = false; } else { cargas[nId] = {P: 0, Q: 0, X: 0, Y: 0}; }
         });
 
         gerarTabelaCargas();
-
-        linhasBrutas.forEach(l => {
-            l.de = mapaIds[l.de];
-            l.para = mapaIds[l.para];
-            addLinhaRow(l);
-        });
-        
+        linhasBrutas.forEach(l => { l.de = mapaIds[l.de]; l.para = mapaIds[l.para]; addLinhaRow(l); });
         updateSelects();
 
-        if(coordsZeradas && nosBrutos.size > 0) {
-            showToast("Calculando Layout Hierárquico UTFPR...", "info");
-            aplicarLayoutArvore(); 
-        } else {
-            showToast(`Importação concluída: ${nosBrutos.size} barras UTFPR válidas.`, "success");
-            document.querySelectorAll('.sidebar .nav-item')[4].click(); 
-            btnFluxo.click();
-        }
+        if(coordsZeradas && nosBrutos.size > 0) { showToast("Calculando Layout Hierárquico UTFPR...", "info"); aplicarLayoutArvore(); } 
+        else { showToast(`Importação concluída: ${nosBrutos.size} barras UTFPR válidas.`, "success"); document.querySelectorAll('.sidebar .nav-item')[4].click(); btnFluxo.click(); }
     }
 
     function aplicarLayoutArvore() {
-        const nodes = Object.keys(cargas).map(Number);
-        const edges = getLines();
-        const fontesAtuais = getSources();
+        const nodes = Object.keys(cargas).map(Number); const edges = getLines(); const fontesAtuais = getSources();
+        const adj = {}; nodes.forEach(n => adj[n] = []); edges.forEach(e => { adj[e.de].push(e.para); adj[e.para].push(e.de); });
+        const children = {}; nodes.forEach(n => children[n] = []); const visited = new Set(); const depths = {};
         
-        const adj = {}; nodes.forEach(n => adj[n] = []);
-        edges.forEach(e => { adj[e.de].push(e.para); adj[e.para].push(e.de); });
-        
-        const children = {}; nodes.forEach(n => children[n] = []);
-        const visited = new Set();
-        const depths = {};
-        
-        const roots = [];
-        fontesAtuais.forEach(f => { if(cargas[f]) { roots.push(f); visited.add(f); depths[f] = 0; } });
+        const roots = []; fontesAtuais.forEach(f => { if(cargas[f]) { roots.push(f); visited.add(f); depths[f] = 0; } });
 
         let q = [...roots];
         while(q.length > 0) {
             const u = q.shift();
-            adj[u].sort((a,b)=>a-b).forEach(v => {
-                if(!visited.has(v)) {
-                    visited.add(v);
-                    children[u].push(v);
-                    depths[v] = depths[u] + 1;
-                    q.push(v);
-                }
-            });
+            adj[u].sort((a,b)=>a-b).forEach(v => { if(!visited.has(v)) { visited.add(v); children[u].push(v); depths[v] = depths[u] + 1; q.push(v); } });
         }
 
         nodes.forEach(n => {
             if(!visited.has(n)) {
-                roots.push(n); visited.add(n); depths[n] = 0;
-                let subQ = [n];
-                while(subQ.length > 0) {
-                    const u = subQ.shift();
-                    adj[u].sort((a,b)=>a-b).forEach(v => {
-                        if(!visited.has(v)) {
-                            visited.add(v); children[u].push(v); depths[v] = depths[u] + 1; subQ.push(v);
-                        }
-                    });
-                }
+                roots.push(n); visited.add(n); depths[n] = 0; let subQ = [n];
+                while(subQ.length > 0) { const u = subQ.shift(); adj[u].sort((a,b)=>a-b).forEach(v => { if(!visited.has(v)) { visited.add(v); children[u].push(v); depths[v] = depths[u] + 1; subQ.push(v); } }); }
             }
         });
 
-        const widthMap = {};
-        function calcWidth(u) {
-            if (children[u].length === 0) { widthMap[u] = 1; } 
-            else { widthMap[u] = children[u].reduce((sum, v) => sum + calcWidth(v), 0); }
-            return widthMap[u];
-        }
+        const widthMap = {}; function calcWidth(u) { if (children[u].length === 0) { widthMap[u] = 1; } else { widthMap[u] = children[u].reduce((sum, v) => sum + calcWidth(v), 0); } return widthMap[u]; }
         roots.forEach(r => calcWidth(r));
 
-        const DEPTH_SPACING = 120; 
-        const BREADTH_SPACING = 50;
-
-        let currentY = 50;
-        roots.forEach(root => {
-            const rootBreadth = widthMap[root] * BREADTH_SPACING;
-            assignCoords(root, currentY, currentY + rootBreadth, 0);
-            currentY += rootBreadth + BREADTH_SPACING; 
-        });
+        const DEPTH_SPACING = 120; const BREADTH_SPACING = 50; let currentY = 50;
+        roots.forEach(root => { const rootBreadth = widthMap[root] * BREADTH_SPACING; assignCoords(root, currentY, currentY + rootBreadth, 0); currentY += rootBreadth + BREADTH_SPACING; });
 
         function assignCoords(u, top, bottom, depth) {
-            cargas[u].X = 50 + depth * DEPTH_SPACING; 
-            cargas[u].Y = (top + bottom) / 2;         
-            let childTop = top;
-            children[u].forEach(v => {
-                const childBreadth = (widthMap[v] / widthMap[u]) * (bottom - top);
-                assignCoords(v, childTop, childTop + childBreadth, depth + 1);
-                childTop += childBreadth;
-            });
+            cargas[u].X = 50 + depth * DEPTH_SPACING; cargas[u].Y = (top + bottom) / 2;         
+            let childTop = top; children[u].forEach(v => { const childBreadth = (widthMap[v] / widthMap[u]) * (bottom - top); assignCoords(v, childTop, childTop + childBreadth, depth + 1); childTop += childBreadth; });
         }
 
-        const minX = Math.min(...nodes.map(n => cargas[n].X)) || 0;
-        const maxX = Math.max(...nodes.map(n => cargas[n].X)) || 800;
-        const minY = Math.min(...nodes.map(n => cargas[n].Y)) || 0;
-        const maxY = Math.max(...nodes.map(n => cargas[n].Y)) || 600;
-
+        const minX = Math.min(...nodes.map(n => cargas[n].X)) || 0; const maxX = Math.max(...nodes.map(n => cargas[n].X)) || 800;
+        const minY = Math.min(...nodes.map(n => cargas[n].Y)) || 0; const maxY = Math.max(...nodes.map(n => cargas[n].Y)) || 600;
         vBox = { x: -50, y: minY - 50, w: Math.max(1000, maxX + 100), h: Math.max(600, maxY - minY + 100) };
         svg.setAttribute('viewBox', `${vBox.x} ${vBox.y} ${vBox.w} ${vBox.h}`);
         
@@ -840,164 +754,41 @@
             if(cargas[b]){ trs[i].querySelectorAll('input')[2].value = cargas[b].X.toFixed(0); trs[i].querySelectorAll('input')[3].value = cargas[b].Y.toFixed(0); }
         }
         showToast("Layout UTFPR construído com sucesso!", "success");
-        
-        document.querySelectorAll('.sidebar .nav-item')[4].click();
-        btnFluxo.click();
+        document.querySelectorAll('.sidebar .nav-item')[4].click(); btnFluxo.click();
     }
 
-    // Funções do Motor de Otimização e Paralelismo (AG)
     function initWorkers(){
-        workerPool.forEach(w=>w.terminate()); workerPool=[];
-        const num = navigator.hardwareConcurrency||4;
-        for(let i=0; i<Math.max(1, num-1); i++){
-            const w = new Worker('ga_worker.js');
-            w.onmessage = handleMsg; w.busy=false;
-            workerPool.push(w);
-        }
+        workerPool.forEach(w=>w.terminate()); workerPool=[]; const num = navigator.hardwareConcurrency||4;
+        for(let i=0; i<Math.max(1, num-1); i++){ const w = new Worker('ga_worker.js'); w.onmessage = handleMsg; w.busy=false; workerPool.push(w); }
     }
 
     let gaQueue=[], gaResults=[], gaResolve=null;
     function handleMsg(e){
-        const {index, result} = e.data;
-        gaResults[index]=result;
-        e.target.busy=false;
+        const {index, result} = e.data; gaResults[index]=result; e.target.busy=false;
         if(gaQueue.length){ e.target.postMessage(gaQueue.shift()); e.target.busy=true; }
         if(gaResults.filter(x=>x).length===gaResults.length && gaResolve) gaResolve(gaResults);
     }
     
+    // Função usada apenas para garantir árvores radiais na mutação do AG
     function getBaseRadialDNA(lines, sources) {
-        const ind = new Array(lines.length).fill(0);
-        const parent = {};
+        const ind = new Array(lines.length).fill(0); const parent = {};
         const find = (i) => { if (parent[i] === undefined) return i; if (parent[i] === i) return i; return parent[i] = find(parent[i]); };
         const union = (i, j) => { const rootI = find(i); const rootJ = find(j); if (rootI !== rootJ) { parent[rootI] = rootJ; return true; } return false; };
-        
-        const superSource = 0;
-        sources.forEach(s => parent[s] = superSource);
-        parent[superSource] = superSource;
-
+        const superSource = 0; sources.forEach(s => parent[s] = superSource); parent[superSource] = superSource;
         lines.forEach((l, idx) => { if (!l.isSwitch) { ind[idx] = 1; union(l.de, l.para); } });
         lines.forEach((l, idx) => { if (l.isSwitch) { if (union(l.de, l.para)) { ind[idx] = 1; } else { ind[idx] = 0; } } });
-        
         return ind;
     }
 
-    async function runGA(){
-        initWorkers(); await new Promise(r=>setTimeout(r,100));
-        btnOtimizar.disabled=true; document.getElementById('ga-status').textContent="Lendo dados para AG UTFPR...";
-        historyAG = []; 
-        historyFullAG = []; 
-        
-        const baseLines = getLines();
-        const nosAtivos = Object.keys(cargas).map(Number);
-        let allLines = [...baseLines];
-
-        const indicesChaves = allLines.map((l, idx) => l.isSwitch ? idx : -1).filter(idx => idx !== -1);
-
-        if(indicesChaves.length === 0) { btnOtimizar.disabled = false; return showToast("A rede não possui nenhuma Chave para otimizar.", "error"); }
-
-        let linhaFalhaKeys = [...selLinhaFalha.selectedOptions].map(o=>o.value).filter(v=>v!=='SEM_FALHA');
-        const barrasFalhas = [...selBarraFalha.selectedOptions].map(o=>parseInt(o.value)).filter(v=>!isNaN(v));
-
-        allLines.forEach(l => {
-            if (barrasFalhas.includes(l.de) || barrasFalhas.includes(l.para)) {
-                const key = `${l.de}-${l.para}`;
-                if (!linhaFalhaKeys.includes(key)) linhaFalhaKeys.push(key); 
-            }
-        });
-
-        const staticData = {
-            allLines, linhaFalhaKeys: linhaFalhaKeys,
-            nb: Math.max(...nosAtivos), vMin:0.93, vMax:1.05, maxNALinhas:99, cargas, 
-            Sbase:parseFloat(document.getElementById('sbase').value), Vbase_kV:parseFloat(document.getElementById('vbase').value), sourceBuses: getSources()
-        };
-
-        const popSize = parseInt(document.getElementById('gaPopSize').value);
-        const maxGen = parseInt(document.getElementById('gaMaxGen').value);
-        const mutationRate = parseFloat(document.getElementById('gaMutationRate').value) / 100;
-        
-        let population = [getBaseRadialDNA(allLines, getSources())]; 
-        for(let i=1; i<popSize; i++) {
-            population.push(allLines.map(l => {
-                if(!l.isSwitch) return 1; 
-                return Math.random() > 0.1 ? 1 : 0; 
-            }));
-        }
-
-        let bestSol = null;
-        for(let g=0; g<maxGen; g++){
-            document.getElementById('ga-progress-bar').style.width = `${(g/maxGen)*100}%`;
-            document.getElementById('ga-status').textContent = `AG UTFPR: Gen ${g+1} / ${maxGen}`;
-            gaResults = new Array(popSize);
-            gaQueue = population.map((ind,i)=>({individual:ind, index:i, staticData}));
-            workerPool.forEach(w=>{if(!w.busy && gaQueue.length){w.postMessage(gaQueue.shift()); w.busy=true;}});
-            await new Promise(r=>gaResolve=r);
-
-            gaResults.forEach((res, i) => {
-                historyFullAG.push({
-                    gen: g + 1,
-                    idx: i + 1,
-                    dna: population[i].join(''),
-                    fitness: res.fitness
-                });
-            });
-
-            const valid = gaResults.map((res,i)=>({res, ind:population[i]})).filter(x=> x.res.fitness < 1e14);
-            valid.sort((a,b)=>a.res.fitness - b.res.fitness);
-
-            if(valid.length > 0){
-                if(!bestSol || valid[0].res.fitness < bestSol.res.fitness){ 
-                    bestSol = valid[0]; 
-                }
-                historyAG.push(bestSol.res.fitness); 
-                
-                const newPop = [valid[0].ind]; 
-                while(newPop.length < popSize){
-                    const p1 = valid[Math.floor(Math.random()*Math.min(valid.length, 10))].ind;
-                    const p2 = valid[Math.floor(Math.random()*Math.min(valid.length, 10))].ind;
-                    const cut = Math.floor(Math.random() * p1.length);
-                    const c1 = [...p1.slice(0,cut), ...p2.slice(cut)];
-                    if(Math.random() < mutationRate) { c1[indicesChaves[Math.floor(Math.random() * indicesChaves.length)]] ^= 1; }
-                    newPop.push(c1);
-                }
-                population = newPop;
-            } else {
-                population = population.map(ind => allLines.map(l => l.isSwitch ? (Math.random() > 0.5 ? 1 : 0) : 1));
-            }
-        }
-        btnOtimizar.disabled=false; document.getElementById('ga-status').textContent="Otimização UTFPR Finalizada.";
-        
-        if(bestSol) { 
-            resultOptGlobal = bestSol.res;
-            indOptGlobal = bestSol.ind;
-
-            updateDashboard(bestSol.res);
-            renderRes(bestSol.res, allLines, bestSol.ind); 
-            updateAnalyticsData(); 
-            updateHistoryTable();
-
-            showToast("Otimização concluída com sucesso.", "success"); 
-            document.querySelectorAll('.sidebar .nav-item')[2].click(); 
-        } 
-        else { showToast("Erro no AG UTFPR.", "error"); }
-    }
-    btnOtimizar.onclick = runGA;
-
+    // ADIÇÃO 5: O Fluxo Base Fiel ao Operador
     btnFluxo.onclick = async () => {
         initWorkers(); await new Promise(r=>setTimeout(r,100));
-        document.getElementById('ga-status').textContent="Calculando Fluxo Base (UTFPR)...";
-        document.getElementById('ga-progress-bar').style.width = '50%';
-        const allLines = getLines(); 
-        const nosAtivos = Object.keys(cargas).map(Number);
+        document.getElementById('ga-status').textContent="Calculando Fluxo Base (UTFPR)..."; document.getElementById('ga-progress-bar').style.width = '50%';
+        const allLines = getLines(); const nosAtivos = Object.keys(cargas).map(Number);
         
         let linhaFalhaKeys = [...selLinhaFalha.selectedOptions].map(o=>o.value).filter(v=>v!=='SEM_FALHA');
         const barrasFalhas = [...selBarraFalha.selectedOptions].map(o=>parseInt(o.value)).filter(v=>!isNaN(v));
-
-        allLines.forEach(l => {
-            if (barrasFalhas.includes(l.de) || barrasFalhas.includes(l.para)) {
-                const key = `${l.de}-${l.para}`;
-                if (!linhaFalhaKeys.includes(key)) linhaFalhaKeys.push(key);
-            }
-        });
+        allLines.forEach(l => { if (barrasFalhas.includes(l.de) || barrasFalhas.includes(l.para)) { const key = `${l.de}-${l.para}`; if (!linhaFalhaKeys.includes(key)) linhaFalhaKeys.push(key); } });
 
         const sd = {
             allLines: allLines, linhaFalhaKeys: linhaFalhaKeys, nb: nosAtivos.length > 0 ? Math.max(...nosAtivos) : 30, 
@@ -1005,81 +796,100 @@
             Sbase:parseFloat(document.getElementById('sbase').value), Vbase_kV:parseFloat(document.getElementById('vbase').value), sourceBuses: getSources()
         };
         
-        const ind = getBaseRadialDNA(allLines, getSources()); 
+        // AQUI ESTÁ O SEGREDO DO FLUXO BASE: Ele obedece cegamente se a chave é NA (0) ou NF (1)
+        const ind = allLines.map(l => l.defaultState); 
         
         workerPool[0].postMessage({individual:ind, index:0, staticData:sd});
         workerPool[0].onmessage = (e) => {
-            document.getElementById('ga-progress-bar').style.width = '100%';
+            document.getElementById('ga-progress-bar').style.width = '100%'; resultBaseGlobal = e.data.result; indBaseGlobal = ind;
+            updateDashboard(e.data.result); renderRes(e.data.result, allLines, ind); updateAnalyticsData(); 
             
-            resultBaseGlobal = e.data.result;
-            indBaseGlobal = ind;
-            
-            updateDashboard(e.data.result);
-            renderRes(e.data.result, allLines, ind);
-            updateAnalyticsData(); 
-
-            if(e.data.result.data.error) showToast("Aviso: Rede com defeito de base UTFPR.", "warning");
-            else {
-                document.getElementById('ga-status').textContent="Fluxo Base Convergido.";
-                document.querySelectorAll('.sidebar .nav-item')[0].click(); 
-            }
+            // Se o operador deixou muitas NFs fechadas, o erro topológico "Rede em Malha" vai aparecer no Dashboard!
+            if(e.data.result.data.error) showToast("ATENÇÃO: A sua Rede Base está em Malha/Ilhada (Verifique o Dashboard).", "error");
+            else { document.getElementById('ga-status').textContent="Fluxo Base Convergido."; document.querySelectorAll('.sidebar .nav-item')[0].click(); }
         };
     };
 
-    // Funções de Update Visual
+    async function runGA(){
+        initWorkers(); await new Promise(r=>setTimeout(r,100));
+        btnOtimizar.disabled=true; document.getElementById('ga-status').textContent="Lendo dados para AG UTFPR...";
+        historyAG = []; historyFullAG = []; 
+        const baseLines = getLines(); const nosAtivos = Object.keys(cargas).map(Number); let allLines = [...baseLines];
+        const indicesChaves = allLines.map((l, idx) => l.isSwitch ? idx : -1).filter(idx => idx !== -1);
+        if(indicesChaves.length === 0) { btnOtimizar.disabled = false; return showToast("A rede não possui nenhuma Chave para otimizar.", "error"); }
+
+        let linhaFalhaKeys = [...selLinhaFalha.selectedOptions].map(o=>o.value).filter(v=>v!=='SEM_FALHA');
+        const barrasFalhas = [...selBarraFalha.selectedOptions].map(o=>parseInt(o.value)).filter(v=>!isNaN(v));
+        allLines.forEach(l => { if (barrasFalhas.includes(l.de) || barrasFalhas.includes(l.para)) { const key = `${l.de}-${l.para}`; if (!linhaFalhaKeys.includes(key)) linhaFalhaKeys.push(key); } });
+
+        const staticData = {
+            allLines, linhaFalhaKeys: linhaFalhaKeys, nb: Math.max(...nosAtivos), vMin:0.93, vMax:1.05, maxNALinhas:99, cargas, 
+            Sbase:parseFloat(document.getElementById('sbase').value), Vbase_kV:parseFloat(document.getElementById('vbase').value), sourceBuses: getSources()
+        };
+
+        const popSize = parseInt(document.getElementById('gaPopSize').value); const maxGen = parseInt(document.getElementById('gaMaxGen').value); const mutationRate = parseFloat(document.getElementById('gaMutationRate').value) / 100;
+        
+        // Semente Inteligente do AG:
+        const baseDNA = allLines.map(l => l.defaultState);
+        let population = [baseDNA]; // O primeiro indivíduo é o cenário atual (NAs e NFs do operador)
+        population.push(getBaseRadialDNA(allLines, getSources())); // O segundo é uma árvore radial garantida pelo Union-Find (para o AG ter por onde começar caso a base seja um curto-circuito)
+        
+        for(let i=2; i<popSize; i++) { population.push(allLines.map(l => { if(!l.isSwitch) return 1; return Math.random() > 0.5 ? 1 : 0; })); }
+
+        let bestSol = null;
+        for(let g=0; g<maxGen; g++){
+            document.getElementById('ga-progress-bar').style.width = `${(g/maxGen)*100}%`; document.getElementById('ga-status').textContent = `AG UTFPR: Gen ${g+1} / ${maxGen}`;
+            gaResults = new Array(popSize); gaQueue = population.map((ind,i)=>({individual:ind, index:i, staticData}));
+            workerPool.forEach(w=>{if(!w.busy && gaQueue.length){w.postMessage(gaQueue.shift()); w.busy=true;}});
+            await new Promise(r=>gaResolve=r);
+
+            gaResults.forEach((res, i) => { historyFullAG.push({ gen: g + 1, idx: i + 1, dna: population[i].join(''), fitness: res.fitness }); });
+
+            const valid = gaResults.map((res,i)=>({res, ind:population[i]})).filter(x=> x.res.fitness < 1e14); valid.sort((a,b)=>a.res.fitness - b.res.fitness);
+            if(valid.length > 0){
+                if(!bestSol || valid[0].res.fitness < bestSol.res.fitness){ bestSol = valid[0]; }
+                historyAG.push(bestSol.res.fitness); 
+                const newPop = [valid[0].ind]; 
+                while(newPop.length < popSize){
+                    const p1 = valid[Math.floor(Math.random()*Math.min(valid.length, 10))].ind; const p2 = valid[Math.floor(Math.random()*Math.min(valid.length, 10))].ind; const cut = Math.floor(Math.random() * p1.length);
+                    const c1 = [...p1.slice(0,cut), ...p2.slice(cut)]; if(Math.random() < mutationRate) { c1[indicesChaves[Math.floor(Math.random() * indicesChaves.length)]] ^= 1; } newPop.push(c1);
+                }
+                population = newPop;
+            } else { population = population.map(ind => allLines.map(l => l.isSwitch ? (Math.random() > 0.5 ? 1 : 0) : 1)); }
+        }
+        btnOtimizar.disabled=false; document.getElementById('ga-status').textContent="Otimização UTFPR Finalizada.";
+        
+        if(bestSol) { 
+            resultOptGlobal = bestSol.res; indOptGlobal = bestSol.ind;
+            updateDashboard(bestSol.res); renderRes(bestSol.res, allLines, bestSol.ind); updateAnalyticsData(); updateHistoryTable();
+            showToast("Otimização concluída com sucesso.", "success"); document.querySelectorAll('.sidebar .nav-item')[2].click(); 
+        } else { showToast("Erro no AG UTFPR.", "error"); }
+    }
+    btnOtimizar.onclick = runGA;
+
     function updateHistoryTable() {
         const tbody = document.querySelector('#tblHistorico tbody');
-        if (historyFullAG.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Aguardando execução do AG UTFPR...</td></tr>';
-            return;
-        }
-
-        let displayData = historyFullAG;
-        let warningHtml = '';
-        if (historyFullAG.length > 3000) {
-            displayData = historyFullAG.slice(-3000);
-            warningHtml = `<tr><td colspan="4" style="text-align:center; color:var(--st-warn); font-weight:bold; background:#fffbeb;">Exibindo últimos 3000 cromossomos (total: ${historyFullAG.length}) para performance.</td></tr>`;
-        }
-
+        if (historyFullAG.length === 0) { tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Aguardando execução do AG UTFPR...</td></tr>'; return; }
+        let displayData = historyFullAG; let warningHtml = '';
+        if (historyFullAG.length > 3000) { displayData = historyFullAG.slice(-3000); warningHtml = `<tr><td colspan="4" style="text-align:center; color:var(--st-warn); font-weight:bold; background:#fffbeb;">Exibindo últimos 3000 cromossomos (total: ${historyFullAG.length}) para performance.</td></tr>`; }
         let html = warningHtml;
         displayData.forEach(log => {
             let fitDisplay = log.fitness >= 1e14 ? '<span class="text-bad">Inválido</span>' : log.fitness.toFixed(4) + ' MW';
-            html += `<tr>
-                <td>Gen ${log.gen}</td>
-                <td>#${log.idx}</td>
-                <td class="mono" style="font-size:11px; letter-spacing:1px; color:var(--utfpr-accent); word-break: break-all;">[${log.dna}]</td>
-                <td class="mono">${fitDisplay}</td>
-            </tr>`;
+            html += `<tr><td>Gen ${log.gen}</td><td>#${log.idx}</td><td class="mono" style="font-size:11px; letter-spacing:1px; color:var(--utfpr-accent); word-break: break-all;">[${log.dna}]</td><td class="mono">${fitDisplay}</td></tr>`;
         });
-
         tbody.innerHTML = html;
     }
 
+    // ADIÇÃO 6: Relatório de Manobras Inteligente
     function updateAnalyticsData() {
-        const lines = getLines();
-        const sources = getSources();
-
-        const tbComp = document.querySelector('#tblComparativo tbody');
+        const lines = getLines(); const sources = getSources(); const tbComp = document.querySelector('#tblComparativo tbody');
         if (resultBaseGlobal && resultOptGlobal && !resultBaseGlobal.data.error && !resultOptGlobal.data.error) {
-            const pBase = resultBaseGlobal.data.perdasMWtotal;
-            const pOpt = resultOptGlobal.data.perdasMWtotal;
-            const diffP = pBase - pOpt;
-            const percP = (diffP / pBase) * 100;
-
-            const vBaseArr = resultBaseGlobal.data.resBarras.filter(b=>b.isConnected).map(b=>b.Vmag);
-            const vOptArr = resultOptGlobal.data.resBarras.filter(b=>b.isConnected).map(b=>b.Vmag);
-            const vBase = vBaseArr.length > 0 ? Math.min(...vBaseArr) : 0;
-            const vOpt = vOptArr.length > 0 ? Math.min(...vOptArr) : 0;
-
-            tbComp.innerHTML = `
-                <tr><td>Perdas Ativas Totais</td><td class="mono">${pBase.toFixed(4)} MW</td><td class="mono">${pOpt.toFixed(4)} MW</td><td class="mono ${percP >= 0 ? 'text-ok' : 'text-bad'}">${percP >= 0 ? '-' : '+'}${Math.abs(percP).toFixed(2)}%</td></tr>
-                <tr><td>Pior Tensão do Sistema</td><td class="mono">${vBase.toFixed(3)} pu</td><td class="mono">${vOpt.toFixed(3)} pu</td><td class="mono ${(vOpt - vBase) >= 0 ? 'text-ok' : 'text-bad'}">${(vOpt - vBase) >= 0 ? '+' : ''}${(vOpt - vBase).toFixed(3)} pu</td></tr>
-            `;
-        } else if (resultBaseGlobal && !resultBaseGlobal.data.error) {
-            tbComp.innerHTML = `<tr><td colspan="4" style="text-align:center;">Execute a Otimização para comparar.</td></tr>`;
-        } else {
-            tbComp.innerHTML = `<tr><td colspan="4" style="text-align:center;">Execute o Fluxo Base e a Otimização.</td></tr>`;
-        }
+            const pBase = resultBaseGlobal.data.perdasMWtotal; const pOpt = resultOptGlobal.data.perdasMWtotal; const diffP = pBase - pOpt; const percP = (diffP / pBase) * 100;
+            const vBaseArr = resultBaseGlobal.data.resBarras.filter(b=>b.isConnected).map(b=>b.Vmag); const vOptArr = resultOptGlobal.data.resBarras.filter(b=>b.isConnected).map(b=>b.Vmag);
+            const vBase = vBaseArr.length > 0 ? Math.min(...vBaseArr) : 0; const vOpt = vOptArr.length > 0 ? Math.min(...vOptArr) : 0;
+            tbComp.innerHTML = `<tr><td>Perdas Ativas Totais</td><td class="mono">${pBase.toFixed(4)} MW</td><td class="mono">${pOpt.toFixed(4)} MW</td><td class="mono ${percP >= 0 ? 'text-ok' : 'text-bad'}">${percP >= 0 ? '-' : '+'}${Math.abs(percP).toFixed(2)}%</td></tr>
+                                <tr><td>Pior Tensão do Sistema</td><td class="mono">${vBase.toFixed(3)} pu</td><td class="mono">${vOpt.toFixed(3)} pu</td><td class="mono ${(vOpt - vBase) >= 0 ? 'text-ok' : 'text-bad'}">${(vOpt - vBase) >= 0 ? '+' : ''}${(vOpt - vBase).toFixed(3)} pu</td></tr>`;
+        } else if (resultBaseGlobal && !resultBaseGlobal.data.error) { tbComp.innerHTML = `<tr><td colspan="4" style="text-align:center;">Execute a Otimização para comparar.</td></tr>`; } else { tbComp.innerHTML = `<tr><td colspan="4" style="text-align:center;">Execute o Fluxo Base e a Otimização.</td></tr>`; }
 
         const tbManobras = document.querySelector('#tblManobras tbody');
         if (indBaseGlobal && indOptGlobal) {
@@ -1087,41 +897,24 @@
             lines.forEach((l, i) => {
                 if (l.isSwitch && indBaseGlobal[i] !== indOptGlobal[i]) {
                     const acao = indOptGlobal[i] === 1 ? '<span class="text-ok">FECHAR</span>' : '<span class="text-bad">ABRIR</span>';
-                    html += `<tr><td><b>${acao}</b></td><td>Chave <b>L-${l.id}</b></td><td>Nó ${l.de} ➔ Nó ${l.para}</td></tr>`;
+                    let tipoTexto = l.tipo === 'CHAVE_NA' ? 'Original: NA' : 'Original: NF';
+                    html += `<tr><td><b>${acao}</b></td><td>Chave <b>L-${l.id}</b> (${tipoTexto})</td><td>Nó ${l.de} ➔ Nó ${l.para}</td></tr>`;
                 }
             });
             if (html === '') html = '<tr><td colspan="3" style="text-align:center;">Nenhuma mudança sugerida UTFPR.</td></tr>';
             tbManobras.innerHTML = html;
-        } else {
-            tbManobras.innerHTML = '<tr><td colspan="3" style="text-align:center;">Aguardando otimização.</td></tr>';
-        }
+        } else { tbManobras.innerHTML = '<tr><td colspan="3" style="text-align:center;">Aguardando otimização.</td></tr>'; }
 
         const ctxVolt = document.getElementById('chartVoltage');
         if (ctxVolt) {
             let labels = []; let dataBase = []; let dataOpt = [];
-            
-            if(resultBaseGlobal && !resultBaseGlobal.data.error) {
-                const sorted = [...resultBaseGlobal.data.resBarras].sort((a,b)=>a.barra - b.barra);
-                labels = sorted.map(b=>b.barra);
-                dataBase = sorted.map(b=>b.Vmag);
-            }
-            if(resultOptGlobal && !resultOptGlobal.data.error) {
-                const sorted = [...resultOptGlobal.data.resBarras].sort((a,b)=>a.barra - b.barra);
-                if(labels.length === 0) labels = sorted.map(b=>b.barra);
-                dataOpt = sorted.map(b=>b.Vmag);
-            }
-
+            if(resultBaseGlobal && !resultBaseGlobal.data.error) { const sorted = [...resultBaseGlobal.data.resBarras].sort((a,b)=>a.barra - b.barra); labels = sorted.map(b=>b.barra); dataBase = sorted.map(b=>b.Vmag); }
+            if(resultOptGlobal && !resultOptGlobal.data.error) { const sorted = [...resultOptGlobal.data.resBarras].sort((a,b)=>a.barra - b.barra); if(labels.length === 0) labels = sorted.map(b=>b.barra); dataOpt = sorted.map(b=>b.Vmag); }
             if (chartVolt) chartVolt.destroy();
             if (labels.length > 0) {
                 chartVolt = new Chart(ctxVolt, {
                     type: 'line',
-                    data: {
-                        labels: labels,
-                        datasets: [
-                            { label: 'Tensão Base (pu)', data: dataBase, borderColor: '#94a3b8', borderWidth: 2, borderDash: [5,5], fill: false, pointRadius: 2 },
-                            { label: 'Tensão Otimizada (pu)', data: dataOpt, borderColor: '#F9D606', borderWidth: 2, fill: false, pointRadius: 3 } 
-                        ]
-                    },
+                    data: { labels: labels, datasets: [ { label: 'Tensão Base (pu)', data: dataBase, borderColor: '#94a3b8', borderWidth: 2, borderDash: [5,5], fill: false, pointRadius: 2 }, { label: 'Tensão Otimizada (pu)', data: dataOpt, borderColor: '#F9D606', borderWidth: 2, fill: false, pointRadius: 3 } ] },
                     options: { responsive: true, maintainAspectRatio: false, scales: { y: { min: 0.85, max: 1.05 } } }
                 });
             }
@@ -1129,225 +922,110 @@
 
         const ctxBal = document.getElementById('chartBalance');
         if (ctxBal) {
-            let labels = sources.map(s => `Sub ${s}`);
-            let dataBase = []; let dataOpt = [];
-
-            if(resultBaseGlobal && !resultBaseGlobal.data.error) {
-                dataBase = sources.map(s => {
-                    return resultBaseGlobal.data.resRamos.filter(r => r.de === s || r.para === s).reduce((acc, r) => acc + r.Smva, 0);
-                });
-            }
-            if(resultOptGlobal && !resultOptGlobal.data.error) {
-                dataOpt = sources.map(s => {
-                    return resultOptGlobal.data.resRamos.filter(r => r.de === s || r.para === s).reduce((acc, r) => acc + r.Smva, 0);
-                });
-            }
-
+            let labels = sources.map(s => `Sub ${s}`); let dataBase = []; let dataOpt = [];
+            if(resultBaseGlobal && !resultBaseGlobal.data.error) { dataBase = sources.map(s => { return resultBaseGlobal.data.resRamos.filter(r => r.de === s || r.para === s).reduce((acc, r) => acc + r.Smva, 0); }); }
+            if(resultOptGlobal && !resultOptGlobal.data.error) { dataOpt = sources.map(s => { return resultOptGlobal.data.resRamos.filter(r => r.de === s || r.para === s).reduce((acc, r) => acc + r.Smva, 0); }); }
             if (chartBal) chartBal.destroy();
             if (dataBase.length > 0 || dataOpt.length > 0) {
-                chartBal = new Chart(ctxBal, {
-                    type: 'bar',
-                    data: {
-                        labels: labels,
-                        datasets: [
-                            { label: 'Carga Base (MVA)', data: dataBase, backgroundColor: '#94a3b8' },
-                            { label: 'Carga Otimizada (MVA)', data: dataOpt, backgroundColor: '#000000' } 
-                        ]
-                    },
-                    options: { responsive: true, maintainAspectRatio: false }
-                });
+                chartBal = new Chart(ctxBal, { type: 'bar', data: { labels: labels, datasets: [ { label: 'Carga Base (MVA)', data: dataBase, backgroundColor: '#94a3b8' }, { label: 'Carga Otimizada (MVA)', data: dataOpt, backgroundColor: '#000000' } ] }, options: { responsive: true, maintainAspectRatio: false } });
             }
         }
 
         const ctxConv = document.getElementById('chartConvergence');
         if (ctxConv && historyAG.length > 0) {
             if (chartConv) chartConv.destroy();
-            chartConv = new Chart(ctxConv, {
-                type: 'line',
-                data: {
-                    labels: historyAG.map((_, i) => `Ger ${i+1}`),
-                    datasets: [{ label: 'Fitness (MW)', data: historyAG, borderColor: '#F9D606', backgroundColor: 'rgba(249, 214, 6, 0.1)', fill: true, tension: 0.1, pointRadius: 0 }] 
-                },
-                options: { responsive: true, maintainAspectRatio: false, scales: { x: { display: false } } }
-            });
+            chartConv = new Chart(ctxConv, { type: 'line', data: { labels: historyAG.map((_, i) => `Ger ${i+1}`), datasets: [{ label: 'Fitness (MW)', data: historyAG, borderColor: '#F9D606', backgroundColor: 'rgba(249, 214, 6, 0.1)', fill: true, tension: 0.1, pointRadius: 0 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { x: { display: false } } } });
         }
     }
 
     function updateDashboard(res){
-        const cardRadial = document.getElementById('kpiCardRadial');
-        const cardVolt = document.getElementById('kpiCardVolt');
-        const cardUnserved = document.getElementById('kpiCardUnserved');
-
+        const cardRadial = document.getElementById('kpiCardRadial'); const cardVolt = document.getElementById('kpiCardVolt'); const cardUnserved = document.getElementById('kpiCardUnserved');
         if(!res.data || res.data.error) {
-            document.getElementById('dashPerdas').textContent = "--- MW";
-            document.getElementById('dashTensao').textContent = "--- pu";
-            document.getElementById('dashDesligados').textContent = "Erro UTFPR";
-            document.getElementById('dashRadial').textContent = "Rede em Anel / Ilha";
-            document.getElementById('dashRadial').className = "kpi-value text-bad";
-            cardRadial.style.borderLeftColor = "var(--st-bad)";
-            return;
+            document.getElementById('dashPerdas').textContent = "--- MW"; document.getElementById('dashTensao').textContent = "--- pu"; document.getElementById('dashDesligados').textContent = "Erro UTFPR";
+            document.getElementById('dashRadial').textContent = "Rede em Anel / Ilha"; document.getElementById('dashRadial').className = "kpi-value text-bad"; cardRadial.style.borderLeftColor = "var(--st-bad)"; return;
         }
 
         document.getElementById('dashPerdas').textContent = res.data.perdasMWtotal.toFixed(4) + " MW";
-        
-        const numUnserved = res.data.unservedBuses.length;
-        document.getElementById('dashDesligados').textContent = numUnserved;
-        if(numUnserved > 0) { cardUnserved.style.borderLeftColor = "var(--st-bad)"; document.getElementById('dashDesligados').className = "kpi-value mono text-bad"; }
-        else { cardUnserved.style.borderLeftColor = "var(--utfpr-accent)"; document.getElementById('dashDesligados').className = "kpi-value mono"; }
+        const numUnserved = res.data.unservedBuses.length; document.getElementById('dashDesligados').textContent = numUnserved;
+        if(numUnserved > 0) { cardUnserved.style.borderLeftColor = "var(--st-bad)"; document.getElementById('dashDesligados').className = "kpi-value mono text-bad"; } else { cardUnserved.style.borderLeftColor = "var(--utfpr-accent)"; document.getElementById('dashDesligados').className = "kpi-value mono"; }
 
         const conectadas = res.data.resBarras.filter(b=>b.isConnected).sort((a,b)=>a.Vmag-b.Vmag);
         if(conectadas.length > 0) {
-            const minV = conectadas[0].Vmag;
-            document.getElementById('dashTensao').textContent = minV.toFixed(3) + " pu";
-            document.getElementById('dashTensaoSub').textContent = "Barra: " + conectadas[0].barra;
-            if(minV < 0.93) { cardVolt.style.borderLeftColor = "var(--st-bad)"; document.getElementById('dashTensao').className = "kpi-value mono text-bad"; }
-            else { cardVolt.style.borderLeftColor = "var(--utfpr-accent)"; document.getElementById('dashTensao').className = "kpi-value mono"; }
+            const minV = conectadas[0].Vmag; document.getElementById('dashTensao').textContent = minV.toFixed(3) + " pu"; document.getElementById('dashTensaoSub').textContent = "Barra: " + conectadas[0].barra;
+            if(minV < 0.93) { cardVolt.style.borderLeftColor = "var(--st-bad)"; document.getElementById('dashTensao').className = "kpi-value mono text-bad"; } else { cardVolt.style.borderLeftColor = "var(--utfpr-accent)"; document.getElementById('dashTensao').className = "kpi-value mono"; }
         }
 
-        document.getElementById('dashRadial').textContent = "Radial (OK)";
-        document.getElementById('dashRadial').className = "kpi-value text-ok";
-        cardRadial.style.borderLeftColor = "var(--utfpr-accent)";
-        
+        document.getElementById('dashRadial').textContent = "Radial (OK)"; document.getElementById('dashRadial').className = "kpi-value text-ok"; cardRadial.style.borderLeftColor = "var(--utfpr-accent)";
         document.getElementById('relatorioCard').style.display = 'block';
     }
 
     function renderRes(res, allLines, bestInd){
         if(res.data.error) { showToast(`Erro Topológico: ${res.data.error}`, "warning"); }
-        
-        const tb = document.getElementById('tblResRamos').querySelector('tbody');
-        tb.innerHTML = '';
+        const tb = document.getElementById('tblResRamos').querySelector('tbody'); tb.innerHTML = '';
         if(res.data.resRamos){
             res.data.resRamos.forEach(r => {
-                const l_ref = allLines.find(x => x.id === r.id);
-                const tipo = l_ref && l_ref.isSwitch ? 'Chave' : 'Cabo';
-                const row = document.createElement('tr');
-                row.innerHTML = `<td><b>${r.id}</b></td><td>${tipo}</td><td>${r.de}</td><td>${r.para}</td>
-                                 <td style="font-weight:700; color:var(--text-dark)">${(r.I_A || 0).toFixed(2)}</td>
-                                 <td class="mono">${r.Pmw.toFixed(3)}</td><td class="mono">${r.Qmvar.toFixed(3)}</td>
-                                 <td class="mono">${r.Smva.toFixed(3)}</td><td class="mono">${r.perdasMW.toFixed(4)}</td>`;
+                const l_ref = allLines.find(x => x.id === r.id); const tipo = l_ref && l_ref.isSwitch ? 'Chave' : 'Cabo'; const row = document.createElement('tr');
+                row.innerHTML = `<td><b>${r.id}</b></td><td>${tipo}</td><td>${r.de}</td><td>${r.para}</td><td style="font-weight:700; color:var(--text-dark)">${(r.I_A || 0).toFixed(2)}</td><td class="mono">${r.Pmw.toFixed(3)}</td><td class="mono">${r.Qmvar.toFixed(3)}</td><td class="mono">${r.Smva.toFixed(3)}</td><td class="mono">${r.perdasMW.toFixed(4)}</td>`;
                 tb.appendChild(row);
             });
         }
 
-        svg.innerHTML = '';
-        const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-        svg.appendChild(g);
-        
-        const fontesAtuais = getSources();
-
-        const legendDiv = document.getElementById('mapLegend');
-        legendDiv.innerHTML = '';
-        fontesAtuais.forEach((f, idx) => {
-            const cor = zonePalette[idx % zonePalette.length];
-            legendDiv.innerHTML += `<span class="pill"><div class="pill-color" style="background:${cor}"></div>Zona Sub ${f}</span>`;
-        });
-        legendDiv.innerHTML += `
-            <span class="pill" style="border: 1px dashed #ef4444; color: #ef4444;">Chave Aberta</span>
-            <span class="pill" style="background:var(--st-bad); color:white; border:none;">Alerta: Baixa Tensão</span>
-        `;
+        svg.innerHTML = ''; const g = document.createElementNS('http://www.w3.org/2000/svg', 'g'); svg.appendChild(g);
+        const fontesAtuais = getSources(); const legendDiv = document.getElementById('mapLegend'); legendDiv.innerHTML = '';
+        fontesAtuais.forEach((f, idx) => { const cor = zonePalette[idx % zonePalette.length]; legendDiv.innerHTML += `<span class="pill"><div class="pill-color" style="background:${cor}"></div>Zona Sub ${f}</span>`; });
+        legendDiv.innerHTML += `<span class="pill" style="border: 1px dashed #ef4444; color: #ef4444;">Chave Aberta</span><span class="pill" style="background:var(--st-bad); color:white; border:none;">Alerta: Baixa Tensão</span>`;
 
         const barrasFalhas = [...document.getElementById('barraFalha').selectedOptions].map(o=>parseInt(o.value)).filter(v=>!isNaN(v));
 
         allLines.forEach((l, i) => {
-            const isClosed = bestInd[i] === 1;
-            const p1=cargas[l.de], p2=cargas[l.para];
-            if(!p1 || !p2) return;
+            const isClosed = bestInd[i] === 1; const p1=cargas[l.de], p2=cargas[l.para]; if(!p1 || !p2) return;
             const ln = document.createElementNS('http://www.w3.org/2000/svg', 'line');
             ln.setAttribute('x1', p1.X); ln.setAttribute('y1', p1.Y); ln.setAttribute('x2', p2.X); ln.setAttribute('y2', p2.Y);
-            
-            if(!isClosed) {
-                ln.setAttribute('stroke-dasharray', '5,5'); ln.setAttribute('stroke-width', 3); ln.setAttribute('stroke', '#ef4444');
-                g.appendChild(ln);
-            } else {
-                const fluxoRes = res.data.resRamos ? res.data.resRamos.find(x => x.id === l.id) : null;
-                let col = '#cbd5e1'; 
-                if (fluxoRes && fluxoRes.zona) {
-                    const zIdx = fontesAtuais.indexOf(fluxoRes.zona);
-                    if(zIdx > -1) col = zonePalette[zIdx % zonePalette.length];
-                }
-                
-                ln.setAttribute('stroke-width', l.isSwitch ? 4 : 3); ln.setAttribute('stroke', col);
-                if(l.isSwitch) ln.setAttribute('stroke-linecap', 'square');
-                g.appendChild(ln);
+            if(!isClosed) { ln.setAttribute('stroke-dasharray', '5,5'); ln.setAttribute('stroke-width', 3); ln.setAttribute('stroke', '#ef4444'); g.appendChild(ln); } 
+            else {
+                const fluxoRes = res.data.resRamos ? res.data.resRamos.find(x => x.id === l.id) : null; let col = '#cbd5e1'; 
+                if (fluxoRes && fluxoRes.zona) { const zIdx = fontesAtuais.indexOf(fluxoRes.zona); if(zIdx > -1) col = zonePalette[zIdx % zonePalette.length]; }
+                ln.setAttribute('stroke-width', l.isSwitch ? 4 : 3); ln.setAttribute('stroke', col); if(l.isSwitch) ln.setAttribute('stroke-linecap', 'square'); g.appendChild(ln);
             }
         });
 
         for(let b in cargas){
             const busRes = res.data.resBarras ? res.data.resBarras.find(x=>x.barra==b) : null;
             const cc = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-            cc.setAttribute('cx', cargas[b].X); cc.setAttribute('cy', cargas[b].Y);
-            cc.setAttribute('r', fontesAtuais.includes(parseInt(b))?10:5);
-            let stroke = '#94a3b8';
-            
-            let isBad = barrasFalhas.includes(parseInt(b)); 
-
-            if (busRes && busRes.zona && !isBad) {
-                const zIdx = fontesAtuais.indexOf(busRes.zona);
-                if(zIdx > -1) stroke = zonePalette[zIdx % zonePalette.length];
-                if(busRes.Vmag < 0.93) isBad = true;
-            }
-
-            cc.setAttribute('fill', isBad ? 'var(--st-bad)' : 'white'); cc.setAttribute('stroke', stroke); cc.setAttribute('stroke-width', 3);
-            g.appendChild(cc);
+            cc.setAttribute('cx', cargas[b].X); cc.setAttribute('cy', cargas[b].Y); cc.setAttribute('r', fontesAtuais.includes(parseInt(b))?10:5);
+            let stroke = '#94a3b8'; let isBad = barrasFalhas.includes(parseInt(b)); 
+            if (busRes && busRes.zona && !isBad) { const zIdx = fontesAtuais.indexOf(busRes.zona); if(zIdx > -1) stroke = zonePalette[zIdx % zonePalette.length]; if(busRes.Vmag < 0.93) isBad = true; }
+            cc.setAttribute('fill', isBad ? 'var(--st-bad)' : 'white'); cc.setAttribute('stroke', stroke); cc.setAttribute('stroke-width', 3); g.appendChild(cc);
             
             const txtId = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-            txtId.setAttribute('x', cargas[b].X); txtId.setAttribute('y', cargas[b].Y - 10);
-            txtId.setAttribute('text-anchor', 'middle'); txtId.textContent = b; txtId.setAttribute('font-size', 10);
-            txtId.setAttribute('font-weight', '600'); txtId.setAttribute('fill', 'var(--text-dark)');
-            g.appendChild(txtId);
+            txtId.setAttribute('x', cargas[b].X); txtId.setAttribute('y', cargas[b].Y - 10); txtId.setAttribute('text-anchor', 'middle'); txtId.textContent = b; txtId.setAttribute('font-size', 10); txtId.setAttribute('font-weight', '600'); txtId.setAttribute('fill', 'var(--text-dark)'); g.appendChild(txtId);
 
             if(busRes && busRes.isConnected && !res.data.error){
                 const txtData = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-                txtData.setAttribute('x', cargas[b].X + 8); txtData.setAttribute('y', cargas[b].Y + 4);
-                txtData.setAttribute('font-size', '10'); txtData.setAttribute('font-family', 'monospace');
-                txtData.setAttribute('fill', busRes.Vmag < 0.93 || busRes.Vmag > 1.05 ? 'var(--st-bad)' : 'var(--text-muted)');
-                txtData.textContent = `${busRes.Vmag.toFixed(3)}pu`;
-                g.appendChild(txtData);
+                txtData.setAttribute('x', cargas[b].X + 8); txtData.setAttribute('y', cargas[b].Y + 4); txtData.setAttribute('font-size', '10'); txtData.setAttribute('font-family', 'monospace'); txtData.setAttribute('fill', busRes.Vmag < 0.93 || busRes.Vmag > 1.05 ? 'var(--st-bad)' : 'var(--text-muted)'); txtData.textContent = `${busRes.Vmag.toFixed(3)}pu`; g.appendChild(txtData);
             } else if (isBad) {
                 const txtData = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-                txtData.setAttribute('x', cargas[b].X + 8); txtData.setAttribute('y', cargas[b].Y + 4);
-                txtData.setAttribute('font-size', '10'); txtData.setAttribute('font-family', 'monospace');
-                txtData.setAttribute('fill', 'var(--st-bad)');
-                txtData.textContent = `0.000pu`;
-                g.appendChild(txtData);
+                txtData.setAttribute('x', cargas[b].X + 8); txtData.setAttribute('y', cargas[b].Y + 4); txtData.setAttribute('font-size', '10'); txtData.setAttribute('font-family', 'monospace'); txtData.setAttribute('fill', 'var(--st-bad)'); txtData.textContent = `0.000pu`; g.appendChild(txtData);
             }
         }
     }
 
     let isDown=false, startX, startY, vBox={x:-50, y:-20, w:1500, h:800};
-    
-    svgWrap.onmousedown = (e) => { isDown=true; startX=e.clientX; startY=e.clientY; };
-    svgWrap.onmouseup = () => isDown=false;
-    svgWrap.onmouseleave = () => isDown=false;
+    svgWrap.onmousedown = (e) => { isDown=true; startX=e.clientX; startY=e.clientY; }; svgWrap.onmouseup = () => isDown=false; svgWrap.onmouseleave = () => isDown=false;
     svgWrap.onmousemove = (e) => {
-        if(!isDown) return;
-        e.preventDefault();
-        const dx = (startX - e.clientX) * (vBox.w / svgWrap.clientWidth);
-        const dy = (startY - e.clientY) * (vBox.h / svgWrap.clientHeight);
-        vBox.x += dx; vBox.y += dy;
-        svg.setAttribute('viewBox', `${vBox.x} ${vBox.y} ${vBox.w} ${vBox.h}`);
-        startX = e.clientX; startY = e.clientY;
+        if(!isDown) return; e.preventDefault(); const dx = (startX - e.clientX) * (vBox.w / svgWrap.clientWidth); const dy = (startY - e.clientY) * (vBox.h / svgWrap.clientHeight);
+        vBox.x += dx; vBox.y += dy; svg.setAttribute('viewBox', `${vBox.x} ${vBox.y} ${vBox.w} ${vBox.h}`); startX = e.clientX; startY = e.clientY;
     };
-
     svgWrap.addEventListener('wheel', (e) => {
-        e.preventDefault();
-        const zoomFactor = 1.15;
-        const mouseX = e.offsetX;
-        const mouseY = e.offsetY;
-
-        const svgX = vBox.x + (mouseX / svgWrap.clientWidth) * vBox.w;
-        const svgY = vBox.y + (mouseY / svgWrap.clientHeight) * vBox.h;
-
-        if (e.deltaY > 0) { vBox.w *= zoomFactor; vBox.h *= zoomFactor; } 
-        else { vBox.w /= zoomFactor; vBox.h /= zoomFactor; }
-
-        vBox.x = svgX - (mouseX / svgWrap.clientWidth) * vBox.w;
-        vBox.y = svgY - (mouseY / svgWrap.clientHeight) * vBox.h;
+        e.preventDefault(); const zoomFactor = 1.15; const mouseX = e.offsetX; const mouseY = e.offsetY;
+        const svgX = vBox.x + (mouseX / svgWrap.clientWidth) * vBox.w; const svgY = vBox.y + (mouseY / svgWrap.clientHeight) * vBox.h;
+        if (e.deltaY > 0) { vBox.w *= zoomFactor; vBox.h *= zoomFactor; } else { vBox.w /= zoomFactor; vBox.h /= zoomFactor; }
+        vBox.x = svgX - (mouseX / svgWrap.clientWidth) * vBox.w; vBox.y = svgY - (mouseY / svgWrap.clientHeight) * vBox.h;
         svg.setAttribute('viewBox', `${vBox.x} ${vBox.y} ${vBox.w} ${vBox.h}`);
     });
 
     // ====================================================================================
-    // NOVA FUNÇÃO: GERAÇÃO DO RELATÓRIO PDF OFICIAL DA UTFPR
+    // FUNÇÃO: GERAÇÃO DO RELATÓRIO PDF OFICIAL DA UTFPR
     // ====================================================================================
     function gerarRelatorio() {
         if (!resultBaseGlobal || !resultOptGlobal) {
@@ -1357,23 +1035,18 @@
 
         showToast("Gerando documento... Por favor, aguarde.", "info");
 
-        // 1. Capturar imagens dos Canvas (Gráficos)
         const imgVolt = document.getElementById('chartVoltage').toDataURL('image/png');
         const imgBal = document.getElementById('chartBalance').toDataURL('image/png');
         const imgConv = document.getElementById('chartConvergence').toDataURL('image/png');
 
         const allLines = getLines();
 
-        // 2. Capturar o SVG do Fluxo Base (Silenciosamente)
         renderRes(resultBaseGlobal, allLines, indBaseGlobal);
         const svgBaseHTML = document.getElementById('svgWrap').innerHTML;
         
-        // 3. Re-renderizar o SVG do Fluxo Otimizado (Retorna a tela ao normal)
         renderRes(resultOptGlobal, allLines, indOptGlobal);
         const svgOptHTML = document.getElementById('svgWrap').innerHTML;
 
-        // 4. Construir as Tabelas de Dados (Cenário Otimizado)
-        // Tabela 1: Barras (Tensão e Ângulo)
         let tbBarras = `<table><thead><tr><th>Nó / Barra</th><th>Magnitude da Tensão (pu)</th><th>Ângulo (graus)</th></tr></thead><tbody>`;
         const barrasOrdenadas = [...resultOptGlobal.data.resBarras].sort((a,b) => a.barra - b.barra);
         barrasOrdenadas.forEach(b => {
@@ -1384,7 +1057,6 @@
         });
         tbBarras += `</tbody></table>`;
 
-        // Tabela 2: Ramos (Fluxo de Potência)
         let tbRamos = `<table><thead><tr><th>ID Linha</th><th>De ➔ Para</th><th>Corrente (A)</th><th>P (MW)</th><th>Q (MVAr)</th><th>|S| (MVA)</th><th>Perdas Ativas (MW)</th></tr></thead><tbody>`;
         const ramosOrdenados = [...resultOptGlobal.data.resRamos].sort((a,b) => a.id - b.id);
         ramosOrdenados.forEach(r => {
@@ -1392,7 +1064,6 @@
         });
         tbRamos += `</tbody></table>`;
 
-        // 5. Montar o Documento HTML para a Impressão
         const win = window.open('', '_blank');
         win.document.write(`
         <!DOCTYPE html>
