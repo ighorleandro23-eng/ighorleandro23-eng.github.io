@@ -680,11 +680,13 @@
                     // Fallback para modelos antigos (como o seu 200barras.txt)
                     de = parseInt(cols[0]); para = parseInt(cols[2]); 
                     
-                    // CORREÇÃO: Se não houver R ou X na linha (caso das chaves antigas), adota 0.001
+                    // CORREÇÃO: Se não houver R ou X, adota 0.001
                     R = parseFloat(cols[4]) || 0.001; 
                     X = parseFloat(cols[5]) || 0.001; 
                     
-                    if(cols[1] === 'CS') tipoL = 'CHAVE_NF';
+                    // O SEGREDO ESTÁ AQUI: Ensinar o leitor a ler as palavras novas!
+                    if(cols[1] === 'CS' || cols[1] === 'CHAVE_NF') tipoL = 'CHAVE_NF';
+                    else if(cols[1] === 'CHAVE_NA') tipoL = 'CHAVE_NA';
                 }
                 
                 // CORREÇÃO: Removemos a trava estrita do isNaN(R)
