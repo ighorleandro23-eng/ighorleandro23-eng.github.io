@@ -812,7 +812,7 @@
 
     async function runGA(){
         initWorkers(); await new Promise(r=>setTimeout(r,100));
-        btnOtimizar.disabled=true; document.getElementById('ga-status').textContent="Lendo dados para AG UTFPR...";
+        btnOtimizar.disabled=true; document.getElementById('ga-status').textContent="Lendo dados para AG Adaptativo...";
         historyAG = []; historyFullAG = []; 
         const baseLines = getLines(); const nosAtivos = Object.keys(cargas).map(Number); let allLines = [...baseLines];
         const indicesChaves = allLines.map((l, idx) => l.isSwitch ? idx : -1).filter(idx => idx !== -1);
@@ -827,18 +827,36 @@
             Sbase:parseFloat(document.getElementById('sbase').value), Vbase_kV:parseFloat(document.getElementById('vbase').value), sourceBuses: getSources()
         };
 
-        const popSize = parseInt(document.getElementById('gaPopSize').value); const maxGen = parseInt(document.getElementById('gaMaxGen').value); const mutationRate = parseFloat(document.getElementById('gaMutationRate').value) / 100;
+        const popSize = parseInt(document.getElementById('gaPopSize').value); 
+        const maxGen = parseInt(document.getElementById('gaMaxGen').value); 
+        const mutationRate = parseFloat(document.getElementById('gaMutationRate').value) / 100;
         
-        // Semente Inteligente do AG:
+        // Função de Torneio (Melhoria 1)
+        function torneio(validos, k = 3) {
+            let melhor = null;
+            for (let i = 0; i < k; i++) {
+                const candidato = validos[Math.floor(Math.random() * validos.length)];
+                if (!melhor || candidato.res.fitness < melhor.res.fitness) melhor = candidato;
+            }
+            return melhor.ind;
+        }
+
         const baseDNA = allLines.map(l => l.defaultState);
-        let population = [baseDNA]; // O primeiro indivíduo é o cenário atual (NAs e NFs do operador)
-        population.push(getBaseRadialDNA(allLines, getSources())); // O segundo é uma árvore radial garantida pelo Union-Find (para o AG ter por onde começar caso a base seja um curto-circuito)
+        let population = [baseDNA]; 
+        population.push(getBaseRadialDNA(allLines, getSources())); 
         
         for(let i=2; i<popSize; i++) { population.push(allLines.map(l => { if(!l.isSwitch) return 1; return Math.random() > 0.5 ? 1 : 0; })); }
 
         let bestSol = null;
+        
+        // Critério de Parada (Melhoria 4)
+        let geracoesSemMelhora = 0;
+        const PACIENCIA = Math.max(20, Math.floor(maxGen * 0.15));
+        let fitnessMelhorAnterior = Infinity;
+
         for(let g=0; g<maxGen; g++){
-            document.getElementById('ga-progress-bar').style.width = `${(g/maxGen)*100}%`; document.getElementById('ga-status').textContent = `AG UTFPR: Gen ${g+1} / ${maxGen}`;
+            document.getElementById('ga-progress-bar').style.width = `${(g/maxGen)*100}%`; 
+            document.getElementById('ga-status').textContent = `AG Adaptativo: Gen ${g+1} / ${maxGen}`;
             gaResults = new Array(popSize); gaQueue = population.map((ind,i)=>({individual:ind, index:i, staticData}));
             workerPool.forEach(w=>{if(!w.busy && gaQueue.length){w.postMessage(gaQueue.shift()); w.busy=true;}});
             await new Promise(r=>gaResolve=r);
@@ -846,18 +864,65 @@
             gaResults.forEach((res, i) => { historyFullAG.push({ gen: g + 1, idx: i + 1, dna: population[i].join(''), fitness: res.fitness }); });
 
             const valid = gaResults.map((res,i)=>({res, ind:population[i]})).filter(x=> x.res.fitness < 1e14); valid.sort((a,b)=>a.res.fitness - b.res.fitness);
+            
             if(valid.length > 0){
                 if(!bestSol || valid[0].res.fitness < bestSol.res.fitness){ bestSol = valid[0]; }
-                historyAG.push(bestSol.res.fitness); 
-                const newPop = [valid[0].ind]; 
-                while(newPop.length < popSize){
-                    const p1 = valid[Math.floor(Math.random()*Math.min(valid.length, 10))].ind; const p2 = valid[Math.floor(Math.random()*Math.min(valid.length, 10))].ind; const cut = Math.floor(Math.random() * p1.length);
-                    const c1 = [...p1.slice(0,cut), ...p2.slice(cut)]; if(Math.random() < mutationRate) { c1[indicesChaves[Math.floor(Math.random() * indicesChaves.length)]] ^= 1; } newPop.push(c1);
+                
+                // Checagem de Estagnação (Melhoria 4)
+                if (bestSol.res.fitness < fitnessMelhorAnterior - 1e-6) {
+                    fitnessMelhorAnterior = bestSol.res.fitness;
+                    geracoesSemMelhora = 0;
+                } else {
+                    geracoesSemMelhora++;
                 }
+
+                if (geracoesSemMelhora >= PACIENCIA) {
+                    document.getElementById('ga-status').textContent = `Convergido na Gen ${g+1} (Estagnação)`;
+                    document.getElementById('ga-progress-bar').style.width = `100%`; 
+                    break; // Sai do laço principal
+                }
+
+                historyAG.push(bestSol.res.fitness); 
+                const newPop = [valid[0].ind]; // Elitismo
+                
+                while(newPop.length < popSize){
+                    // Torneio (Melhoria 1)
+                    const p1 = torneio(valid, 3);
+                    const p2 = torneio(valid, 3);
+                    
+                    // Crossover Uniforme (Melhoria 2)
+                    const c1 = p1.map((gene, idxGene) => Math.random() < 0.5 ? gene : p2[idxGene]);
+                    
+                    // Mutação Adaptativa (Melhoria 3)
+                    const taxaAtual = mutationRate * Math.exp(-3 * g / maxGen);
+                    if(Math.random() < taxaAtual) { 
+                        c1[indicesChaves[Math.floor(Math.random() * indicesChaves.length)]] ^= 1; 
+                    } 
+                    newPop.push(c1);
+                }
+
+                // Injeção de Diversidade (Melhoria 6)
+                const nRandom = Math.max(1, Math.floor(popSize * 0.10));
+                for (let r = 0; r < nRandom; r++) {
+                    // Substitui os piores/últimos gerados por DNA novo e aleatório
+                    newPop[newPop.length - 1 - r] = allLines.map(l => l.isSwitch ? (Math.random() > 0.5 ? 1 : 0) : 1);
+                }
+
                 population = newPop;
-            } else { population = population.map(ind => allLines.map(l => l.isSwitch ? (Math.random() > 0.5 ? 1 : 0) : 1)); }
+            } else { 
+                // Reinicialização Parcial (Melhoria 5)
+                const semente = bestSol ? [bestSol.ind] : [getBaseRadialDNA(allLines, getSources())];
+                population = [
+                    ...semente,
+                    ...Array.from({ length: popSize - 1 }, () => allLines.map(l => l.isSwitch ? (Math.random() > 0.5 ? 1 : 0) : 1))
+                ]; 
+            }
         }
-        btnOtimizar.disabled=false; document.getElementById('ga-status').textContent="Otimização UTFPR Finalizada.";
+        
+        btnOtimizar.disabled=false; 
+        if(geracoesSemMelhora < PACIENCIA) {
+            document.getElementById('ga-status').textContent="Otimização UTFPR Finalizada.";
+        }
         
         if(bestSol) { 
             resultOptGlobal = bestSol.res; indOptGlobal = bestSol.ind;
