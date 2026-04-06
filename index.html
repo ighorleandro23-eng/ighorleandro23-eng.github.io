@@ -671,17 +671,24 @@
             if (secao === 'LINHA') {
                 let de, para, R, X, tipoL = 'CABO';
                 if(cols.length >= 7 && cols[0] === 'LINHA') {
+                    // Formato Novo
                     de = parseInt(cols[2]); para = parseInt(cols[3]); R = parseFloat(cols[4]); X = parseFloat(cols[5]);
                     let t = cols[6].trim();
                     if(t === 'CS' || t === 'CHAVE_NF') tipoL = 'CHAVE_NF';
                     else if(t === 'CHAVE_NA') tipoL = 'CHAVE_NA';
                 } else {
-                    // Fallback para modelos antigos
-                    de = parseInt(cols[0]); para = parseInt(cols[2]); R = parseFloat(cols[4]); X = parseFloat(cols[5]); 
-                    if(cols[1]==='CS') tipoL = 'CHAVE_NF';
+                    // Fallback para modelos antigos (como o seu 200barras.txt)
+                    de = parseInt(cols[0]); para = parseInt(cols[2]); 
+                    
+                    // CORREÇÃO: Se não houver R ou X na linha (caso das chaves antigas), adota 0.001
+                    R = parseFloat(cols[4]) || 0.001; 
+                    X = parseFloat(cols[5]) || 0.001; 
+                    
+                    if(cols[1] === 'CS') tipoL = 'CHAVE_NF';
                 }
                 
-                if (!isNaN(de) && !isNaN(para) && !isNaN(R)) { 
+                // CORREÇÃO: Removemos a trava estrita do isNaN(R)
+                if (!isNaN(de) && !isNaN(para)) { 
                     linhasBrutas.push({ id: lineIdCounter++, de: de, para: para, R: R, X: X, tipo: tipoL }); 
                     nosBrutos.add(de); nosBrutos.add(para); 
                 }
