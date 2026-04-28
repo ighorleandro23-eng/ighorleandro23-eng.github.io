@@ -226,24 +226,23 @@ async function calculateFitness(individual, allLines, linhaFalhaKeys, nb, vMin, 
     res.resRamos.forEach(r => {
         if(r.Smva > r.Smax) fitness += (r.Smva - r.Smax) * GA_PENALTIES.SMAX_VIOL_MVA;
     });
-    res.resRamos.forEach(r => {
-        if(r.Smva > r.Smax) fitness += (r.Smva - r.Smax) * GA_PENALTIES.SMAX_VIOL_MVA;
-    });
 
-    // CORREÇÃO AQUI: Aplica a penalidade se o AG abrir chaves demais
+    // Penalidade se o AG abrir chaves demais
     if (numNA > maxNALinhas) {
         fitness += (numNA - maxNALinhas) * GA_PENALTIES.MAX_NA_VIOL;
     }
 
     return { fitness, data: { ...res, currentLinhas: activeLines, numNA_Usadas: numNA } };
-}
+} // <--- FIM EXATO DA FUNÇÃO calculateFitness
 
-    return { fitness, data: { ...res, currentLinhas: activeLines, numNA_Usadas: numNA } };
-}
 
+// ==========================================
+// RECEPÇÃO DE MENSAGENS DO ARQUIVO PRINCIPAL
+// ==========================================
 self.onmessage = async (event) => {
     const { individual, index, staticData } = event.data;
     const { allLines, linhaFalhaKeys, nb, vMin, vMax, maxNALinhas, cargas, Sbase, Vbase_kV, sourceBuses } = staticData;
+    
     try {
         const result = await calculateFitness(individual, allLines, linhaFalhaKeys, nb, vMin, vMax, maxNALinhas, cargas, Sbase, Vbase_kV, sourceBuses);
         self.postMessage({ index: index, result });
