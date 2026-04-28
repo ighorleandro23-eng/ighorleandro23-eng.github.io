@@ -319,9 +319,11 @@
                         </div>
                     </div>
                     <div class="row">
-                        <div><label>Nº Barras (Lidas)</label><input id="numBarras" type="number" value="30" class="mono" readonly style="background:#f1f5f9; cursor: not-allowed;"/></div>
-                        <div><label>Sbase (MVA)</label><input id="sbase" type="number" value="10" class="mono"/></div>
-                        <div><label>Vbase (kV)</label><input id="vbase" type="number" value="13.8" class="mono"/></div>
+                         <div><label>Nº Barras (Lidas)</label><input id="numBarras" type="number" value="30" class="mono" readonly style="background:#f1f5f9; cursor: not-allowed;"/></div>
+                         <div><label>Sbase (MVA)</label><input id="sbase" type="number" value="100" class="mono"/></div>
+                         <div><label>Vbase (kV)</label><input id="vbase" type="number" value="12.66" class="mono"/></div>
+                         <div><label>V. Mín (pu)</label><input id="inpVmin" type="number" step="0.01" value="0.93" class="mono"/></div>
+                         <div><label>V. Máx (pu)</label><input id="inpVmax" type="number" step="0.01" value="1.05" class="mono"/></div>
                     </div>
                     <div class="row" style="margin-top: 20px;">
                         <button class="btn primary" id="btnImportarSelect">Importar TXT / CSV</button>
@@ -664,45 +666,44 @@
         const nosBrutos = new Set(); const linhasBrutas = []; const cargasBrutas = {};
 
         linhas.forEach(linha => {
-            const cols = linha.trim().split(';'); if (cols.length < 2) return;
-            if (cols[0] === 'LINHA') { secao = 'LINHA'; return; }
-            if (cols[0] === 'BARRA') { secao = 'BARRA'; return; }
-            
-            if (secao === 'LINHA') {
-                let de, para, R, X, tipoL = 'CABO';
-                if(cols.length >= 7 && cols[0] === 'LINHA') {
-                    // Formato Novo
-                    de = parseInt(cols[2]); para = parseInt(cols[3]); R = parseFloat(cols[4]); X = parseFloat(cols[5]);
-                    let t = cols[6].trim();
-                    if(t === 'CS' || t === 'CHAVE_NF') tipoL = 'CHAVE_NF';
-                    else if(t === 'CHAVE_NA') tipoL = 'CHAVE_NA';
-                } else {
-                    // Fallback para modelos antigos (como o seu 200barras.txt)
-                    de = parseInt(cols[0]); para = parseInt(cols[2]); 
-                    
-                    // CORREÇÃO: Se não houver R ou X, adota 0.001
-                    R = parseFloat(cols[4]) || 0.001; 
-                    X = parseFloat(cols[5]) || 0.001; 
-                    
-                    // O SEGREDO ESTÁ AQUI: Ensinar o leitor a ler as palavras novas!
-                    if(cols[1] === 'CS' || cols[1] === 'CHAVE_NF') tipoL = 'CHAVE_NF';
-                    else if(cols[1] === 'CHAVE_NA') tipoL = 'CHAVE_NA';
-                }
-                
-                // CORREÇÃO: Removemos a trava estrita do isNaN(R)
-                if (!isNaN(de) && !isNaN(para)) { 
-                    linhasBrutas.push({ id: lineIdCounter++, de: de, para: para, R: R, X: X, tipo: tipoL }); 
-                    nosBrutos.add(de); nosBrutos.add(para); 
-                }
-            } else if (secao === 'BARRA') {
-                const bId = parseInt(cols[0]);
-                if (!isNaN(bId) && cols.length > 5) {
-                    const pVal = cols.length === 6 ? parseFloat(cols[2]) : (parseFloat(cols[4]) || 0); const qVal = cols.length === 6 ? parseFloat(cols[3]) : (parseFloat(cols[6]) || 0);
-                    const cx = cols.length === 6 ? parseFloat(cols[4]) : 0; const cy = cols.length === 6 ? parseFloat(cols[5]) : 0;
-                    cargasBrutas[bId] = { P: pVal, Q: qVal, X: cx, Y: cy }; nosBrutos.add(bId);
-                }
-            }
-        });
+    const cols = linha.trim().split(';');
+    if (cols.length < 2) return; // linha vazia ou inválida
+
+    // Ignora cabeçalhos descritivos
+    if (cols[0] === 'TIPO') return;
+
+    // Muda seção apenas para linhas de cabeçalho puro (formato antigo)
+    if (cols[0] === 'LINHA' && cols.length <= 2) { secao = 'LINHA'; return; }
+    if (cols[0] === 'BARRA' && cols.length <= 2) { secao = 'BARRA'; return; }
+
+    // Para linhas de DADOS (cols[0] === 'LINHA' com dados), força a seção e processa
+    if (cols[0] === 'LINHA') secao = 'LINHA';
+    if (cols[0] === 'BARRA') secao = 'BARRA';
+
+    if (secao === 'LINHA') {
+        let de, para, R, X, tipoL = 'CABO';
+        if (cols[0] === 'LINHA' && cols.length >= 7) {
+            // Formato novo exportado pelo NetOp PRO
+            de = parseInt(cols[2]); para = parseInt(cols[3]);
+            R = parseFloat(cols[4]); X = parseFloat(cols[5]);
+            const t = cols[6].trim();
+            if (t === 'CHAVE_NF' || t === 'CS') tipoL = 'CHAVE_NF';
+            else if (t === 'CHAVE_NA') tipoL = 'CHAVE_NA';
+        } else {
+            // Formato antigo (TXT legado)
+            de = parseInt(cols[0]); para = parseInt(cols[2]);
+            R = parseFloat(cols[4]) || 0.001;
+            X = parseFloat(cols[5]) || 0.001;
+            if (cols[1] === 'CS' || cols[1] === 'CHAVE_NF') tipoL = 'CHAVE_NF';
+            else if (cols[1] === 'CHAVE_NA') tipoL = 'CHAVE_NA';
+        }
+        if (!isNaN(de) && !isNaN(para)) {
+            linhasBrutas.push({ id: lineIdCounter++, de, para, R, X, tipo: tipoL });
+            nosBrutos.add(de); nosBrutos.add(para);
+        }
+    }
+    // ... bloco BARRA continua igual
+});
 
         const mapaIds = {}; let novoId = 1; [...nosBrutos].sort((a,b)=>a-b).forEach(oldId => { mapaIds[oldId] = novoId++; });
         elNb.value = nosBrutos.size; let minId = Math.min(...nosBrutos); document.getElementById('inpFontes').value = mapaIds[minId] ? mapaIds[minId].toString() : "1";
@@ -800,10 +801,20 @@
         allLines.forEach(l => { if (barrasFalhas.includes(l.de) || barrasFalhas.includes(l.para)) { const key = `${l.de}-${l.para}`; if (!linhaFalhaKeys.includes(key)) linhaFalhaKeys.push(key); } });
 
         const sd = {
-            allLines: allLines, linhaFalhaKeys: linhaFalhaKeys, nb: nosAtivos.length > 0 ? Math.max(...nosAtivos) : 30, 
-            vMin:0.93, vMax:1.05, maxNALinhas:0, cargas, 
-            Sbase:parseFloat(document.getElementById('sbase').value), Vbase_kV:parseFloat(document.getElementById('vbase').value), sourceBuses: getSources()
-        };
+    allLines: allLines, 
+    linhaFalhaKeys: linhaFalhaKeys, 
+    nb: nosAtivos.length > 0 ? Math.max(...nosAtivos) : 30, 
+    
+    // CORREÇÃO: Lê da interface em vez de ser estático!
+    vMin: parseFloat(document.getElementById('inpVmin').value) || 0.93, 
+    vMax: parseFloat(document.getElementById('inpVmax').value) || 1.05, 
+    
+    maxNALinhas: 99, // Deixe 99 se não for limitar as NA, ou crie um input para isso!
+    cargas, 
+    Sbase: parseFloat(document.getElementById('sbase').value), 
+    Vbase_kV: parseFloat(document.getElementById('vbase').value), 
+    sourceBuses: getSources()
+};
         
         // AQUI ESTÁ O SEGREDO DO FLUXO BASE: Ele obedece cegamente se a chave é NA (0) ou NF (1)
         const ind = allLines.map(l => l.defaultState); 
@@ -831,10 +842,22 @@
         const barrasFalhas = [...selBarraFalha.selectedOptions].map(o=>parseInt(o.value)).filter(v=>!isNaN(v));
         allLines.forEach(l => { if (barrasFalhas.includes(l.de) || barrasFalhas.includes(l.para)) { const key = `${l.de}-${l.para}`; if (!linhaFalhaKeys.includes(key)) linhaFalhaKeys.push(key); } });
 
+       
         const staticData = {
-            allLines, linhaFalhaKeys: linhaFalhaKeys, nb: Math.max(...nosAtivos), vMin:0.93, vMax:1.05, maxNALinhas:99, cargas, 
-            Sbase:parseFloat(document.getElementById('sbase').value), Vbase_kV:parseFloat(document.getElementById('vbase').value), sourceBuses: getSources()
-        };
+       allLines: allLines, 
+       linhaFalhaKeys: linhaFalhaKeys, 
+       nb: nosAtivos.length > 0 ? Math.max(...nosAtivos) : 30, 
+    
+    // CORREÇÃO: Lê da interface em vez de ser estático!
+    vMin: parseFloat(document.getElementById('inpVmin').value) || 0.93, 
+    vMax: parseFloat(document.getElementById('inpVmax').value) || 1.05, 
+    
+    maxNALinhas: 99, // Deixe 99 se não for limitar as NA, ou crie um input para isso!
+    cargas, 
+    Sbase: parseFloat(document.getElementById('sbase').value), 
+    Vbase_kV: parseFloat(document.getElementById('vbase').value), 
+    sourceBuses: getSources()
+};
 
         const popSize = parseInt(document.getElementById('gaPopSize').value); 
         const maxGen = parseInt(document.getElementById('gaMaxGen').value); 
