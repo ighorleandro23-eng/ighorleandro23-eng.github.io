@@ -1048,10 +1048,20 @@
 
         const conectadas = res.data.resBarras.filter(b=>b.isConnected).sort((a,b)=>a.Vmag-b.Vmag);
         if(conectadas.length > 0) {
-            const minV = conectadas[0].Vmag; document.getElementById('dashTensao').textContent = minV.toFixed(3) + " pu"; document.getElementById('dashTensaoSub').textContent = "Barra: " + conectadas[0].barra;
-            if(minV < 0.93) { cardVolt.style.borderLeftColor = "var(--st-bad)"; document.getElementById('dashTensao').className = "kpi-value mono text-bad"; } else { cardVolt.style.borderLeftColor = "var(--utfpr-accent)"; document.getElementById('dashTensao').className = "kpi-value mono"; }
+        const minV = conectadas[0].Vmag;
+        const vMinUI = parseFloat(document.getElementById('inpVmin').value) || 0.93; // Lê da tela!
+        
+        document.getElementById('dashTensao').textContent = minV.toFixed(3) + " pu"; 
+        document.getElementById('dashTensaoSub').textContent = "Barra: " + conectadas[0].barra;
+        
+        if(minV < vMinUI) { 
+            cardVolt.style.borderLeftColor = "var(--st-bad)";
+            document.getElementById('dashTensao').className = "kpi-value mono text-bad"; 
+        } else { 
+            cardVolt.style.borderLeftColor = "var(--utfpr-accent)"; 
+            document.getElementById('dashTensao').className = "kpi-value mono";
         }
-
+        }
         document.getElementById('dashRadial').textContent = "Radial (OK)"; document.getElementById('dashRadial').className = "kpi-value text-ok"; cardRadial.style.borderLeftColor = "var(--utfpr-accent)";
         document.getElementById('relatorioCard').style.display = 'block';
     }
@@ -1059,6 +1069,8 @@
     function renderRes(res, allLines, bestInd){
         if(res.data.error) { showToast(`Erro Topológico: ${res.data.error}`, "warning"); }
         const tb = document.getElementById('tblResRamos').querySelector('tbody'); tb.innerHTML = '';
+        const vMinUI = parseFloat(document.getElementById('inpVmin').value) || 0.93;
+        const vMaxUI = parseFloat(document.getElementById('inpVmax').value) || 1.05;
         if(res.data.resRamos){
             res.data.resRamos.forEach(r => {
                 const l_ref = allLines.find(x => x.id === r.id); const tipo = l_ref && l_ref.isSwitch ? 'Chave' : 'Cabo'; const row = document.createElement('tr');
@@ -1091,7 +1103,7 @@
             const cc = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
             cc.setAttribute('cx', cargas[b].X); cc.setAttribute('cy', cargas[b].Y); cc.setAttribute('r', fontesAtuais.includes(parseInt(b))?10:5);
             let stroke = '#94a3b8'; let isBad = barrasFalhas.includes(parseInt(b)); 
-            if (busRes && busRes.zona && !isBad) { const zIdx = fontesAtuais.indexOf(busRes.zona); if(zIdx > -1) stroke = zonePalette[zIdx % zonePalette.length]; if(busRes.Vmag < 0.93) isBad = true; }
+            if (busRes && busRes.zona && !isBad) { const zIdx = fontesAtuais.indexOf(busRes.zona); if(zIdx > -1) stroke = zonePalette[zIdx % zonePalette.length]; if(busRes.Vmag < vMinUI || busRes.Vmag > vMaxUI) isBad = true; }
             cc.setAttribute('fill', isBad ? 'var(--st-bad)' : 'white'); cc.setAttribute('stroke', stroke); cc.setAttribute('stroke-width', 3); g.appendChild(cc);
             
             const txtId = document.createElementNS('http://www.w3.org/2000/svg', 'text');
@@ -1099,7 +1111,7 @@
 
             if(busRes && busRes.isConnected && !res.data.error){
                 const txtData = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-                txtData.setAttribute('x', cargas[b].X + 8); txtData.setAttribute('y', cargas[b].Y + 4); txtData.setAttribute('font-size', '10'); txtData.setAttribute('font-family', 'monospace'); txtData.setAttribute('fill', busRes.Vmag < 0.93 || busRes.Vmag > 1.05 ? 'var(--st-bad)' : 'var(--text-muted)'); txtData.textContent = `${busRes.Vmag.toFixed(3)}pu`; g.appendChild(txtData);
+                txtData.setAttribute('x', cargas[b].X + 8); txtData.setAttribute('y', cargas[b].Y + 4); txtData.setAttribute('font-size', '10'); txtData.setAttribute('font-family', 'monospace'); txtData.setAttribute('fill', busRes.Vmag < vMinUI || busRes.Vmag > vMaxUI ? 'var(--st-bad)' : 'var(--text-muted)'); txtData.textContent = `${busRes.Vmag.toFixed(3)}pu`; g.appendChild(txtData);
             } else if (isBad) {
                 const txtData = document.createElementNS('http://www.w3.org/2000/svg', 'text');
                 txtData.setAttribute('x', cargas[b].X + 8); txtData.setAttribute('y', cargas[b].Y + 4); txtData.setAttribute('font-size', '10'); txtData.setAttribute('font-family', 'monospace'); txtData.setAttribute('fill', 'var(--st-bad)'); txtData.textContent = `0.000pu`; g.appendChild(txtData);
@@ -1149,7 +1161,9 @@
         barrasOrdenadas.forEach(b => {
             let ang = b.Vang !== undefined ? b.Vang.toFixed(4) : '---'; 
             let vmag = b.Vmag !== undefined ? b.Vmag.toFixed(4) : '---';
-            let bgRow = b.Vmag < 0.93 ? 'style="background-color: #fef2f2; color: #ef4444; font-weight: bold;"' : '';
+            const vMinUI = parseFloat(document.getElementById('inpVmin').value) || 0.93;
+            const vMaxUI = parseFloat(document.getElementById('inpVmax').value) || 1.05;
+            let bgRow = (b.Vmag < vMinUI || b.Vmag > vMaxUI) ? 'style="background-color: #fef2f2; color: #ef4444; font-weight: bold;"' : '';
             tbBarras += `<tr ${bgRow}><td>${b.barra}</td><td>${vmag}</td><td>${ang}</td></tr>`;
         });
         tbBarras += `</tbody></table>`;
