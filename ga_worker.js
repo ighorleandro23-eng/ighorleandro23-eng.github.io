@@ -226,6 +226,17 @@ async function calculateFitness(individual, allLines, linhaFalhaKeys, nb, vMin, 
     res.resRamos.forEach(r => {
         if(r.Smva > r.Smax) fitness += (r.Smva - r.Smax) * GA_PENALTIES.SMAX_VIOL_MVA;
     });
+    res.resRamos.forEach(r => {
+        if(r.Smva > r.Smax) fitness += (r.Smva - r.Smax) * GA_PENALTIES.SMAX_VIOL_MVA;
+    });
+
+    // CORREÇÃO AQUI: Aplica a penalidade se o AG abrir chaves demais
+    if (numNA > maxNALinhas) {
+        fitness += (numNA - maxNALinhas) * GA_PENALTIES.MAX_NA_VIOL;
+    }
+
+    return { fitness, data: { ...res, currentLinhas: activeLines, numNA_Usadas: numNA } };
+}
 
     return { fitness, data: { ...res, currentLinhas: activeLines, numNA_Usadas: numNA } };
 }
