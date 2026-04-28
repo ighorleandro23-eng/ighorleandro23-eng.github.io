@@ -666,44 +666,67 @@
         const nosBrutos = new Set(); const linhasBrutas = []; const cargasBrutas = {};
 
         linhas.forEach(linha => {
-    const cols = linha.trim().split(';');
-    if (cols.length < 2) return; // linha vazia ou inválida
+        const cols = linha.trim().split(';');
+        if (cols.length < 2) return;
 
-    // Ignora cabeçalhos descritivos
-    if (cols[0] === 'TIPO') return;
+        // Ignora cabeçalhos descritivos
+        if (cols[0] === 'TIPO') return;
 
-    // Muda seção apenas para linhas de cabeçalho puro (formato antigo)
-    if (cols[0] === 'LINHA' && cols.length <= 2) { secao = 'LINHA'; return; }
-    if (cols[0] === 'BARRA' && cols.length <= 2) { secao = 'BARRA'; return; }
+        // Muda seção apenas para linhas de cabeçalho puro (formato antigo)
+        if (cols[0] === 'LINHA' && cols.length <= 2) { secao = 'LINHA'; return; }
+        if (cols[0] === 'BARRA' && cols.length <= 2) { secao = 'BARRA'; return; }
 
-    // Para linhas de DADOS (cols[0] === 'LINHA' com dados), força a seção e processa
-    if (cols[0] === 'LINHA') secao = 'LINHA';
-    if (cols[0] === 'BARRA') secao = 'BARRA';
+        // Para linhas de DADOS, força a seção e processa
+        if (cols[0] === 'LINHA') secao = 'LINHA';
+        if (cols[0] === 'BARRA') secao = 'BARRA';
 
-    if (secao === 'LINHA') {
-        let de, para, R, X, tipoL = 'CABO';
-        if (cols[0] === 'LINHA' && cols.length >= 7) {
-            // Formato novo exportado pelo NetOp PRO
-            de = parseInt(cols[2]); para = parseInt(cols[3]);
-            R = parseFloat(cols[4]); X = parseFloat(cols[5]);
-            const t = cols[6].trim();
-            if (t === 'CHAVE_NF' || t === 'CS') tipoL = 'CHAVE_NF';
-            else if (t === 'CHAVE_NA') tipoL = 'CHAVE_NA';
-        } else {
-            // Formato antigo (TXT legado)
-            de = parseInt(cols[0]); para = parseInt(cols[2]);
-            R = parseFloat(cols[4]) || 0.001;
-            X = parseFloat(cols[5]) || 0.001;
-            if (cols[1] === 'CS' || cols[1] === 'CHAVE_NF') tipoL = 'CHAVE_NF';
-            else if (cols[1] === 'CHAVE_NA') tipoL = 'CHAVE_NA';
+        if (secao === 'LINHA') {
+            let de, para, R, X, tipoL = 'CABO';
+            
+            if (cols[0] === 'LINHA' && cols.length >= 7) {
+                // Formato novo exportado pelo NetOp PRO
+                de   = parseInt(cols[2]); 
+                para = parseInt(cols[3]);
+                R    = parseFloat(cols[4]); 
+                X    = parseFloat(cols[5]);
+                const t = cols[6].trim();
+                
+                if (t === 'CHAVE_NF' || t === 'CS') tipoL = 'CHAVE_NF';
+                else if (t === 'CHAVE_NA') tipoL = 'CHAVE_NA';
+            } else {
+                // Formato antigo (TXT legado)
+                de   = parseInt(cols[0]); 
+                para = parseInt(cols[2]);
+                R    = parseFloat(cols[4]) || 0.001;
+                X    = parseFloat(cols[5]) || 0.001;
+                
+                if (cols[1] === 'CS' || cols[1] === 'CHAVE_NF') tipoL = 'CHAVE_NF';
+                else if (cols[1] === 'CHAVE_NA') tipoL = 'CHAVE_NA';
+            }
+
+            if (!isNaN(de) && !isNaN(para)) {
+                linhasBrutas.push({ id: lineIdCounter++, de, para, R, X, tipo: tipoL });
+                nosBrutos.add(de); 
+                nosBrutos.add(para);
+            }
+            
+        } else if (secao === 'BARRA') {
+            // Lógica unificada: Formato Novo (BARRA;1;P...) e Antigo (1;Sub;P...)
+            const isNovoFormato = (cols[0] === 'BARRA');
+            const bId = parseInt(isNovoFormato ? cols[1] : cols[0]);
+
+            if (!isNaN(bId)) {
+                // Os índices 2, 3, 4 e 5 são idênticos em ambos os padrões
+                const pVal = parseFloat(cols[2]) || 0;
+                const qVal = parseFloat(cols[3]) || 0;
+                const cx   = parseFloat(cols[4]) || 0;
+                const cy   = parseFloat(cols[5]) || 0;
+                
+                cargasBrutas[bId] = { P: pVal, Q: qVal, X: cx, Y: cy };
+                nosBrutos.add(bId);
+            }
         }
-        if (!isNaN(de) && !isNaN(para)) {
-            linhasBrutas.push({ id: lineIdCounter++, de, para, R, X, tipo: tipoL });
-            nosBrutos.add(de); nosBrutos.add(para);
-        }
-    }
-    // ... bloco BARRA continua igual
-});
+    });
 
         const mapaIds = {}; let novoId = 1; [...nosBrutos].sort((a,b)=>a-b).forEach(oldId => { mapaIds[oldId] = novoId++; });
         elNb.value = nosBrutos.size; let minId = Math.min(...nosBrutos); document.getElementById('inpFontes').value = mapaIds[minId] ? mapaIds[minId].toString() : "1";
