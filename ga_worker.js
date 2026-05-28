@@ -181,10 +181,10 @@ async function runFluxo(linhasData, nb, Sbase, Vbase_kV, cargas, sourceBuses) {
 }
 
 // --- Fitness ---
-async function calculateFitness(individual, allLines, linhaFalhaKeys, nb, vMin, vMax, maxNALinhas, cargas, Sbase, Vbase_kV, sourceBuses) {
+async function calculateFitness(individual, allLines, linhaFalhaKeys, nb, vMin, vMax, maxNALinhas, cargas, Sbase, Vbase_kV, sourceBuses, baseDNA) {
     const falhaSet = new Set(linhaFalhaKeys);
     let activeLines = [];
-    let numNA = 0;
+    let numChaveamentos = 0;
     
     individual.forEach((gene, i) => {
         if (gene === 1 && allLines[i]) {
@@ -194,8 +194,12 @@ async function calculateFitness(individual, allLines, linhaFalhaKeys, nb, vMin, 
             
             if (!falhaSet.has(k1) && !falhaSet.has(k2)) {
                 activeLines.push(l);
-                if(l.isSwitch) numNA++;
             }
+        }
+        // Conta chaveamento se a chave MUDOU de estado em relação à config. base (NA→NF ou NF→NA)
+        if (allLines[i] && allLines[i].isSwitch) {
+            const estadoBase = baseDNA ? baseDNA[i] : allLines[i].defaultState ?? 0;
+            if (gene !== estadoBase) numChaveamentos++;
         }
     });
 
@@ -227,12 +231,12 @@ async function calculateFitness(individual, allLines, linhaFalhaKeys, nb, vMin, 
         if(r.Smva > r.Smax) fitness += (r.Smva - r.Smax) * GA_PENALTIES.SMAX_VIOL_MVA;
     });
 
-    // Penalidade se o AG abrir chaves demais
-    if (numNA > maxNALinhas) {
-        fitness += (numNA - maxNALinhas) * GA_PENALTIES.MAX_NA_VIOL;
+    // Penalidade se o AG fizer mais chaveamentos do que o máximo permitido (NA→NF ou NF→NA)
+    if (numChaveamentos > maxNALinhas) {
+        fitness += (numChaveamentos - maxNALinhas) * GA_PENALTIES.MAX_NA_VIOL;
     }
 
-    return { fitness, data: { ...res, currentLinhas: activeLines, numNA_Usadas: numNA } };
+    return { fitness, data: { ...res, currentLinhas: activeLines, numChaveamentos } };
 } // <--- FIM EXATO DA FUNÇÃO calculateFitness
 
 
@@ -241,10 +245,10 @@ async function calculateFitness(individual, allLines, linhaFalhaKeys, nb, vMin, 
 // ==========================================
 self.onmessage = async (event) => {
     const { individual, index, staticData } = event.data;
-    const { allLines, linhaFalhaKeys, nb, vMin, vMax, maxNALinhas, cargas, Sbase, Vbase_kV, sourceBuses } = staticData;
+    const { allLines, linhaFalhaKeys, nb, vMin, vMax, maxNALinhas, cargas, Sbase, Vbase_kV, sourceBuses, baseDNA } = staticData;
     
     try {
-        const result = await calculateFitness(individual, allLines, linhaFalhaKeys, nb, vMin, vMax, maxNALinhas, cargas, Sbase, Vbase_kV, sourceBuses);
+        const result = await calculateFitness(individual, allLines, linhaFalhaKeys, nb, vMin, vMax, maxNALinhas, cargas, Sbase, Vbase_kV, sourceBuses, baseDNA);
         self.postMessage({ index: index, result });
     } catch (error) {
         self.postMessage({ index: index, result: { fitness: Infinity }, error: error.message });
