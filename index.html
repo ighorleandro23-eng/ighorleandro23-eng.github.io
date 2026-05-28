@@ -371,6 +371,7 @@
                             <div><label>População</label><input id="gaPopSize" type="number" value="150"/></div>
                             <div><label>Gerações</label><input id="gaMaxGen" type="number" value="100"/></div>
                             <div><label>Mutação (%)</label><input id="gaMutationRate" type="number" value="15"/></div>
+                            <div><label title="Nº máximo de chaves que podem mudar de estado (NA→NF ou NF→NA) em relação à config. base. Use 99 para irrestrito.">Máx. Chaveamentos</label><input id="inpMaxChav" type="number" value="99" min="1" class="mono"/></div>
                         </div>
 
                         <div style="margin-top: 15px; display: flex; gap: 20px;">
@@ -827,12 +828,10 @@
     allLines: allLines, 
     linhaFalhaKeys: linhaFalhaKeys, 
     nb: nosAtivos.length > 0 ? Math.max(...nosAtivos) : 30, 
-    
-    // CORREÇÃO: Lê da interface em vez de ser estático!
     vMin: parseFloat(document.getElementById('inpVmin').value) || 0.93, 
     vMax: parseFloat(document.getElementById('inpVmax').value) || 1.05, 
-    
-    maxNALinhas: 99, // Deixe 99 se não for limitar as NA, ou crie um input para isso!
+    maxNALinhas: parseInt(document.getElementById('inpMaxChav').value) || 99,
+    baseDNA: allLines.map(l => l.defaultState),
     cargas, 
     Sbase: parseFloat(document.getElementById('sbase').value), 
     Vbase_kV: parseFloat(document.getElementById('vbase').value), 
@@ -870,12 +869,10 @@
        allLines: allLines, 
        linhaFalhaKeys: linhaFalhaKeys, 
        nb: nosAtivos.length > 0 ? Math.max(...nosAtivos) : 30, 
-    
-    // CORREÇÃO: Lê da interface em vez de ser estático!
     vMin: parseFloat(document.getElementById('inpVmin').value) || 0.93, 
     vMax: parseFloat(document.getElementById('inpVmax').value) || 1.05, 
-    
-    maxNALinhas: 99, // Deixe 99 se não for limitar as NA, ou crie um input para isso!
+    maxNALinhas: parseInt(document.getElementById('inpMaxChav').value) || 99,
+    baseDNA: allLines.map(l => l.defaultState),
     cargas, 
     Sbase: parseFloat(document.getElementById('sbase').value), 
     Vbase_kV: parseFloat(document.getElementById('vbase').value), 
